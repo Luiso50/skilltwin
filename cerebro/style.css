@@ -1,12 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #06070d;
-  --panel-bg: rgba(15, 18, 36, 0.4);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --primary-glow: rgba(0, 242, 254, 0.15);
+  --bg-color: #07111f;
+  --panel-bg: rgba(10, 20, 34, 0.72);
+  --panel-border: rgba(148, 163, 184, 0.16);
+  --text-primary: #edf2f7;
+  --text-secondary: #9aa9bc;
+  --primary-glow: rgba(112, 225, 245, 0.15);
+  --accent-warm: #ff7a18;
+  --accent-gold: #ffd166;
   
   /* Department Colors */
   --color-cerebro: #00f2fe;
@@ -34,21 +36,24 @@ body {
   height: 100vh;
   overflow: hidden;
   display: flex;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(0, 242, 254, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
+  background-image:
+    radial-gradient(circle at top left, rgba(112, 225, 245, 0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(255, 209, 102, 0.12), transparent 18%),
+    radial-gradient(circle at bottom left, rgba(255, 122, 24, 0.11), transparent 22%),
+    linear-gradient(180deg, rgba(4, 10, 21, 0.94), rgba(7, 17, 31, 1));
 }
 
 /* Sidebar Styling */
 .sidebar {
   width: 280px;
-  background: rgba(10, 11, 19, 0.6);
+  background: rgba(4, 10, 21, 0.72);
   border-right: 1px solid var(--panel-border);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.02);
 }
 
 .brand-section {
@@ -59,17 +64,10 @@ body {
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--color-cerebro), var(--color-desarrollo));
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-family: var(--font-title);
-  color: #000;
-  box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  box-shadow: 0 12px 30px rgba(255, 122, 24, 0.24);
   animation: logo-glow 3s infinite alternate;
 }
 
@@ -82,11 +80,11 @@ body {
 
 .brand-badge {
   font-size: 0.65rem;
-  background: rgba(0, 242, 254, 0.1);
-  color: var(--color-cerebro);
+  background: rgba(255, 122, 24, 0.12);
+  color: var(--accent-gold);
   padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(0, 242, 254, 0.2);
+  border: 1px solid rgba(255, 122, 24, 0.18);
   margin-left: 0.5rem;
 }
 
@@ -111,8 +109,8 @@ body {
 
 .nav-item.active a, .nav-item a:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
-  border-left: 3px solid var(--color-cerebro);
+  background: linear-gradient(90deg, rgba(255, 122, 24, 0.12), rgba(112, 225, 245, 0.06));
+  border-left: 3px solid var(--accent-warm);
 }
 
 .user-profile {
@@ -126,7 +124,7 @@ body {
 .avatar {
   width: 44px;
   height: 44px;
-  background: #1f2937;
+  background: linear-gradient(135deg, rgba(255, 122, 24, 0.18), rgba(112, 225, 245, 0.12));
   border-radius: 50%;
   border: 2px solid var(--color-operaciones);
   display: flex;
@@ -159,12 +157,17 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 22px;
+  background: rgba(9, 19, 32, 0.74);
+  backdrop-filter: blur(18px);
 }
 
 .page-title h1 {
   font-family: var(--font-title);
-  font-size: 1.75rem;
+  font-size: 1.95rem;
   font-weight: 700;
 }
 
@@ -185,10 +188,47 @@ body {
   gap: 0.5rem;
   font-size: 0.85rem;
   background: rgba(16, 185, 129, 0.1);
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 20px;
   border: 1px solid rgba(16, 185, 129, 0.2);
   color: var(--color-operaciones);
+}
+
+.executive-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.executive-card {
+  padding: 1.15rem 1.25rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(10, 20, 34, 0.84), rgba(9, 18, 30, 0.72));
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16);
+}
+
+.executive-card span {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-gold);
+}
+
+.executive-card strong {
+  display: block;
+  font-family: var(--font-title);
+  font-size: 1.05rem;
+  margin-bottom: 0.45rem;
+}
+
+.executive-card p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .status-dot {
@@ -212,18 +252,28 @@ body {
 .glass-panel {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
+  border-radius: 22px;
+  backdrop-filter: blur(14px);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
   transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 122, 24, 0), rgba(255, 122, 24, 0.35), rgba(112, 225, 245, 0));
 }
 
 .glass-panel:hover {
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 32px 0 rgba(0, 242, 254, 0.03);
+  box-shadow: 0 20px 44px rgba(255, 122, 24, 0.06);
 }
 
 /* Cerebro Agent Panel (Large) */
@@ -282,7 +332,7 @@ body {
 /* Chat Terminal inside Cerebro */
 .chat-terminal {
   flex: 1;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(2, 9, 19, 0.54);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 12px;
   padding: 1rem;
@@ -346,8 +396,8 @@ body {
 }
 
 .chat-btn {
-  background: linear-gradient(135deg, var(--color-cerebro), #00b4d8);
-  color: #000;
+  background: linear-gradient(135deg, var(--accent-warm), #ffb347);
+  color: #08111d;
   border: none;
   border-radius: 10px;
   padding: 0 1.5rem;
@@ -359,7 +409,7 @@ body {
 
 .chat-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+  box-shadow: 0 0 18px rgba(255, 122, 24, 0.28);
 }
 
 /* Departments Sidebar Panel */
@@ -389,7 +439,7 @@ body {
 }
 
 .dep-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   padding: 1rem;
@@ -414,7 +464,7 @@ body {
 
 .dep-card:hover {
   transform: translateX(4px);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .dep-card-header {
@@ -484,7 +534,7 @@ body {
 
 .console-logs {
   flex: 1;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(2, 9, 19, 0.56);
   border: 1px solid rgba(255, 255, 255, 0.03);
   border-radius: 10px;
   padding: 0.75rem;
@@ -525,8 +575,8 @@ body {
 
 /* Animations */
 @keyframes logo-glow {
-  0% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
-  100% { box-shadow: 0 0 25px rgba(0, 242, 254, 0.5); }
+  0% { box-shadow: 0 0 10px rgba(255, 122, 24, 0.14); }
+  100% { box-shadow: 0 0 24px rgba(112, 225, 245, 0.28); }
 }
 
 @keyframes pulse {
