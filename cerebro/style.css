@@ -614,10 +614,10 @@ body {
 
 /* Botón de Acción Estándar */
 .action-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(255, 122, 24, 0.18), rgba(112, 225, 245, 0.08));
   border: 1px solid var(--panel-border);
   color: #fff;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 0.75rem 1.25rem;
   font-family: var(--font-title);
   font-weight: 600;
@@ -630,9 +630,9 @@ body {
 }
 
 .action-btn:hover {
-  background: #fff;
-  color: #000;
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #ff7a18, #ffb347);
+  color: #08111d;
+  box-shadow: 0 12px 28px rgba(255, 122, 24, 0.24);
   transform: translateY(-2px);
 }
 
@@ -649,6 +649,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: linear-gradient(180deg, rgba(11, 21, 35, 0.86), rgba(8, 16, 28, 0.72));
 }
 
 .dep-header-badge {
@@ -659,8 +660,8 @@ body {
   text-transform: uppercase;
   border: 1px solid currentColor;
   padding: 3px 8px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .department-detail-card h3 {
@@ -678,10 +679,10 @@ body {
 .dep-stats {
   display: flex;
   gap: 1.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: rgba(2, 9, 19, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 0.75rem 1rem;
-  border-radius: 10px;
+  border-radius: 14px;
   margin-top: auto;
 }
 
@@ -708,6 +709,7 @@ body {
   display: flex;
   gap: 0.5rem;
   width: 100%;
+  align-items: stretch;
 }
 
 /* 2. MERCADO DE CLONES (CATÁLOGO + PLAYGROUND CHAT) */
@@ -730,6 +732,7 @@ body {
   font-family: var(--font-title);
   font-size: 1.5rem;
   margin-bottom: 0.25rem;
+  letter-spacing: -0.03em;
 }
 
 .section-title-wrapper p {
@@ -743,25 +746,37 @@ body {
   gap: 1rem;
   overflow-y: auto;
   padding-right: 0.5rem;
+  align-content: start;
   flex: 1;
 }
 
 .clone-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: linear-gradient(180deg, rgba(11, 21, 35, 0.86), rgba(8, 16, 28, 0.72));
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.clone-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 122, 24, 0), rgba(255, 122, 24, 0.4), rgba(112, 225, 245, 0));
 }
 
 .clone-card:hover {
   transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, rgba(14, 25, 42, 0.92), rgba(9, 18, 31, 0.76));
   border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
 }
 
 .clone-card-header {
@@ -773,9 +788,9 @@ body {
 .clone-card-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--color-desarrollo), var(--color-cerebro));
-  color: #000;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-warm), var(--color-cerebro));
+  color: #08111d;
   font-family: var(--font-title);
   font-weight: 800;
   display: flex;
@@ -818,10 +833,10 @@ body {
 }
 
 .clone-card-btn {
-  background: var(--color-desarrollo);
-  color: #fff;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.92), rgba(112, 225, 245, 0.72));
+  color: #08111d;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 0.6rem;
   font-family: var(--font-title);
   font-weight: 600;
@@ -833,7 +848,7 @@ body {
 
 .clone-card-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 10px 20px rgba(112, 225, 245, 0.2);
 }
 
 /* Estado de carga */
@@ -863,13 +878,14 @@ body {
   gap: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--panel-border);
+  margin-bottom: 0.25rem;
 }
 
 .active-clone-avatar {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(255, 122, 24, 0.18), rgba(112, 225, 245, 0.16));
   border: 1.5px solid var(--panel-border);
   display: flex;
   align-items: center;
@@ -893,9 +909,9 @@ body {
 
 .test-chat-box {
   flex: 1;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(2, 9, 19, 0.56);
   border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 1rem;
   overflow-y: auto;
   margin: 1rem 0;
@@ -944,12 +960,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  background: linear-gradient(180deg, rgba(11, 21, 35, 0.88), rgba(8, 16, 28, 0.74));
 }
 
 .settings-panel h2 {
   font-family: var(--font-title);
   color: var(--color-operaciones);
   font-size: 1.5rem;
+  letter-spacing: -0.03em;
 }
 
 .settings-intro {
@@ -969,7 +987,7 @@ body {
   font-family: var(--font-title);
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--accent-gold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -983,6 +1001,23 @@ body {
 .api-key-wrapper {
   display: flex;
   gap: 0.5rem;
+  align-items: stretch;
+}
+
+.chat-input-select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  outline: none;
+  width: 100%;
+  transition: var(--transition-smooth);
+}
+
+.chat-input-select:focus {
+  border-color: var(--color-cerebro);
+  box-shadow: 0 0 10px rgba(112, 225, 245, 0.12);
 }
 
 .form-help {
