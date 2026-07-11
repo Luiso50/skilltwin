@@ -80,15 +80,9 @@ select {
   gap: 1rem;
 }
 
-.brand-mark {
+.brand-logo {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  background: linear-gradient(135deg, #ff7a18, #70e1f5);
-  color: #fff;
   box-shadow: 0 10px 30px rgba(255, 122, 24, 0.28);
 }
 
