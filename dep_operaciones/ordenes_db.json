@@ -99,7 +99,25 @@
             ],
             "monto_total": 2300.0,
             "comision": 300.0,
-            "archivos_entregables": []
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": "FAC-20260711-7A248657",
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
         },
         "ORD-20260705-005B81": {
             "id": "ORD-20260705-005B81",
@@ -215,9 +233,9 @@
             "archivos_entregables": [],
             "pago": {
                 "factura_id": "FAC-20260705-691E46E3",
-                "estado_pago": "pagada",
-                "metodo_pago": "pendiente",
-                "fecha_pago": "2026-07-05T13:12:36.625609"
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
             },
             "rating": {
                 "puntuacion": 5,
