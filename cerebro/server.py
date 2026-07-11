@@ -53,6 +53,16 @@ if INICIAL_SETTINGS.get("gemini_key"):
 if INICIAL_SETTINGS.get("model"):
     os.environ["GEMINI_MODEL"] = INICIAL_SETTINGS["model"]
 
+
+class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        exc_type, exc, _ = sys.exc_info()
+        if exc_type in (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            return
+        super().handle_error(request, client_address)
+
 class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path):
         # Servir archivos estáticos desde el directorio fijo /cerebro/.
@@ -75,7 +85,22 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
-        if self.path == '/api/clones':
+        if self.path == '/favicon.ico':
+            try:
+                logo_path = os.path.join(CEREBRO_DIR, 'logo-mark.svg')
+                with open(logo_path, 'rb') as favicon_file:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'image/svg+xml')
+                    self.end_headers()
+                    self.wfile.write(favicon_file.read())
+            except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                return
+            except Exception as e:
+                self.send_response(404)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+        elif self.path == '/api/clones':
             try:
                 datos = motor_clonacion.cargar_datos()
                 self.send_response(200)
@@ -662,8 +687,8 @@ def run_server():
     print("[SERVIDOR] Orquestador automático iniciado")
     
     Handler = CerebroHandler
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    ThreadingTCPServer.allow_reuse_address = True
+    with ThreadingTCPServer(("", PORT), Handler) as httpd:
         print("\n" + "="*50)
         print(f"      SERVIDOR SKILLTWIN HABILITADO EN PUERTO {PORT}")
         print("="*50)
