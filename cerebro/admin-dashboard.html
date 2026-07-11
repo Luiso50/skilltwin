@@ -7,6 +7,8 @@
   <title>SkillTwin Admin - Panel de Control</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
     * {
       margin: 0;
       padding: 0;
@@ -14,22 +16,26 @@
     }
 
     :root {
-      --primary: #00f2fe;
-      --secondary: #a855f7;
-      --accent: #ec4899;
+      --primary: #70e1f5;
+      --secondary: #ff7a18;
+      --accent: #ffd166;
       --success: #10b981;
       --warning: #eab308;
       --danger: #ef4444;
-      --dark-bg: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.8);
-      --text-primary: #f1f5f9;
-      --text-secondary: #cbd5e1;
-      --border: rgba(100, 116, 139, 0.2);
+      --dark-bg: #07111f;
+      --card-bg: rgba(10, 20, 34, 0.82);
+      --text-primary: #edf2f7;
+      --text-secondary: #a5b4c7;
+      --border: rgba(148, 163, 184, 0.18);
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--dark-bg) 0%, #1a2f4d 100%);
+      font-family: 'Manrope', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(112, 225, 245, 0.14), transparent 25%),
+        radial-gradient(circle at top right, rgba(255, 209, 102, 0.14), transparent 18%),
+        radial-gradient(circle at bottom left, rgba(255, 122, 24, 0.12), transparent 24%),
+        linear-gradient(180deg, #06101d 0%, var(--dark-bg) 100%);
       color: var(--text-primary);
       min-height: 100vh;
       padding: 20px;
@@ -45,11 +51,22 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 30px;
-      padding: 20px;
+      padding: 24px;
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
+      border-radius: 22px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255, 122, 24, 0), rgba(255, 122, 24, 0.35), rgba(112, 225, 245, 0));
     }
 
     .logo-section {
@@ -58,22 +75,22 @@
       gap: 15px;
     }
 
-    .logo {
-      font-size: 2rem;
-      font-weight: bold;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .logo-mark {
+      width: 54px;
+      height: 54px;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 28px rgba(255, 122, 24, 0.22));
     }
 
     .title-section h1 {
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       color: var(--primary);
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.03em;
     }
 
     .title-section p {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       color: var(--text-secondary);
     }
 
@@ -81,11 +98,11 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 12px;
-      background: rgba(168, 85, 247, 0.2);
-      border: 1px solid var(--secondary);
-      border-radius: 6px;
-      color: var(--secondary);
+      padding: 10px 14px;
+      background: rgba(255, 122, 24, 0.12);
+      border: 1px solid rgba(255, 122, 24, 0.2);
+      border-radius: 999px;
+      color: var(--accent);
       font-size: 0.85rem;
     }
 
@@ -99,9 +116,20 @@
     .stat-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 18px;
       padding: 20px;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.14);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255, 122, 24, 0), rgba(255, 122, 24, 0.3), rgba(112, 225, 245, 0));
     }
 
     .stat-card h3 {
@@ -113,10 +141,11 @@
     }
 
     .stat-value {
-      font-size: 2rem;
+      font-size: 2.2rem;
       font-weight: bold;
       color: var(--primary);
       margin-bottom: 5px;
+      font-family: 'Space Grotesk', sans-serif;
     }
 
     .stat-detail {
@@ -156,9 +185,20 @@
     .panel {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 22px;
       padding: 25px;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.16);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255, 122, 24, 0), rgba(255, 122, 24, 0.35), rgba(112, 225, 245, 0));
     }
 
     .panel h2 {
@@ -168,6 +208,8 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.03em;
     }
 
     .table-container {
@@ -181,7 +223,7 @@
     }
 
     th {
-      background: rgba(0, 242, 254, 0.1);
+      background: rgba(112, 225, 245, 0.08);
       color: var(--primary);
       padding: 12px;
       text-align: left;
@@ -196,7 +238,7 @@
     }
 
     tr:hover {
-      background: rgba(0, 242, 254, 0.05);
+      background: rgba(112, 225, 245, 0.05);
     }
 
     .badge {
@@ -226,22 +268,27 @@
       position: relative;
       height: 300px;
       margin-top: 20px;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(7, 17, 31, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     .btn {
-      padding: 8px 12px;
+      padding: 10px 14px;
       border: none;
-      border-radius: 6px;
+      border-radius: 10px;
       cursor: pointer;
       font-size: 0.85rem;
       transition: all 0.3s ease;
-      background: rgba(0, 242, 254, 0.2);
+      background: rgba(112, 225, 245, 0.12);
       color: var(--primary);
       border: 1px solid var(--primary);
+      font-family: 'Space Grotesk', sans-serif;
     }
 
     .btn:hover {
-      background: rgba(0, 242, 254, 0.4);
+      background: rgba(112, 225, 245, 0.22);
       transform: translateY(-2px);
     }
 
@@ -275,16 +322,24 @@
       display: flex;
       gap: 10px;
       margin-top: 20px;
+      flex-wrap: wrap;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
+      background: linear-gradient(135deg, var(--secondary), #ffb347);
+      color: #08111d;
       border: none;
     }
 
     .btn-primary:hover {
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+      box-shadow: 0 12px 24px rgba(255, 122, 24, 0.24);
+    }
+
+    @media (max-width: 860px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -293,10 +348,10 @@
     <!-- Header -->
     <header>
       <div class="logo-section">
-        <div class="logo">⚡</div>
+        <img class="logo-mark" src="/logo-mark.svg" alt="Logo de SkillTwin">
         <div class="title-section">
           <h1>SkillTwin Control Center</h1>
-          <p>Panel de Administración Ejecutiva</p>
+          <p>Panel ejecutivo para supervisar ingresos, operaciones y estado comercial del sistema.</p>
         </div>
       </div>
       <div class="admin-badge">
@@ -401,7 +456,7 @@
   </div>
 
   <script>
-    const API_BASE = 'http://localhost:8000/api';
+    const API_BASE = '/api';
     let chart = null;
 
     // Cargar datos del dashboard
