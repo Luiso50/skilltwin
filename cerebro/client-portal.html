@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Portal de Clientes SkillTwin - Solicita acceso a gemelos digitales de expertos">
+  <title>SkillTwin - Portal de Clientes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #00f2fe;
+      --secondary: #a855f7;
+      --accent: #ec4899;
+      --success: #10b981;
+      --warning: #eab308;
+      --danger: #ef4444;
+      --dark-bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.8);
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --border: rgba(100, 116, 139, 0.2);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--dark-bg) 0%, #1a2f4d 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 25px;
+      backdrop-filter: blur(10px);
+    }
+
+    .panel h2 {
+      margin-bottom: 20px;
+      font-size: 1.3rem;
+      color: var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.5);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.95rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #000;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 242, 254, 0.3);
+    }
+
+    .input-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .input-group input {
+      grid-column: span 1;
+    }
+
+    .notifications {
+      display: none;
+    }
+
+    .notifications.active {
+      display: block;
+    }
+
+    .notification-item {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 4px solid var(--success);
+      padding: 15px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      animation: slideIn 0.3s ease;
+    }
+
+    .notification-item.warning {
+      background: rgba(234, 179, 8, 0.1);
+      border-left-color: var(--warning);
+    }
+
+    .notification-item.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left-color: var(--danger);
+    }
+
+    .notification-item.info {
+      background: rgba(0, 242, 254, 0.1);
+      border-left-color: var(--primary);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .notification-timestamp {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 5px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 15px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+
+    .order-item {
+      background: rgba(0, 242, 254, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .order-id {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .order-status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-pendiente {
+      background: rgba(234, 179, 8, 0.2);
+      color: var(--warning);
+    }
+
+    .status-en_proceso {
+      background: rgba(0, 242, 254, 0.2);
+      color: var(--primary);
+    }
+
+    .status-completada {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .order-details {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .progress-steps {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: rgba(0, 242, 254, 0.1);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .step.complete {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .step.active {
+      background: rgba(0, 242, 254, 0.2);
+      color: var(--primary);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .alert {
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 4px solid var(--success);
+      color: var(--success);
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid var(--danger);
+      color: var(--danger);
+    }
+
+    .clones-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .clone-card {
+      background: rgba(0, 242, 254, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .clone-card:hover {
+      border-color: var(--primary);
+      background: rgba(0, 242, 254, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .clone-card.selected {
+      border-color: var(--primary);
+      background: rgba(0, 242, 254, 0.2);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+    }
+
+    .clone-name {
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .clone-specialty {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .payment-form {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid var(--secondary);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .payment-form.active {
+      display: block;
+    }
+
+    .rating-form {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid var(--warning);
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .rating-form.active {
+      display: block;
+    }
+
+    .star-rating {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .star {
+      font-size: 2rem;
+      cursor: pointer;
+      opacity: 0.3;
+      transition: all 0.2s;
+    }
+
+    .star:hover,
+    .star.active {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-small {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      background: rgba(0, 242, 254, 0.2);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-small:hover {
+      background: rgba(0, 242, 254, 0.4);
+    }
+
+    .payment-status {
+      font-size: 0.85rem;
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(0, 242, 254, 0.1);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .admin-link {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .admin-link a {
+      color: var(--secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .admin-link a:hover {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo">⚡ SkillTwin</div>
+      <p class="tagline">Acceso a gemelos digitales de expertos profesionales</p>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid">
+      <!-- Left Panel: Request Form -->
+      <div class="panel">
+        <h2>📝 Solicitar Servicio</h2>
+
+        <div id="alert-container"></div>
+
+        <form id="request-form">
+          <div class="form-group">
+            <label for="email">Tu Email</label>
+            <input type="email" id="email" name="email" required placeholder="cliente@empresa.com">
+          </div>
+
+          <div class="form-group">
+            <label>Selecciona un Clon</label>
+            <div class="clones-grid" id="clones-grid">
+              <div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">
+                <span class="loading"></span> Cargando expertos disponibles...
+              </div>
+            </div>
+            <input type="hidden" id="clon_id" name="clon_id" required>
+          </div>
+
+          <div class="input-group">
+            <div class="form-group">
+              <label for="horas">Horas Necesarias</label>
+              <input type="number" id="horas" name="horas" min="1" max="1000" required placeholder="Ej: 40">
+            </div>
+            <div class="form-group">
+              <label for="tarifa">Tarifa ($/hora)</label>
+              <input type="number" id="tarifa" name="tarifa" value="50" readonly style="opacity: 0.7;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="descripcion">Descripción del Proyecto</label>
+            <textarea id="descripcion" name="descripcion" required placeholder="Cuéntanos qué necesitas que haga el clon..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="contrato" name="contrato" checked>
+              <span>Incluir contrato legal</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary">🚀 Crear Orden</button>
+        </form>
+      </div>
+
+      <!-- Right Panel: Orders & Notifications -->
+      <div class="panel">
+        <h2>📦 Mis Órdenes</h2>
+
+        <div class="section-title">Notificaciones Recientes</div>
+        <div id="notifications-container" class="notifications">
+          <!-- Dinámico -->
+        </div>
+
+        <div class="section-title">Órdenes Activas</div>
+        <div id="orders-container">
+          <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
+            Aún no tienes órdenes. ¡Crea una para empezar!
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.9rem;">
+          <p><strong>💡 Tip:</strong> Las órdenes se procesan automáticamente a través de nuestros departamentos.</p>
+          <p style="margin-top: 8px; color: var(--text-secondary);">El sistema te enviará notificaciones en cada etapa.</p>
+          <div class="admin-link">
+            <p>¿Eres administrador? <a href="/admin-dashboard.html" target="_blank">Acceder al panel de control →</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000/api';
+    let selectedCloneId = null;
+
+    // Cargar clones disponibles
+    async function loadClones() {
+      try {
+        const res = await fetch(`${API_BASE}/clones-list`);
+        const data = await res.json();
+        renderClones(data.clones || []);
+      } catch (err) {
+        console.error('Error cargando clones:', err);
+        document.getElementById('clones-grid').innerHTML = 
+          '<div style="grid-column: 1/-1; color: var(--danger); text-align: center;">Error al cargar clones</div>';
+      }
+    }
+
+    function renderClones(clones) {
+      const grid = document.getElementById('clones-grid');
+      if (clones.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; color: var(--text-secondary); text-align: center;">No hay clones disponibles</div>';
+        return;
+      }
+
+      grid.innerHTML = clones.map(clone => `
+        <div class="clone-card" data-clone-id="${clone.id}" onclick="selectClone('${clone.id}', this)">
+          <div class="clone-name">${clone.nombre}</div>
+          <div class="clone-specialty">${clone.especialidad}</div>
+        </div>
+      `).join('');
+    }
+
+    function selectClone(cloneId, element) {
+      document.querySelectorAll('.clone-card').forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
+      selectedCloneId = cloneId;
+      document.getElementById('clon_id').value = cloneId;
+    }
+
+    // Mostrar alertas
+    function showAlert(message, type = 'success') {
+      const container = document.getElementById('alert-container');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type} show`;
+      alert.textContent = message;
+      container.innerHTML = '';
+      container.appendChild(alert);
+      setTimeout(() => alert.classList.remove('show'), 5000);
+    }
+
+    // Crear orden
+    document.getElementById('request-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const horas = parseInt(document.getElementById('horas').value);
+      const descripcion = document.getElementById('descripcion').value;
+      const contrato = document.getElementById('contrato').checked;
+
+      if (!selectedCloneId) {
+        showAlert('Por favor selecciona un experto', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/crear-orden`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cliente_email: email,
+            clon_id: selectedCloneId,
+            cantidad_horas: horas,
+            descripcion_proyecto: descripcion,
+            requiere_contrato: contrato
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showAlert(`✅ Orden ${data.orden_id} creada. Se procesará automáticamente.`, 'success');
+          document.getElementById('request-form').reset();
+          selectedCloneId = null;
+          document.querySelectorAll('.clone-card').forEach(el => el.classList.remove('selected'));
+          setTimeout(() => loadOrdenes(email), 1000);
+        } else {
+          showAlert(data.error || 'Error al crear orden', 'error');
+        }
+      } catch (err) {
+        showAlert('Error: ' + err.message, 'error');
+      }
+    });
+
+    // Cargar órdenes del cliente
+    async function loadOrdenes(email) {
+      if (!email) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/ordenes?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        renderOrdenes(data.ordenes || []);
+        loadNotificaciones(email);
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    }
+
+    function renderOrdenes(ordenes) {
+      const container = document.getElementById('orders-container');
+
+      if (ordenes.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Aún no tienes órdenes. ¡Crea una para empezar!</div>';
+        return;
+      }
+
+      container.innerHTML = ordenes.map((orden, idx) => {
+        const etapas = orden.etapas || {};
+        const etapasArray = Object.entries(etapas).map(([nombre, etapa]) => ({
+          nombre,
+          ...etapa
+        }));
+
+        const mostrarPago = orden.pago && orden.pago.estado_pago === 'pendiente' && orden.estado === 'completada';
+        const mostrarRating = orden.rating && !orden.rating.puntuacion && orden.estado === 'completada';
+
+        return `
+          <div class="order-item">
+            <div class="order-header">
+              <span class="order-id">${orden.id}</span>
+              <span class="order-status status-${orden.estado}">${orden.estado.toUpperCase()}</span>
+            </div>
+            <div class="order-details">
+              <strong>${orden.clon_id}</strong> • ${orden.cantidad_horas} horas • $${orden.monto_total ? orden.monto_total.toFixed(2) : 'Calculando...'}
+            </div>
+            <div class="progress-steps">
+              ${etapasArray.map((etapa, i) => `
+                <div class="step ${etapa.estado === 'completada' ? 'complete' : etapa.estado === 'en_proceso' ? 'active' : ''}">
+                  ${etapa.nombre.charAt(0).toUpperCase() + etapa.nombre.slice(1)}
+                </div>
+              `).join('')}
+            </div>
+
+            ${mostrarPago ? `
+              <div class="payment-form active">
+                <strong style="color: var(--warning);">💳 Procesar Pago</strong>
+                <div style="margin-top: 10px;">
+                  <select id="metodo-pago-${idx}" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px; background: rgba(15, 23, 42, 0.5); color: var(--text-primary);">
+                    <option value="tarjeta_credito">💳 Tarjeta de Crédito</option>
+                    <option value="transferencia_bancaria">🏦 Transferencia Bancaria</option>
+                    <option value="wallet_cripto">₿ Wallet Cripto</option>
+                  </select>
+                  <button class="btn-small" onclick="procesarPago('${orden.id}', ${idx})">✓ Pagar $${orden.monto_total ? orden.monto_total.toFixed(2) : '0.00'}</button>
+                </div>
+              </div>
+            ` : ''}
+
+            ${orden.pago && orden.pago.estado_pago === 'pagada' ? `
+              <div class="payment-status">
+                ✅ Pagado con ${orden.pago.metodo_pago} • ${new Date(orden.pago.fecha_pago).toLocaleDateString('es-ES')}
+              </div>
+            ` : ''}
+
+            ${mostrarRating ? `
+              <div class="rating-form active">
+                <strong style="color: var(--warning);">⭐ Califica este servicio</strong>
+                <div class="star-rating" id="stars-${idx}">
+                  ${[1,2,3,4,5].map(i => `<span class="star" onclick="seleccionarEstrella(${idx}, ${i})">★</span>`).join('')}
+                </div>
+                <textarea placeholder="Cuéntanos tu experiencia (opcional)" id="review-${idx}" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: rgba(15, 23, 42, 0.5); color: var(--text-primary); resize: vertical; min-height: 60px;"></textarea>
+                <button class="btn-small" style="margin-top: 8px; background: rgba(234, 179, 8, 0.2); color: var(--warning); border-color: var(--warning);" onclick="enviarRating('${orden.id}', ${idx})">Enviar Calificación</button>
+              </div>
+            ` : ''}
+
+            ${orden.rating && orden.rating.puntuacion ? `
+              <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.85rem;">
+                ⭐ Tu calificación: ${'★'.repeat(orden.rating.puntuacion)}${'☆'.repeat(5-orden.rating.puntuacion)} (${orden.rating.puntuacion}/5)
+                ${orden.rating.resena ? `<br/><em>"${orden.rating.resena}"</em>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    let estrellasSeleccionadas = {};
+
+    function seleccionarEstrella(idx, valor) {
+      estrellasSeleccionadas[idx] = valor;
+      const estrellas = document.querySelectorAll(`#stars-${idx} .star`);
+      estrellas.forEach((star, i) => {
+        if (i < valor) {
+          star.classList.add('active');
+        } else {
+          star.classList.remove('active');
+        }
+      });
+    }
+
+    async function procesarPago(orden_id, idx) {
+      const metodo = document.getElementById(`metodo-pago-${idx}`).value;
+      
+      try {
+        const res = await fetch(`${API_BASE}/procesar-pago`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            factura_id: orden_id,  // En producción sería el factura_id real
+            metodo_pago: metodo
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showAlert(`✅ Pago procesado exitosamente. Referencia: ${data.resultado.codigo_autorizacion}`, 'success');
+          setTimeout(() => loadOrdenes(document.getElementById('email').value), 1500);
+        } else {
+          showAlert(data.error || 'Error al procesar pago', 'error');
+        }
+      } catch (err) {
+        showAlert('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function enviarRating(orden_id, idx) {
+      const puntuacion = estrellasSeleccionadas[idx];
+      const resena = document.getElementById(`review-${idx}`).value;
+
+      if (!puntuacion) {
+        showAlert('Por favor selecciona una calificación', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/agregar-rating`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orden_id: orden_id,
+            puntuacion: puntuacion,
+            resena: resena
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showAlert('⭐ ¡Gracias por tu calificación!', 'success');
+          setTimeout(() => loadOrdenes(document.getElementById('email').value), 1500);
+        } else {
+          showAlert(data.error || 'Error al enviar calificación', 'error');
+        }
+      } catch (err) {
+        showAlert('Error: ' + err.message, 'error');
+      }
+    }
+
+    // Cargar notificaciones
+    async function loadNotificaciones(email) {
+      if (!email) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/notificaciones?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        renderNotificaciones(data.notificaciones || []);
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    }
+
+    function renderNotificaciones(notificaciones) {
+      const container = document.getElementById('notifications-container');
+
+      if (notificaciones.length === 0) {
+        container.classList.remove('active');
+        return;
+      }
+
+      container.classList.add('active');
+      container.innerHTML = notificaciones.slice(0, 5).map((notif, i) => {
+        const timestamp = new Date(notif.timestamp).toLocaleString('es-ES');
+        let tipo = 'info';
+        if (notif.tipo === 'error') tipo = 'error';
+        else if (notif.tipo === 'completada') tipo = 'success';
+
+        return `
+          <div class="notification-item ${tipo}">
+            <div>${notif.mensaje}</div>
+            <div class="notification-timestamp">${timestamp}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Auto-refresh
+    document.getElementById('email').addEventListener('blur', (e) => {
+      if (e.target.value) {
+        loadOrdenes(e.target.value);
+      }
+    });
+
+    // Initial load
+    loadClones();
+  </script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard del Cerebro Central de SkillTwin. Monitorea y coordina tus departamentos de IA de manera autónoma.">
+  <title>SkillTwin HQ - Cerebro Central</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Librería de Gráficos para Análisis Financiero -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Lateral Navigation Bar -->
+  <aside class="sidebar" aria-label="Navegación Principal">
+    <div class="sidebar-top">
+      <div class="brand-section">
+        <div class="brand-logo" aria-hidden="true">ST</div>
+        <div>
+          <span class="brand-name">SkillTwin</span>
+          <span class="brand-badge">HQ</span>
+        </div>
+      </div>
+      
+      <nav>
+        <ul class="nav-links">
+          <li class="nav-item active"><a href="#" id="nav-overview"><span>🧠</span> Cerebro Central</a></li>
+          <li class="nav-item"><a href="#" id="nav-departments"><span>📁</span> Departamentos</a></li>
+          <li class="nav-item"><a href="#" id="nav-marketplace"><span>🛒</span> Mercado Clones</a></li>
+          <li class="nav-item"><a href="#" id="nav-settings"><span>⚙️</span> Ajustes Empresa</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- User profile card -->
+    <div class="user-profile">
+      <div class="avatar" id="owner-avatar">O</div>
+      <div class="user-info">
+        <div class="user-name">Propietario</div>
+        <div class="user-role">Fundador & CEO</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Workspace Area -->
+  <main class="dashboard-container">
+    
+    <!-- Top System Header -->
+    <header class="top-bar">
+      <div class="page-title">
+        <h1>Centro de Orquestación</h1>
+        <p>Monitoreo en tiempo real de operaciones automatizadas</p>
+      </div>
+      <div class="system-status">
+        <div class="status-indicator">
+          <div class="status-dot" id="system-health-dot"></div>
+          <span id="system-health-text">Cerebro Conectado: Sincronizado</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid Layout (Overview View) -->
+    <div id="view-overview" class="tab-view active-view">
+      <section class="dashboard-grid" aria-label="Paneles de control">
+        
+        <!-- Left Panel: Brain Core & Decision Chat -->
+        <article class="glass-panel cerebro-panel" id="panel-cerebro-chat">
+          <div class="cerebro-header">
+            <div class="brain-graphic" aria-hidden="true">
+              <div class="brain-core"></div>
+              <svg class="brain-svg" viewBox="0 0 100 100">
+                <!-- Animated SVG Brain Lines -->
+                <path d="M50 20 C35 20, 20 35, 20 50 C20 65, 35 80, 50 80 C65 80, 80 65, 80 50 C80 35, 65 20, 50 20 Z" />
+                <path d="M50 20 C45 35, 45 65, 50 80" />
+                <path d="M20 50 C35 45, 65 45, 80 50" />
+                <circle cx="50" cy="50" r="4" fill="#00f2fe" />
+                <circle cx="35" cy="35" r="3" fill="#a855f7" />
+                <circle cx="65" cy="35" r="3" fill="#ec4899" />
+                <circle cx="35" cy="65" r="3" fill="#eab308" />
+                <circle cx="65" cy="65" r="3" fill="#10b981" />
+              </svg>
+            </div>
+            <div class="cerebro-title">
+              <h2>Cerebro Central v1.0</h2>
+              <p id="cerebro-activity">Estado: Escuchando órdenes...</p>
+            </div>
+          </div>
+
+          <!-- Chat / Console Output -->
+          <div class="chat-terminal" id="cerebro-chat-box" role="log" aria-live="polite">
+            <div class="chat-bubble cerebro-msg">
+              Hola, Propietario. Bienvenido a **SkillTwin HQ**. La empresa se encuentra en su fase inicial. ¿Cuál es tu primera directiva? Escribe en el chat para comunicarme con los departamentos.
+            </div>
+          </div>
+
+          <!-- Input Area -->
+          <div class="chat-input-wrapper">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Escribe una instrucción al Cerebro..." autocomplete="off">
+            <button id="send-btn" class="chat-btn">Enviar</button>
+          </div>
+        </article>
+
+        <!-- Right Panel: Departments Status -->
+        <article class="glass-panel" id="panel-departments-status">
+          <div class="panel-header">
+            <h2>Departamentos</h2>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);" id="active-agents-count">Agentes activos: 4/4</span>
+          </div>
+
+          <div class="dep-list">
+            
+            <!-- Development Card -->
+            <div class="dep-card dep-desarrollo" id="dep-dev-card">
+              <div class="dep-card-header">
+                <span class="dep-name">I+D e Ingeniería</span>
+                <span class="dep-status status-idle" id="dep-dev-status">Esperando</span>
+              </div>
+              <p class="dep-desc" id="dep-dev-desc">Construcción del motor de clonación y frontend del marketplace.</p>
+              <div class="dep-progress-bar">
+                <div class="dep-progress-fill" id="dep-dev-progress"></div>
+              </div>
+            </div>
+
+            <!-- Marketing Card -->
+            <div class="dep-card dep-marketing" id="dep-marketing-card">
+              <div class="dep-card-header">
+                <span class="dep-name">Marketing & Ventas</span>
+                <span class="dep-status status-idle" id="dep-marketing-status">Esperando</span>
+              </div>
+              <p class="dep-desc" id="dep-marketing-desc">Posicionamiento SEO, anuncios y atracción de talentos expertos.</p>
+              <div class="dep-progress-bar">
+                <div class="dep-progress-fill" id="dep-marketing-progress"></div>
+              </div>
+            </div>
+
+            <!-- Legal Card -->
+            <div class="dep-card dep-legal" id="dep-legal-card">
+              <div class="dep-card-header">
+                <span class="dep-name">Legal & Ética</span>
+                <span class="dep-status status-idle" id="dep-legal-status">Esperando</span>
+              </div>
+              <p class="dep-desc" id="dep-legal-desc">Contratos de cesión de habilidades y cumplimiento de la Ley de IA.</p>
+              <div class="dep-progress-bar">
+                <div class="dep-progress-fill" id="dep-legal-progress"></div>
+              </div>
+            </div>
+
+            <!-- Operations Card -->
+            <div class="dep-card dep-operaciones" id="dep-operaciones-card">
+              <div class="dep-card-header">
+                <span class="dep-name">Operaciones & Marketplace</span>
+                <span class="dep-status status-idle" id="dep-operaciones-status">Esperando</span>
+              </div>
+              <p class="dep-desc" id="dep-operaciones-desc">Modelación financiera de comisiones y atención a usuarios.</p>
+              <div class="dep-progress-bar">
+                <div class="dep-progress-fill" id="dep-operaciones-progress"></div>
+              </div>
+            </div>
+
+          </div>
+        </article>
+
+        <!-- Bottom Panel: Real-Time Event Log -->
+        <article class="glass-panel console-panel" id="panel-live-console">
+          <div class="panel-header">
+            <h2>Consola del Sistema Operativo</h2>
+            <span style="font-size: 0.8rem; color: var(--color-cerebro);" id="console-live-tag">LIVE FEED</span>
+          </div>
+          <div class="console-logs" id="console-logs-box" role="log" aria-live="assertive">
+            <div class="log-entry">
+              <span class="log-time">12:00:00</span>
+              <span class="log-tag tag-cerebro">cerebro</span>
+              <span>Inicializando sistema de orquestación SkillTwin v1.0.0...</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">12:00:01</span>
+              <span class="log-tag tag-operaciones">operaciones</span>
+              <span>Estructura de directorios corporativos verificada en C:/Users/luisp/skilltwin/.</span>
+            </div>
+            <div class="log-entry">
+              <span class="log-time">12:00:02</span>
+              <span class="log-tag tag-cerebro">cerebro</span>
+              <span>Esperando instrucciones del propietario.</span>
+            </div>
+          </div>
+        </article>
+
+      </section>
+    </div>
+
+    <!-- Departments Detailed View -->
+    <div id="view-departments" class="tab-view" style="display: none;">
+      <section class="departments-detail-grid">
+        
+        <!-- Card 1: Desarrollo -->
+        <article class="glass-panel department-detail-card" id="detail-desarrollo">
+          <div class="dep-header-badge" style="border-color: var(--color-desarrollo); color: var(--color-desarrollo);">I+D e Ingeniería</div>
+          <h3>Motor de Clonación</h3>
+          <p>Responsable del entrenamiento de modelos de IA, empaquetado de habilidades cognitivas y almacenamiento seguro de bases de datos de conocimiento.</p>
+          <div class="dep-stats">
+            <div class="stat-item"><span class="stat-value" id="stats-total-clones">2</span><span class="stat-label">Clones Creados</span></div>
+            <div class="stat-item"><span class="stat-value">Gemini</span><span class="stat-label">Motor de IA</span></div>
+          </div>
+          <button class="action-btn" id="btn-test-dev" style="background: var(--color-desarrollo);">Ejecutar Diagnóstico de Motor</button>
+        </article>
+
+        <!-- Card 2: Marketing -->
+        <article class="glass-panel department-detail-card" id="detail-marketing">
+          <div class="dep-header-badge" style="border-color: var(--color-marketing); color: var(--color-marketing);">Marketing & Ventas</div>
+          <h3>Agente de Inteligencia de Mercado</h3>
+          <p>Encargado de analizar nichos de mercado a nivel global, identificar empresas objetivo y generar propuestas de correos en frío altamente persuasivas.</p>
+          <div class="dep-stats">
+            <div class="stat-item"><span class="stat-value">Real-Time</span><span class="stat-label">Scraping Web</span></div>
+            <div class="stat-item"><span class="stat-value" id="stats-last-nicho">COBOL</span><span class="stat-label">Último Análisis</span></div>
+          </div>
+          <div class="input-inline">
+            <input type="text" id="market-nicho-input" placeholder="ej. programacion COBOL" class="chat-input" style="font-size: 0.8rem; padding: 0.5rem;">
+            <button class="action-btn" id="btn-test-marketing" style="background: var(--color-marketing); padding: 0.5rem 1rem; font-size: 0.8rem; margin: 0;">Buscar Nicho</button>
+          </div>
+        </article>
+
+        <!-- Card 3: Legal -->
+        <article class="glass-panel department-detail-card" id="detail-legal">
+          <div class="dep-header-badge" style="border-color: var(--color-legal); color: var(--color-legal);">Legal & Ética</div>
+          <h3>Generador de Contratos Inteligentes</h3>
+          <p>Redacción automática de contratos digitales personalizados de arrendamiento de gemelos de IA y acuerdos de protección de propiedad intelectual.</p>
+          <div class="dep-stats">
+            <div class="stat-item"><span class="stat-value">IP-Protected</span><span class="stat-label">Estándar Legal</span></div>
+            <div class="stat-item"><span class="stat-value" id="stats-contracts-count">1</span><span class="stat-label">Contratos Guardados</span></div>
+          </div>
+          <div class="input-inline" style="flex-wrap: wrap; gap: 0.5rem;">
+            <input type="text" id="legal-name-input" placeholder="Nombre Experto" class="chat-input" style="font-size: 0.8rem; padding: 0.5rem; flex: 1; min-width: 100px;">
+            <input type="text" id="legal-id-input" placeholder="ID de Clon" class="chat-input" style="font-size: 0.8rem; padding: 0.5rem; flex: 1; min-width: 80px;">
+            <input type="text" id="legal-spec-input" placeholder="Especialidad" class="chat-input" style="font-size: 0.8rem; padding: 0.5rem; flex: 1; min-width: 100px;">
+            <button class="action-btn" id="btn-test-legal" style="background: var(--color-legal); padding: 0.5rem 1rem; font-size: 0.8rem; margin: 0; width: 100%;">Generar Acuerdo</button>
+          </div>
+        </article>
+
+        <!-- Card 4: Operaciones -->
+        <article class="glass-panel department-detail-card" id="detail-operaciones">
+          <div class="dep-header-badge" style="border-color: var(--color-operaciones); color: var(--color-operaciones);">Operaciones & Finanzas</div>
+          <h3>Gestor Financiero</h3>
+          <p>Auditoría de ingresos en tiempo real, alertas de liquidez, cuentas por cobrar/pagar y cálculo de comisiones de la plataforma.</p>
+          <div class="dep-stats">
+            <div class="stat-item"><span class="stat-value" id="stats-fin-real">$1,200</span><span class="stat-label">Ingreso Real Mes</span></div>
+            <div class="stat-item"><span class="stat-value" id="stats-alertas-count">2</span><span class="stat-label">Alertas de Pago</span></div>
+          </div>
+          <div class="chart-container" style="margin-top: 1rem; height: 200px; position: relative;">
+            <canvas id="financesChart"></canvas>
+          </div>
+          <button class="action-btn" id="btn-test-operaciones" style="background: var(--color-operaciones);">Calcular Sugerencias Financieras</button>
+        </article>
+
+      </section>
+    </div>
+
+    <!-- Marketplace / Clones View -->
+    <div id="view-marketplace" class="tab-view" style="display: none;">
+      <div class="marketplace-layout">
+        <!-- Left Side: Clones Grid -->
+        <div class="marketplace-clones-section">
+          <div class="section-title-wrapper">
+            <h2>Catálogo de Gemelos Digitales</h2>
+            <p>Selecciona un clon de IA entrenado para iniciar una conversación de prueba interactiva.</p>
+          </div>
+          <div class="marketplace-grid" id="clones-grid">
+            <div class="loading-clones">Cargando catálogo de habilidades...</div>
+          </div>
+        </div>
+
+        <!-- Right Side: Test Chat Console -->
+        <div class="marketplace-chat-section">
+          <div class="glass-panel test-chat-panel">
+            <div class="test-chat-header" id="active-clone-header">
+              <div class="active-clone-avatar" id="active-clone-avatar">ST</div>
+              <div class="active-clone-info">
+                <h3 id="active-clone-name">Selecciona un Clon</h3>
+                <p id="active-clone-specialty">Listo para iniciar conversación de prueba</p>
+              </div>
+            </div>
+            
+            <div class="test-chat-box" id="test-chat-box">
+              <div class="test-chat-placeholder" id="test-chat-placeholder">
+                <div class="pulse-icon">💬</div>
+                <p>Haz clic en el botón <strong>"Probar Clon"</strong> de cualquier experto de la lista para conversar con su gemelo digital.</p>
+              </div>
+            </div>
+
+            <div class="test-chat-input-wrapper">
+              <input type="text" id="test-chat-input" placeholder="Escribe tu consulta al clon..." class="chat-input" disabled autocomplete="off">
+              <button id="test-send-btn" class="chat-btn" disabled style="background: var(--color-desarrollo);">Consultar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings / Adjustments View -->
+    <div id="view-settings" class="tab-view" style="display: none;">
+      <div class="settings-layout">
+        <div class="glass-panel settings-panel">
+          <h2>Configuración Corporativa</h2>
+          <p class="settings-intro">Define los parámetros de orquestación, llaves de API externas y comisiones operativas de SkillTwin.</p>
+          
+          <form id="settings-form" onsubmit="event.preventDefault();">
+            <div class="form-group">
+              <label for="input-gemini-key">Google Gemini API Key</label>
+              <div class="api-key-wrapper">
+                <input type="password" id="input-gemini-key" placeholder="Configura tu API Key de Gemini..." class="chat-input">
+                <button type="button" class="action-btn" id="btn-toggle-key" style="margin: 0; padding: 0.75rem 1rem; width: auto; background: rgba(255,255,255,0.05); font-size: 0.85rem;">Mostrar</button>
+              </div>
+              <small class="form-help">Utilizada por el Motor de Clonación y el Agente de Ventas para respuestas de IA reales.</small>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-commission">Comisión de la Plataforma (%)</label>
+                <input type="number" id="input-commission" min="1" max="90" value="15" class="chat-input">
+                <small class="form-help">Porcentaje retenido por SkillTwin Corp sobre cada transacción.</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="input-model">Modelo de Lenguaje (LLM)</label>
+                <select id="input-model" class="chat-input-select" style="background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); color: #fff; padding: 0.75rem; border-radius: 10px; outline: none; width: 100%;">
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Alta Precisión)</option>
+                </select>
+                <small class="form-help">Modelo predeterminado para las consultas.</small>
+              </div>
+            </div>
+
+            <button type="submit" class="action-btn" id="btn-save-settings" style="background: var(--color-operaciones); margin-top: 1.5rem; width: 100%;">Guardar Cambios Corporativos</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

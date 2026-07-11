@@ -1,0 +1,16 @@
+{
+    "clones": {
+        "rsanchez_cobol": {
+            "nombre": "Roberto Sánchez",
+            "especialidad": "Programador Senior de COBOL",
+            "conocimiento": "La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION. Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO. Los archivos secuenciales indexados se definen en el FILE-CONTROL bajo la ENVIRONMENT DIVISION.",
+            "fecha_creacion": "2026-07-04"
+        },
+        "ana_finanzas": {
+            "nombre": "Ana Gómez",
+            "especialidad": "Asesora de Finanzas Personales",
+            "conocimiento": "La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas. Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.",
+            "fecha_creacion": "2026-07-04"
+        }
+    }
+}

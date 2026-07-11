@@ -1,0 +1,2 @@
+# Dependencias estándar de Python
+# Ninguna dependencia externa requerida para ejecutar el prototipo actual.

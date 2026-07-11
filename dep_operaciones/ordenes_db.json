@@ -1,0 +1,237 @@
+{
+    "ordenes": {
+        "ORD-20260705-54981B": {
+            "id": "ORD-20260705-54981B",
+            "cliente_email": "cliente@test.com",
+            "clon_id": "rsanchez_cobol",
+            "cantidad_horas": 40,
+            "descripcion_proyecto": "Necesito ayuda para desarrollar un sistema de procesamiento de archivos COBOL en mainframe.",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-07-05T13:04:00.141112",
+            "estado": "completada",
+            "etapas": {
+                "legal": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:04:04.249946",
+                    "fecha_fin": "2026-07-05T13:04:04.254303",
+                    "detalles": "Contrato generado y validado. Referencia: /contratos/contrato_ORD-20260705-54981B.txt"
+                },
+                "desarrollo": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:04:05.257875",
+                    "fecha_fin": "2026-07-05T13:04:07.261771",
+                    "detalles": "Instancia del clon lista. ID: rsanchez_cobol__ORD-20260705-54981B. Acceso: API disponible."
+                },
+                "operaciones": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:04:07.263670",
+                    "fecha_fin": "2026-07-05T13:04:08.274135",
+                    "detalles": "Factura procesada. Total: $2300.00 (Comisión: $300.00)"
+                },
+                "entrega": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:04:08.276612",
+                    "fecha_fin": "2026-07-05T13:04:09.279115",
+                    "detalles": "✅ Acceso entregado. Email enviado a cliente@test.com con credenciales."
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-07-05T13:04:00.141140",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:04.249967",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'legal' actualizada a 'en_proceso'. Generando contrato y políticas de privacidad...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:04.254321",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'legal' actualizada a 'completada'. Contrato generado y validado. Referencia: /contratos/contrato_ORD-20260705-54981B.txt",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:05.257885",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'desarrollo' actualizada a 'en_proceso'. Configurando instancia del clon 'rsanchez_cobol'...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:07.261799",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'desarrollo' actualizada a 'completada'. Instancia del clon lista. ID: rsanchez_cobol__ORD-20260705-54981B. Acceso: API disponible.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:07.263687",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'operaciones' actualizada a 'en_proceso'. Calculando monto total y procesando facturación...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:08.274146",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'operaciones' actualizada a 'completada'. Factura procesada. Total: $2300.00 (Comisión: $300.00)",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:08.276624",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'entrega' actualizada a 'en_proceso'. Generando credenciales de acceso y enviando al cliente...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:09.279125",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'entrega' actualizada a 'completada'. ✅ Acceso entregado. Email enviado a cliente@test.com con credenciales.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:04:09.279136",
+                    "tipo": "completada",
+                    "mensaje": "¡Orden completada! Se está preparando para entrega.",
+                    "leida": false
+                }
+            ],
+            "monto_total": 2300.0,
+            "comision": 300.0,
+            "archivos_entregables": []
+        },
+        "ORD-20260705-005B81": {
+            "id": "ORD-20260705-005B81",
+            "cliente_email": "cliente@test.com",
+            "clon_id": "ana_finanzas",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Análisis de cartera de inversión y recomendaciones",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-07-05T13:12:32.259887",
+            "estado": "completada",
+            "etapas": {
+                "legal": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:12:33.600984",
+                    "fecha_fin": "2026-07-05T13:12:33.606534",
+                    "detalles": "Contrato generado y validado con IA. Contrato guardado en sistema."
+                },
+                "desarrollo": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:12:34.610630",
+                    "fecha_fin": "2026-07-05T13:12:36.615660",
+                    "detalles": "Instancia del clon lista. ID: ana_finanzas__ORD-20260705-005B81. Acceso: API disponible."
+                },
+                "operaciones": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:12:36.618892",
+                    "fecha_fin": "2026-07-05T13:12:37.630771",
+                    "detalles": "✅ Factura creada: FAC-20260705-691E46E3. Total: $172.50 (Comisión: $22.50). Pendiente de pago."
+                },
+                "entrega": {
+                    "estado": "completada",
+                    "fecha_inicio": "2026-07-05T13:12:37.633977",
+                    "fecha_fin": "2026-07-05T13:12:38.637395",
+                    "detalles": "✅ Acceso entregado. Email enviado a cliente@test.com con credenciales."
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-07-05T13:12:32.259904",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:33.600994",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'legal' actualizada a 'en_proceso'. Generando contrato con IA...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:33.606549",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'legal' actualizada a 'completada'. Contrato generado y validado con IA. Contrato guardado en sistema.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:34.610643",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'desarrollo' actualizada a 'en_proceso'. Configurando instancia del clon 'ana_finanzas'...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:36.615670",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'desarrollo' actualizada a 'completada'. Instancia del clon lista. ID: ana_finanzas__ORD-20260705-005B81. Acceso: API disponible.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:36.618901",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'operaciones' actualizada a 'en_proceso'. Calculando monto total y procesando facturación...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:36.625623",
+                    "tipo": "pago_recibido",
+                    "mensaje": "💰 Pago recibido exitosamente. Método: pendiente",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:37.630784",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'operaciones' actualizada a 'completada'. ✅ Factura creada: FAC-20260705-691E46E3. Total: $172.50 (Comisión: $22.50). Pendiente de pago.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:37.633986",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'entrega' actualizada a 'en_proceso'. Generando credenciales de acceso y enviando al cliente...",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:38.637402",
+                    "tipo": "etapa_actualizada",
+                    "mensaje": "Etapa 'entrega' actualizada a 'completada'. ✅ Acceso entregado. Email enviado a cliente@test.com con credenciales.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:12:38.637411",
+                    "tipo": "completada",
+                    "mensaje": "¡Orden completada! Se está preparando para entrega.",
+                    "leida": false
+                },
+                {
+                    "timestamp": "2026-07-05T13:14:46.570057",
+                    "tipo": "rating_recibido",
+                    "mensaje": "⭐ Calificación recibida: 5/5 estrellas",
+                    "leida": false
+                }
+            ],
+            "monto_total": 172.5,
+            "comision": 22.5,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": "FAC-20260705-691E46E3",
+                "estado_pago": "pagada",
+                "metodo_pago": "pendiente",
+                "fecha_pago": "2026-07-05T13:12:36.625609"
+            },
+            "rating": {
+                "puntuacion": 5,
+                "resena": "¡Excelente servicio! Ana fue muy profesional y profunda en su análisis. Recomendado 100%.",
+                "fecha_rating": "2026-07-05T13:14:46.570045",
+                "cliente_satisfecho": true
+            },
+            "contrato": {
+                "texto_contrato": "\n════════════════════════════════════════════════════════════════════════════\n                CONTRATO DE LICENCIAMIENTO DE SERVICIOS PROFESIONALES\n════════════════════════════════════════════════════════════════════════════\n\nFECHA: 05 de July de 2026\nID DE ORDEN: ORD-20260705-005B81\n\nPARTES:\n1. LICENCIANTE: Ana Gómez\n   - Especialidad: Asesora de Finanzas Personales\n   - Identificado como: ORD-20260705-005B81_experto\n\n2. LICENCIATARIO (CLIENTE): cliente@test.com\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 1: OBJETO DEL CONTRATO\n────────────────────────────────────────────────────────────────────────────\n\nEl Licenciante se compromete a proporcionar servicios profesionales de asesoría \ny consultoría en el área de Asesora de Finanzas Personales por un total de 3 horas \nde trabajo.\n\nLos servicios se prestarán de conformidad con los más altos estándares de la \nindustria y de acuerdo con la ley aplicable.\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 2: TÉRMINOS ECONÓMICOS\n────────────────────────────────────────────────────────────────────────────\n\n- Tarifa por Hora: $0.00 USD\n- Horas Contratadas: 3 horas\n- Monto Total: $0.00 USD\n- Comisión de Plataforma: $0.00 USD (incluida en el total)\n- Total a Pagar: $0.00 USD\n\nEl pago debe realizarse según las indicaciones de SkillTwin.\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 3: PLAZO\n────────────────────────────────────────────────────────────────────────────\n\nEste contrato es válido desde 05 de July de 2026 hasta \n04 de August de 2026.\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 4: CONFIDENCIALIDAD\n────────────────────────────────────────────────────────────────────────────\n\nAmbas partes se comprometen a mantener en confidencialidad toda la información \ncompartida durante la prestación de servicios, excepto cuando lo autorice la ley \no sea necesario para cumplir obligaciones legales.\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 5: LIMITACIÓN DE RESPONSABILIDAD\n────────────────────────────────────────────────────────────────────────────\n\nSkillTwin actúa como plataforma intermediaria. Ni SkillTwin ni el Licenciante \nserán responsables por daños indirectos, incidentales o consecuentes que puedan \nderivarse del uso de los servicios.\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 6: TERMINACIÓN\n────────────────────────────────────────────────────────────────────────────\n\nEste contrato puede ser terminado por cualquiera de las partes con notificación \nescrita con 48 horas de anticipación. En caso de terminación anticipada, se \nfacturarán solo las horas trabajadas.\n\n────────────────────────────────────────────────────────────────────────────\nARTÍCULO 7: LEY APLICABLE\n────────────────────────────────────────────────────────────────────────────\n\nEste contrato se rige por las leyes del país donde SkillTwin está constituida y \npor los términos de servicio de la plataforma SkillTwin.\n\n════════════════════════════════════════════════════════════════════════════\n\nFIRMAS DIGITALES:\n\nLicenciante: Ana Gómez\nFecha: 05/07/2026 13:12\n✓ Digitalmente Firmado\n\nLicenciatario: cliente@test.com\nFecha: 05/07/2026 13:12\n✓ Digitalmente Firmado\n\nSkillTwin (Plataforma)\nFecha: 05/07/2026 13:12\n✓ Validado por Sistema\n\n════════════════════════════════════════════════════════════════════════════\n",
+                "generado_por_gemini": true,
+                "firma_cliente": false,
+                "fecha_firma": "2026-07-05T13:12:33.603549"
+            }
+        }
+    },
+    "contador_ordenes": 2
+}

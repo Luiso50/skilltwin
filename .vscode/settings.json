@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^python cerebro/server\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd c:\\\\Users\\\\luisp\\\\skilltwin ; C:/Users/luisp/AppData/Local/Python/pythoncore-3\\.14-64/python\\.exe - <<\"PY\"\nimport json, urllib\\.request\nreq = urllib\\.request\\.Request\\('http://127\\.0\\.0\\.1:8000/api/contacto', data=json\\.dumps\\(\\{\n    'nombre':'Test','email':'test@example\\.com','telefono':'123','empresa':'SkillTwin','interes':'demo','mensaje':'Hola'\n\\}\\)\\.encode\\(\\), headers=\\{'Content-Type':'application/json'\\}, method='POST'\\)\ntry:\n    with urllib\\.request\\.urlopen\\(req, timeout=10\\) as r:\n        print\\(r\\.status\\)\n        print\\(r\\.read\\(\\)\\.decode\\(\\)\\)\nexcept Exception as e:\n    print\\('ERROR', e\\)\nPY$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

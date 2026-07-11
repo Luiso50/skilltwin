@@ -1,0 +1,15 @@
+{
+    "contactos": [
+        {
+            "id": "CT-20260711-001",
+            "nombre": "Test",
+            "email": "test@example.com",
+            "telefono": "123",
+            "empresa": "SkillTwin",
+            "interes": "demo",
+            "mensaje": "Hola",
+            "fecha": "2026-07-11T15:29:00.737875",
+            "estado": "nuevo"
+        }
+    ]
+}

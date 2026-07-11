@@ -1,0 +1,68 @@
+{
+    "flujo_caja": {
+        "2026-05": {
+            "ingresos_plan": 1500.0,
+            "ingresos_real": 1420.0,
+            "egresos_plan": 600.0,
+            "egresos_real": 620.0
+        },
+        "2026-06": {
+            "ingresos_plan": 2200.0,
+            "ingresos_real": 2450.0,
+            "egresos_plan": 800.0,
+            "egresos_real": 780.0
+        },
+        "2026-07": {
+            "ingresos_plan": 3500.0,
+            "ingresos_real": 1200.0,
+            "egresos_plan": 1200.0,
+            "egresos_real": 950.0
+        }
+    },
+    "cuentas_cobrar": [
+        {
+            "id": "FAC-001",
+            "cliente": "Banco del Norte (Alquiler Clon COBOL)",
+            "monto": 850.0,
+            "vencimiento": "2026-06-30",
+            "estado": "Pendiente"
+        },
+        {
+            "id": "FAC-002",
+            "cliente": "Consultora Tecno (Alquiler Clon Legal IA)",
+            "monto": 1200.0,
+            "vencimiento": "2026-07-09",
+            "estado": "Pendiente"
+        },
+        {
+            "id": "FAC-003",
+            "cliente": "Startup Alpha (Asesoría Finanzas)",
+            "monto": 400.0,
+            "vencimiento": "2026-06-24",
+            "estado": "Cobrado"
+        }
+    ],
+    "cuentas_pagar": [
+        {
+            "id": "PROV-001",
+            "proveedor": "OpenAI / Gemini API (Infraestructura)",
+            "monto": 350.0,
+            "vencimiento": "2026-07-06",
+            "estado": "Pendiente"
+        },
+        {
+            "id": "PROV-002",
+            "proveedor": "Servidores Cloud AWS",
+            "monto": 150.0,
+            "vencimiento": "2026-07-16",
+            "estado": "Pendiente"
+        },
+        {
+            "id": "PROV-003",
+            "proveedor": "Desarrollador Freelance (Soporte)",
+            "monto": 500.0,
+            "vencimiento": "2026-07-03",
+            "estado": "Pagado"
+        }
+    ]
+}

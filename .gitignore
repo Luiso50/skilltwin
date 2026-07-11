@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+venv/
+.venv/
+
+# Server settings and local configuration
+server_settings.json
+
+# Run scripts cache and local logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
