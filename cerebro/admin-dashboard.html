@@ -431,6 +431,18 @@
         <div class="stat-value" id="conversion-cobro">-</div>
         <div class="stat-detail">Facturas efectivamente pagadas</div>
       </div>
+
+      <div class="stat-card warning">
+        <h3>Valor Pendiente</h3>
+        <div class="stat-value" id="valor-pendiente">-</div>
+        <div class="stat-detail">Importe todavía por cobrar</div>
+      </div>
+
+      <div class="stat-card">
+        <h3>Órdenes Sin Factura</h3>
+        <div class="stat-value" id="ordenes-sin-factura">-</div>
+        <div class="stat-detail">Casos legacy o pendientes de normalizar</div>
+      </div>
     </div>
 
     <!-- Main Sections -->
@@ -590,6 +602,10 @@
       const montoOrdenes = ordenes.reduce((acc, orden) => acc + (orden.monto_total || 0), 0);
       const ticketPromedio = totalOrdenes > 0 ? montoOrdenes / totalOrdenes : 0;
       const conversionCobro = totalFacturas > 0 ? (facturasPagadas / totalFacturas) * 100 : 0;
+      const valorPendiente = facturas
+        .filter(factura => factura.estado === 'pendiente')
+        .reduce((acc, factura) => acc + (factura.monto_total || 0), 0);
+      const ordenesSinFactura = ordenes.filter(orden => !orden.pago || !orden.pago.factura_id).length;
 
       document.getElementById('total-ordenes').textContent = totalOrdenes;
       document.getElementById('ordenes-completadas').textContent = ordenesCompletadas;
@@ -598,6 +614,8 @@
       document.getElementById('total-facturas').textContent = totalFacturas;
       document.getElementById('ticket-promedio').textContent = '$' + ticketPromedio.toFixed(2);
       document.getElementById('conversion-cobro').textContent = `${conversionCobro.toFixed(0)}%`;
+      document.getElementById('valor-pendiente').textContent = '$' + valorPendiente.toFixed(2);
+      document.getElementById('ordenes-sin-factura').textContent = ordenesSinFactura;
 
       renderInsights({
         totalOrdenes,
@@ -606,7 +624,9 @@
         ticketPromedio,
         conversionCobro,
         facturasPagadas,
-        totalFacturas
+        totalFacturas,
+        valorPendiente,
+        ordenesSinFactura
       });
     }
 
@@ -623,6 +643,12 @@
       const cobro = metricas.totalFacturas > 0
         ? `${metricas.facturasPagadas} de ${metricas.totalFacturas} facturas están cobradas.`
         : 'Todavía no hay facturas emitidas en el sistema.';
+      const riesgo = metricas.valorPendiente > 0
+        ? `Hay $${metricas.valorPendiente.toFixed(2)} pendientes de cobro que siguen en riesgo operativo.`
+        : 'No hay valor pendiente de cobro en este momento.';
+      const legacy = metricas.ordenesSinFactura > 0
+        ? `${metricas.ordenesSinFactura} órdenes no tienen factura vinculada y requieren revisión o migración.`
+        : 'Todas las órdenes activas tienen factura vinculada o están normalizadas.';
 
       insightsList.innerHTML = `
         <article class="insight-item">
@@ -640,6 +666,14 @@
         <article class="insight-item">
           <strong>Liquidez</strong>
           <p>${caja}</p>
+        </article>
+        <article class="insight-item">
+          <strong>Valor en riesgo</strong>
+          <p>${riesgo}</p>
+        </article>
+        <article class="insight-item">
+          <strong>Normalización operativa</strong>
+          <p>${legacy}</p>
         </article>
       `;
     }
