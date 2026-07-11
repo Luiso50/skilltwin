@@ -681,6 +681,7 @@ def run_server():
     gestor_financiero.inicializar_finanzas()
     gestor_ordenes.inicializar_ordenes()
     gestor_pagos.inicializar_pagos()
+    gestor_pagos.reconciliar_facturas_con_ordenes()
     
     # Iniciar orquestador automático
     orquestador.iniciar_orquestador()
