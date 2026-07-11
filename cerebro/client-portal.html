@@ -561,6 +561,12 @@
       color: var(--text-secondary);
       line-height: 1.5;
     }
+
+    .estimate-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
   </style>
 </head>
 <body>
@@ -626,6 +632,15 @@
             </label>
           </div>
 
+          <div class="form-group">
+            <label for="plan">Plan de servicio</label>
+            <select id="plan" name="plan">
+              <option value="demo">Demo estratégica</option>
+              <option value="piloto" selected>Piloto corporativo</option>
+              <option value="licencia">Licencia de concepto</option>
+            </select>
+          </div>
+
           <div class="estimate-card" aria-live="polite">
             <h3>Resumen estimado</h3>
             <div class="estimate-row">
@@ -639,6 +654,23 @@
             <div class="estimate-row">
               <span>Tarifa de referencia</span>
               <strong id="estimate-rate">$50/h</strong>
+            </div>
+            <div class="estimate-row">
+              <span>Plan</span>
+              <strong id="estimate-plan">Piloto corporativo</strong>
+            </div>
+            <div class="estimate-divider"></div>
+            <div class="estimate-row">
+              <span>Subtotal operativo</span>
+              <strong id="estimate-subtotal">$0.00</strong>
+            </div>
+            <div class="estimate-row">
+              <span>Comisión de plataforma</span>
+              <strong id="estimate-commission">15%</strong>
+            </div>
+            <div class="estimate-row">
+              <span>Contrato y validación</span>
+              <strong id="estimate-legal">$0.00</strong>
             </div>
             <div class="estimate-row estimate-total">
               <span>Total estimado</span>
@@ -683,19 +715,38 @@
     let selectedCloneId = null;
     let selectedCloneName = null;
 
+    const PLAN_CONFIG = {
+      demo: { label: 'Demo estratégica', multiplier: 1, legalFee: 0 },
+      piloto: { label: 'Piloto corporativo', multiplier: 1.15, legalFee: 120 },
+      licencia: { label: 'Licencia de concepto', multiplier: 1.35, legalFee: 260 }
+    };
+
     function updateEstimate() {
       const horas = parseInt(document.getElementById('horas').value || '0', 10) || 0;
       const tarifa = parseFloat(document.getElementById('tarifa').value || '0') || 0;
-      const total = horas * tarifa;
+      const contratoActivo = document.getElementById('contrato').checked;
+      const planValue = document.getElementById('plan').value;
+      const plan = PLAN_CONFIG[planValue] || PLAN_CONFIG.piloto;
+      const subtotal = horas * tarifa * plan.multiplier;
+      const legalFee = contratoActivo ? plan.legalFee : 0;
+      const total = subtotal + legalFee;
 
       const estimateClone = document.getElementById('estimate-clone');
       const estimateHours = document.getElementById('estimate-hours');
       const estimateRate = document.getElementById('estimate-rate');
+      const estimatePlan = document.getElementById('estimate-plan');
+      const estimateSubtotal = document.getElementById('estimate-subtotal');
+      const estimateCommission = document.getElementById('estimate-commission');
+      const estimateLegal = document.getElementById('estimate-legal');
       const estimateTotal = document.getElementById('estimate-total');
 
       if (estimateClone) estimateClone.textContent = selectedCloneName || 'Pendiente';
       if (estimateHours) estimateHours.textContent = `${horas} h`;
       if (estimateRate) estimateRate.textContent = `$${tarifa.toFixed(2)}/h`;
+      if (estimatePlan) estimatePlan.textContent = plan.label;
+      if (estimateSubtotal) estimateSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      if (estimateCommission) estimateCommission.textContent = `${Math.round((plan.multiplier - 1) * 100 + 15)}%`;
+      if (estimateLegal) estimateLegal.textContent = `$${legalFee.toFixed(2)}`;
       if (estimateTotal) estimateTotal.textContent = `$${total.toFixed(2)}`;
     }
 
@@ -999,6 +1050,8 @@
 
     document.getElementById('horas').addEventListener('input', updateEstimate);
     document.getElementById('tarifa').addEventListener('input', updateEstimate);
+    document.getElementById('plan').addEventListener('change', updateEstimate);
+    document.getElementById('contrato').addEventListener('change', updateEstimate);
 
     // Initial load
     loadClones();
