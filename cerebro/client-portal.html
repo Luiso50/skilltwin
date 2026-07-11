@@ -6,6 +6,8 @@
   <meta name="description" content="Portal de Clientes SkillTwin - Solicita acceso a gemelos digitales de expertos">
   <title>SkillTwin - Portal de Clientes</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
     * {
       margin: 0;
       padding: 0;
@@ -13,22 +15,26 @@
     }
 
     :root {
-      --primary: #00f2fe;
-      --secondary: #a855f7;
-      --accent: #ec4899;
+      --primary: #70e1f5;
+      --secondary: #ff7a18;
+      --accent: #ffd166;
       --success: #10b981;
       --warning: #eab308;
       --danger: #ef4444;
-      --dark-bg: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.8);
-      --text-primary: #f1f5f9;
-      --text-secondary: #cbd5e1;
-      --border: rgba(100, 116, 139, 0.2);
+      --dark-bg: #07111f;
+      --card-bg: rgba(10, 20, 34, 0.82);
+      --text-primary: #edf2f7;
+      --text-secondary: #a5b4c7;
+      --border: rgba(148, 163, 184, 0.18);
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--dark-bg) 0%, #1a2f4d 100%);
+      font-family: 'Manrope', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(112, 225, 245, 0.14), transparent 25%),
+        radial-gradient(circle at top right, rgba(255, 209, 102, 0.14), transparent 18%),
+        radial-gradient(circle at bottom left, rgba(255, 122, 24, 0.12), transparent 24%),
+        linear-gradient(180deg, #06101d 0%, var(--dark-bg) 100%);
       color: var(--text-primary);
       min-height: 100vh;
       padding: 20px;
@@ -40,25 +46,53 @@
     }
 
     header {
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1.5rem;
       margin-bottom: 40px;
-      padding: 20px 0;
+      padding: 20px 0 24px;
       border-bottom: 1px solid var(--border);
     }
 
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-mark {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 28px rgba(255, 122, 24, 0.2));
+    }
+
     .logo {
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-weight: 700;
+      margin-bottom: 8px;
     }
 
     .tagline {
       color: var(--text-secondary);
-      font-size: 0.95rem;
+      font-size: 1rem;
+      max-width: 640px;
+      line-height: 1.5;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
 
     .grid {
@@ -69,7 +103,16 @@
     }
 
     @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
       .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .input-group {
         grid-template-columns: 1fr;
       }
     }
@@ -77,15 +120,28 @@
     .panel {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 25px;
-      backdrop-filter: blur(10px);
+      border-radius: 22px;
+      padding: 28px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255, 122, 24, 0), rgba(255, 122, 24, 0.35), rgba(112, 225, 245, 0));
     }
 
     .panel h2 {
       margin-bottom: 20px;
       font-size: 1.3rem;
       color: var(--primary);
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.03em;
     }
 
     .form-group {
@@ -102,10 +158,10 @@
 
     input, select, textarea {
       width: 100%;
-      padding: 10px 12px;
+      padding: 12px 14px;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      background: rgba(7, 17, 31, 0.55);
       color: var(--text-primary);
       font-family: inherit;
       font-size: 0.95rem;
@@ -115,8 +171,8 @@
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
-      background: rgba(15, 23, 42, 0.8);
-      box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+      background: rgba(7, 17, 31, 0.86);
+      box-shadow: 0 0 12px rgba(112, 225, 245, 0.15);
     }
 
     textarea {
@@ -135,14 +191,15 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
+      background: linear-gradient(135deg, var(--secondary), #ffb347);
+      color: #08111d;
       width: 100%;
+      font-family: 'Space Grotesk', sans-serif;
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(0, 242, 254, 0.3);
+      box-shadow: 0 12px 24px rgba(255, 122, 24, 0.24);
     }
 
     .input-group {
@@ -206,16 +263,17 @@
 
     .section-title {
       font-size: 1.1rem;
-      color: var(--primary);
+      color: var(--accent);
       margin-bottom: 15px;
       margin-top: 20px;
       font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
     }
 
     .order-item {
-      background: rgba(0, 242, 254, 0.05);
+      background: rgba(7, 17, 31, 0.52);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 14px;
       padding: 15px;
       margin-bottom: 12px;
     }
@@ -332,10 +390,10 @@
     }
 
     .clone-card {
-      background: rgba(0, 242, 254, 0.05);
+      background: linear-gradient(180deg, rgba(11, 21, 35, 0.88), rgba(8, 16, 28, 0.74));
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 14px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -346,14 +404,14 @@
 
     .clone-card:hover {
       border-color: var(--primary);
-      background: rgba(0, 242, 254, 0.1);
+      background: linear-gradient(180deg, rgba(14, 25, 42, 0.94), rgba(10, 18, 30, 0.78));
       transform: translateY(-2px);
     }
 
     .clone-card.selected {
       border-color: var(--primary);
-      background: rgba(0, 242, 254, 0.2);
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+      background: linear-gradient(180deg, rgba(112, 225, 245, 0.16), rgba(8, 16, 28, 0.82));
+      box-shadow: 0 0 18px rgba(112, 225, 245, 0.2);
     }
 
     .clone-name {
@@ -438,8 +496,8 @@
       font-size: 0.85rem;
       margin-top: 8px;
       padding: 8px;
-      background: rgba(0, 242, 254, 0.1);
-      border-radius: 4px;
+      background: rgba(7, 17, 31, 0.65);
+      border-radius: 8px;
       color: var(--text-secondary);
     }
 
@@ -467,8 +525,16 @@
   <div class="container">
     <!-- Header -->
     <header>
-      <div class="logo">⚡ SkillTwin</div>
-      <p class="tagline">Acceso a gemelos digitales de expertos profesionales</p>
+      <div>
+        <div class="brand-wrap">
+          <img class="logo-mark" src="/logo-mark.svg" alt="Logo de SkillTwin">
+          <div>
+            <div class="logo">SkillTwin Client Portal</div>
+            <p class="tagline">Solicita, sigue y califica servicios ejecutados por gemelos digitales de expertos con una experiencia más clara y profesional.</p>
+          </div>
+        </div>
+      </div>
+      <div class="header-badge">Operación conectada</div>
     </header>
 
     <!-- Main Grid -->
