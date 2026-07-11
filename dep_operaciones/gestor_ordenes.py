@@ -5,6 +5,50 @@ from datetime import datetime, timedelta
 
 DB_ORDENES = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
 
+
+def _asegurar_esquema_orden(orden):
+    actualizado = False
+
+    if "archivos_entregables" not in orden:
+        orden["archivos_entregables"] = []
+        actualizado = True
+
+    if "pago" not in orden:
+        orden["pago"] = {
+            "factura_id": None,
+            "estado_pago": "pendiente",
+            "metodo_pago": None,
+            "fecha_pago": None
+        }
+        actualizado = True
+
+    if "rating" not in orden:
+        orden["rating"] = {
+            "puntuacion": None,
+            "resena": "",
+            "fecha_rating": None,
+            "cliente_satisfecho": None
+        }
+        actualizado = True
+
+    if "contrato" not in orden:
+        orden["contrato"] = {
+            "texto_contrato": None,
+            "generado_por_gemini": False,
+            "firma_cliente": False,
+            "fecha_firma": None
+        }
+        actualizado = True
+
+    pago = orden.get("pago", {})
+    if pago.get("metodo_pago") == "pendiente" and pago.get("estado_pago") == "pagada":
+        pago["estado_pago"] = "pendiente"
+        pago["metodo_pago"] = None
+        pago["fecha_pago"] = None
+        actualizado = True
+
+    return actualizado
+
 def inicializar_ordenes():
     """Crea la base de datos de órdenes si no existe."""
     if not os.path.exists(DB_ORDENES):
@@ -18,7 +62,16 @@ def inicializar_ordenes():
 def cargar_ordenes():
     inicializar_ordenes()
     with open(DB_ORDENES, "r", encoding="utf-8") as f:
-        return json.load(f)
+        datos = json.load(f)
+
+    actualizado = False
+    for orden in datos.get("ordenes", {}).values():
+        actualizado = _asegurar_esquema_orden(orden) or actualizado
+
+    if actualizado:
+        guardar_ordenes(datos)
+
+    return datos
 
 def guardar_ordenes(datos):
     with open(DB_ORDENES, "w", encoding="utf-8") as f:
@@ -272,17 +325,30 @@ def actualizar_pago_orden(orden_id, factura_id, metodo_pago):
     
     orden = datos["ordenes"][orden_id]
     orden["pago"]["factura_id"] = factura_id
-    orden["pago"]["metodo_pago"] = metodo_pago
-    orden["pago"]["fecha_pago"] = datetime.now().isoformat()
-    orden["pago"]["estado_pago"] = "pagada"
-    
-    notificacion = {
-        "timestamp": datetime.now().isoformat(),
-        "tipo": "pago_recibido",
-        "mensaje": f"💰 Pago recibido exitosamente. Método: {metodo_pago}",
-        "leida": False
-    }
-    orden["notificaciones"].append(notificacion)
+    if metodo_pago == "pendiente":
+        orden["pago"]["metodo_pago"] = None
+        orden["pago"]["fecha_pago"] = None
+        orden["pago"]["estado_pago"] = "pendiente"
+
+        notificacion = {
+            "timestamp": datetime.now().isoformat(),
+            "tipo": "factura_generada",
+            "mensaje": f"🧾 Factura generada: {factura_id}. Pendiente de pago.",
+            "leida": False
+        }
+        orden["notificaciones"].append(notificacion)
+    else:
+        orden["pago"]["metodo_pago"] = metodo_pago
+        orden["pago"]["fecha_pago"] = datetime.now().isoformat()
+        orden["pago"]["estado_pago"] = "pagada"
+
+        notificacion = {
+            "timestamp": datetime.now().isoformat(),
+            "tipo": "pago_recibido",
+            "mensaje": f"💰 Pago recibido exitosamente. Método: {metodo_pago}",
+            "leida": False
+        }
+        orden["notificaciones"].append(notificacion)
     
     guardar_ordenes(datos)
     return True
