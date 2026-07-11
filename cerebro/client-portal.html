@@ -519,6 +519,48 @@
       color: var(--primary);
       text-decoration: underline;
     }
+
+    .estimate-card {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(11, 21, 35, 0.92), rgba(8, 16, 28, 0.82));
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 10px;
+    }
+
+    .estimate-card h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+
+    .estimate-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+    }
+
+    .estimate-row strong {
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+    }
+
+    .estimate-total {
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .estimate-note {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -584,6 +626,27 @@
             </label>
           </div>
 
+          <div class="estimate-card" aria-live="polite">
+            <h3>Resumen estimado</h3>
+            <div class="estimate-row">
+              <span>Experto seleccionado</span>
+              <strong id="estimate-clone">Pendiente</strong>
+            </div>
+            <div class="estimate-row">
+              <span>Horas proyectadas</span>
+              <strong id="estimate-hours">0 h</strong>
+            </div>
+            <div class="estimate-row">
+              <span>Tarifa de referencia</span>
+              <strong id="estimate-rate">$50/h</strong>
+            </div>
+            <div class="estimate-row estimate-total">
+              <span>Total estimado</span>
+              <strong id="estimate-total">$0.00</strong>
+            </div>
+            <p class="estimate-note">La cifra es una referencia comercial inicial. El monto definitivo puede variar según alcance, contrato y configuración del piloto.</p>
+          </div>
+
           <button type="submit" class="btn btn-primary">🚀 Crear Orden</button>
         </form>
       </div>
@@ -618,6 +681,23 @@
   <script>
     const API_BASE = '/api';
     let selectedCloneId = null;
+    let selectedCloneName = null;
+
+    function updateEstimate() {
+      const horas = parseInt(document.getElementById('horas').value || '0', 10) || 0;
+      const tarifa = parseFloat(document.getElementById('tarifa').value || '0') || 0;
+      const total = horas * tarifa;
+
+      const estimateClone = document.getElementById('estimate-clone');
+      const estimateHours = document.getElementById('estimate-hours');
+      const estimateRate = document.getElementById('estimate-rate');
+      const estimateTotal = document.getElementById('estimate-total');
+
+      if (estimateClone) estimateClone.textContent = selectedCloneName || 'Pendiente';
+      if (estimateHours) estimateHours.textContent = `${horas} h`;
+      if (estimateRate) estimateRate.textContent = `$${tarifa.toFixed(2)}/h`;
+      if (estimateTotal) estimateTotal.textContent = `$${total.toFixed(2)}`;
+    }
 
     // Cargar clones disponibles
     async function loadClones() {
@@ -651,7 +731,9 @@
       document.querySelectorAll('.clone-card').forEach(el => el.classList.remove('selected'));
       element.classList.add('selected');
       selectedCloneId = cloneId;
+      selectedCloneName = element.querySelector('.clone-name')?.textContent || cloneId;
       document.getElementById('clon_id').value = cloneId;
+      updateEstimate();
     }
 
     // Mostrar alertas
@@ -697,7 +779,9 @@
           showAlert(`✅ Orden ${data.orden_id} creada. Se procesará automáticamente.`, 'success');
           document.getElementById('request-form').reset();
           selectedCloneId = null;
+          selectedCloneName = null;
           document.querySelectorAll('.clone-card').forEach(el => el.classList.remove('selected'));
+          updateEstimate();
           setTimeout(() => loadOrdenes(email), 1000);
         } else {
           showAlert(data.error || 'Error al crear orden', 'error');
@@ -913,8 +997,12 @@
       }
     });
 
+    document.getElementById('horas').addEventListener('input', updateEstimate);
+    document.getElementById('tarifa').addEventListener('input', updateEstimate);
+
     // Initial load
     loadClones();
+    updateEstimate();
   </script>
 </body>
 </html>
