@@ -169,6 +169,14 @@
       color: var(--warning);
     }
 
+    .stat-card.accent {
+      border-color: rgba(255, 122, 24, 0.35);
+    }
+
+    .stat-card.accent .stat-value {
+      color: var(--accent);
+    }
+
     .sections {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -298,6 +306,32 @@
       color: var(--text-secondary);
     }
 
+    .insights-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .insight-item {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(7, 17, 31, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .insight-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.96rem;
+    }
+
+    .insight-item p {
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
     .loading {
       text-align: center;
       padding: 20px;
@@ -385,6 +419,18 @@
         <div class="stat-value" id="facturas-pagadas">-</div>
         <div class="stat-detail">De <span id="total-facturas">-</span> total</div>
       </div>
+
+      <div class="stat-card accent">
+        <h3>Ticket Promedio</h3>
+        <div class="stat-value" id="ticket-promedio">-</div>
+        <div class="stat-detail">Valor medio por orden</div>
+      </div>
+
+      <div class="stat-card">
+        <h3>Conversión de Cobro</h3>
+        <div class="stat-value" id="conversion-cobro">-</div>
+        <div class="stat-detail">Facturas efectivamente pagadas</div>
+      </div>
     </div>
 
     <!-- Main Sections -->
@@ -444,6 +490,13 @@
       </div>
     </div>
 
+    <div class="panel" style="margin-top: 30px;">
+      <h2>🧭 Insights Ejecutivos</h2>
+      <div class="insights-list" id="insights-list">
+        <div class="loading"><span></span> Generando insights...</div>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
     <div class="panel" style="margin-top: 30px;">
       <h2>⚙️ Acciones Rápidas</h2>
@@ -466,22 +519,20 @@
         const statsRes = await fetch(`${API_BASE}/admin-dashboard`);
         const stats = await statsRes.json();
 
-        // Actualizar cards de estadísticas
-        document.getElementById('total-ordenes').textContent = stats.ordenes.total_ordenes || 0;
-        document.getElementById('ordenes-completadas').textContent = stats.ordenes.ordenes_completadas || 0;
-        document.getElementById('ingresos-totales').textContent = '$' + (stats.pagos.monto_total_procesado || 0).toFixed(2);
-        document.getElementById('facturas-pagadas').textContent = stats.pagos.facturas_pagadas || 0;
-        document.getElementById('total-facturas').textContent = stats.pagos.total_facturas || 0;
-
         // Cargar órdenes
         const ordenesRes = await fetch(`${API_BASE}/ordenes`);
         const ordenesData = await ordenesRes.json();
-        renderOrdenes(ordenesData.ordenes || []);
+        const ordenes = ordenesData.ordenes || [];
+        renderOrdenes(ordenes);
 
         // Cargar transacciones (simuladas - todas del sistema)
         const transRes = await fetch(`${API_BASE}/facturas`);
         const transData = await transRes.json();
-        renderTransacciones(transData.facturas || []);
+        const facturas = transData.facturas || [];
+        renderTransacciones(facturas);
+
+        // Actualizar cards de estadísticas
+        actualizarMetricas(stats, ordenes, facturas);
 
         // Actualizar gráfico
         actualizarGrafico(stats);
@@ -527,6 +578,70 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function actualizarMetricas(stats, ordenes, facturas) {
+      const totalOrdenes = stats.ordenes.total_ordenes || 0;
+      const ordenesCompletadas = stats.ordenes.ordenes_completadas || 0;
+      const ingresosProcesados = stats.pagos.monto_total_procesado || 0;
+      const facturasPagadas = stats.pagos.facturas_pagadas || 0;
+      const totalFacturas = stats.pagos.total_facturas || 0;
+
+      const montoOrdenes = ordenes.reduce((acc, orden) => acc + (orden.monto_total || 0), 0);
+      const ticketPromedio = totalOrdenes > 0 ? montoOrdenes / totalOrdenes : 0;
+      const conversionCobro = totalFacturas > 0 ? (facturasPagadas / totalFacturas) * 100 : 0;
+
+      document.getElementById('total-ordenes').textContent = totalOrdenes;
+      document.getElementById('ordenes-completadas').textContent = ordenesCompletadas;
+      document.getElementById('ingresos-totales').textContent = '$' + ingresosProcesados.toFixed(2);
+      document.getElementById('facturas-pagadas').textContent = facturasPagadas;
+      document.getElementById('total-facturas').textContent = totalFacturas;
+      document.getElementById('ticket-promedio').textContent = '$' + ticketPromedio.toFixed(2);
+      document.getElementById('conversion-cobro').textContent = `${conversionCobro.toFixed(0)}%`;
+
+      renderInsights({
+        totalOrdenes,
+        ordenesCompletadas,
+        ingresosProcesados,
+        ticketPromedio,
+        conversionCobro,
+        facturasPagadas,
+        totalFacturas
+      });
+    }
+
+    function renderInsights(metricas) {
+      const insightsList = document.getElementById('insights-list');
+      if (!insightsList) return;
+
+      const productividad = metricas.totalOrdenes > 0
+        ? `${metricas.ordenesCompletadas} de ${metricas.totalOrdenes} órdenes ya cerradas.`
+        : 'Todavía no hay órdenes cerradas.';
+      const caja = metricas.ingresosProcesados > 0
+        ? `La caja ya refleja $${metricas.ingresosProcesados.toFixed(2)} procesados.`
+        : 'Aún no hay ingresos procesados; conviene acelerar el cobro del pipeline actual.';
+      const cobro = metricas.totalFacturas > 0
+        ? `${metricas.facturasPagadas} de ${metricas.totalFacturas} facturas están cobradas.`
+        : 'Todavía no hay facturas emitidas en el sistema.';
+
+      insightsList.innerHTML = `
+        <article class="insight-item">
+          <strong>Ritmo operativo</strong>
+          <p>${productividad}</p>
+        </article>
+        <article class="insight-item">
+          <strong>Señal comercial</strong>
+          <p>El ticket promedio actual es de $${metricas.ticketPromedio.toFixed(2)}, una referencia útil para paquetes y pilotos.</p>
+        </article>
+        <article class="insight-item">
+          <strong>Salud de cobro</strong>
+          <p>${cobro} La conversión efectiva de cobro se sitúa en ${metricas.conversionCobro.toFixed(0)}%.</p>
+        </article>
+        <article class="insight-item">
+          <strong>Liquidez</strong>
+          <p>${caja}</p>
+        </article>
+      `;
     }
 
     function actualizarGrafico(stats) {
