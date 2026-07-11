@@ -567,6 +567,57 @@
       background: var(--border);
       margin: 2px 0;
     }
+
+    .onboarding-card {
+      margin-bottom: 18px;
+      padding: 18px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255, 122, 24, 0.14), rgba(112, 225, 245, 0.08));
+      border: 1px solid rgba(255, 122, 24, 0.18);
+      display: grid;
+      gap: 10px;
+    }
+
+    .onboarding-card h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    .onboarding-card p {
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: var(--text-secondary);
+    }
+
+    .onboarding-steps {
+      display: grid;
+      gap: 8px;
+      padding-left: 1rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .trust-strip {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .trust-item {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(7, 17, 31, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .trust-item strong {
+      color: var(--text-primary);
+    }
   </style>
 </head>
 <body>
@@ -590,6 +641,16 @@
       <!-- Left Panel: Request Form -->
       <div class="panel">
         <h2>📝 Solicitar Servicio</h2>
+
+        <div class="onboarding-card">
+          <h3>Cómo funciona este piloto</h3>
+          <p>Elige un experto digital, define el alcance inicial y envía tu solicitud. SkillTwin usará el flujo de desarrollo, legal y operaciones para procesar el servicio.</p>
+          <ol class="onboarding-steps">
+            <li>Selecciona el gemelo digital más adecuado.</li>
+            <li>Indica horas, plan y descripción del proyecto.</li>
+            <li>Recibe seguimiento automático por etapas.</li>
+          </ol>
+        </div>
 
         <div id="alert-container"></div>
 
@@ -686,6 +747,12 @@
       <!-- Right Panel: Orders & Notifications -->
       <div class="panel">
         <h2>📦 Mis Órdenes</h2>
+
+        <div class="trust-strip">
+          <div class="trust-item"><strong>Respuesta estructurada:</strong> el sistema organiza la solicitud entre departamentos y deja trazabilidad de cada etapa.</div>
+          <div class="trust-item"><strong>Visibilidad operativa:</strong> puedes seguir órdenes, pagos y estados sin depender de correos manuales.</div>
+          <div class="trust-item"><strong>Formato de piloto:</strong> la experiencia está diseñada para validar una oportunidad comercial antes de escalarla.</div>
+        </div>
 
         <div class="section-title">Notificaciones Recientes</div>
         <div id="notifications-container" class="notifications">
