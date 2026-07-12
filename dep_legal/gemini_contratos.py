@@ -23,7 +23,7 @@ def generar_contrato_gemini(orden_id, cliente_email, clon_id, clon_nombre,
                                         especialidad, cantidad_horas, monto_total, comision)
     
     model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativetoolkit.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     
     # Fecha de vencimiento (30 días después)
     fecha_inicio = datetime.now()

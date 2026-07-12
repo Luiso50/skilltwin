@@ -8,33 +8,39 @@ import json
 from datetime import datetime, timedelta
 import uuid
 
+import threading
+
 DB_PAGOS = os.path.join(os.path.dirname(__file__), "pagos_db.json")
+db_lock = threading.RLock()
 
 
 def inicializar_pagos():
     """Crea la base de datos de pagos si no existe."""
-    if not os.path.exists(DB_PAGOS):
-        datos_iniciales = {
-            "transacciones": {},
-            "facturas": {},
-            "metodos_pago": ["tarjeta_credito", "transferencia_bancaria", "wallet_cripto"],
-            "total_procesado": 0.0
-        }
-        with open(DB_PAGOS, "w", encoding="utf-8") as f:
-            json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
+    with db_lock:
+        if not os.path.exists(DB_PAGOS):
+            datos_iniciales = {
+                "transacciones": {},
+                "facturas": {},
+                "metodos_pago": ["tarjeta_credito", "transferencia_bancaria", "wallet_cripto"],
+                "total_procesado": 0.0
+            }
+            with open(DB_PAGOS, "w", encoding="utf-8") as f:
+                json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
 
 
 def cargar_pagos():
     """Carga la base de datos de pagos."""
-    inicializar_pagos()
-    with open(DB_PAGOS, "r", encoding="utf-8") as f:
-        return json.load(f)
+    with db_lock:
+        inicializar_pagos()
+        with open(DB_PAGOS, "r", encoding="utf-8") as f:
+            return json.load(f)
 
 
 def guardar_pagos(datos):
     """Guarda la base de datos de pagos."""
-    with open(DB_PAGOS, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock:
+        with open(DB_PAGOS, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
 
 
 def crear_factura(orden_id, cliente_email, monto_total, comision, 

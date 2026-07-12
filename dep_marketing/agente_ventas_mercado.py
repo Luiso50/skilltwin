@@ -21,7 +21,7 @@ def buscar_en_internet(query):
         with urllib.request.urlopen(req, timeout=10) as response:
             html_content = response.read().decode('utf-8')
             # Buscar fragmentos de texto en los resultados de DuckDuckGo HTML
-            snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)</a>', html_content, re.DOTALL)
+            snippets = re.findall(r'class=["\']result__snippet["\'][^>]*>(.*?)</a>', html_content, re.DOTALL)
             resultados = []
             for s in snippets[:4]:
                 # Limpiar etiquetas HTML residuales
@@ -41,7 +41,7 @@ def buscar_en_internet(query):
 
 def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
     """Utiliza Gemini para sintetizar los hallazgos y proponer una estrategia de ventas."""
-    url = f"https://generativetoolkit.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     
     contexto = "\n".join([f"- {d}" for d in datos_busqueda])
     prompt = (

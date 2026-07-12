@@ -2,8 +2,10 @@ import os
 import json
 import uuid
 from datetime import datetime, timedelta
+import threading
 
 DB_ORDENES = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
+db_lock = threading.RLock()
 
 
 def _asegurar_esquema_orden(orden):
@@ -51,31 +53,34 @@ def _asegurar_esquema_orden(orden):
 
 def inicializar_ordenes():
     """Crea la base de datos de órdenes si no existe."""
-    if not os.path.exists(DB_ORDENES):
-        datos_iniciales = {
-            "ordenes": {},
-            "contador_ordenes": 0
-        }
-        with open(DB_ORDENES, "w", encoding="utf-8") as f:
-            json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
+    with db_lock:
+        if not os.path.exists(DB_ORDENES):
+            datos_iniciales = {
+                "ordenes": {},
+                "contador_ordenes": 0
+            }
+            with open(DB_ORDENES, "w", encoding="utf-8") as f:
+                json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
 
 def cargar_ordenes():
-    inicializar_ordenes()
-    with open(DB_ORDENES, "r", encoding="utf-8") as f:
-        datos = json.load(f)
+    with db_lock:
+        inicializar_ordenes()
+        with open(DB_ORDENES, "r", encoding="utf-8") as f:
+            datos = json.load(f)
 
-    actualizado = False
-    for orden in datos.get("ordenes", {}).values():
-        actualizado = _asegurar_esquema_orden(orden) or actualizado
+        actualizado = False
+        for orden in datos.get("ordenes", {}).values():
+            actualizado = _asegurar_esquema_orden(orden) or actualizado
 
-    if actualizado:
-        guardar_ordenes(datos)
+        if actualizado:
+            guardar_ordenes(datos)
 
-    return datos
+        return datos
 
 def guardar_ordenes(datos):
-    with open(DB_ORDENES, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock:
+        with open(DB_ORDENES, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
 
 def crear_orden(cliente_email, clon_id, cantidad_horas, descripcion_proyecto, requiere_contrato=True):
     """

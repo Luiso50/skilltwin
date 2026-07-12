@@ -484,7 +484,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             return None
 
         model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        url = f"https://generativetoolkit.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
         
         prompt = (
             f"Eres el Cerebro Central de SkillTwin. Analiza el siguiente comando del usuario y clasifícalo en un departamento.\n\n"

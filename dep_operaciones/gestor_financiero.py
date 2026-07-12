@@ -1,96 +1,101 @@
 import os
 import json
 from datetime import datetime, timedelta
+import threading
 
 DB_FINANZAS = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
+db_lock = threading.RLock()
 
 def inicializar_finanzas():
     """Crea la base de datos financiera si no existe, con datos iniciales realistas."""
-    if not os.path.exists(DB_FINANZAS):
-        hoy = datetime.now()
-        fecha_futura_1 = (hoy + timedelta(days=2)).strftime("%Y-%m-%d")
-        fecha_futura_2 = (hoy + timedelta(days=5)).strftime("%Y-%m-%d")
-        fecha_vencida = (hoy - timedelta(days=4)).strftime("%Y-%m-%d")
+    with db_lock:
+        if not os.path.exists(DB_FINANZAS):
+            hoy = datetime.now()
+            fecha_futura_1 = (hoy + timedelta(days=2)).strftime("%Y-%m-%d")
+            fecha_futura_2 = (hoy + timedelta(days=5)).strftime("%Y-%m-%d")
+            fecha_vencida = (hoy - timedelta(days=4)).strftime("%Y-%m-%d")
 
-        datos_iniciales = {
-            "flujo_caja": {
-                "2026-05": {
-                    "ingresos_plan": 1500.0,
-                    "ingresos_real": 1420.0,
-                    "egresos_plan": 600.0,
-                    "egresos_real": 620.0
+            datos_iniciales = {
+                "flujo_caja": {
+                    "2026-05": {
+                        "ingresos_plan": 1500.0,
+                        "ingresos_real": 1420.0,
+                        "egresos_plan": 600.0,
+                        "egresos_real": 620.0
+                    },
+                    "2026-06": {
+                        "ingresos_plan": 2200.0,
+                        "ingresos_real": 2450.0,
+                        "egresos_plan": 800.0,
+                        "egresos_real": 780.0
+                    },
+                    "2026-07": {
+                        "ingresos_plan": 3500.0,
+                        "ingresos_real": 1200.0,  # A mitad de mes
+                        "egresos_plan": 1200.0,
+                        "egresos_real": 950.0
+                    }
                 },
-                "2026-06": {
-                    "ingresos_plan": 2200.0,
-                    "ingresos_real": 2450.0,
-                    "egresos_plan": 800.0,
-                    "egresos_real": 780.0
-                },
-                "2026-07": {
-                    "ingresos_plan": 3500.0,
-                    "ingresos_real": 1200.0,  # A mitad de mes
-                    "egresos_plan": 1200.0,
-                    "egresos_real": 950.0
-                }
-            },
-            "cuentas_cobrar": [
-                {
-                    "id": "FAC-001",
-                    "cliente": "Banco del Norte (Alquiler Clon COBOL)",
-                    "monto": 850.0,
-                    "vencimiento": fecha_vencida,
-                    "estado": "Pendiente"
-                },
-                {
-                    "id": "FAC-002",
-                    "cliente": "Consultora Tecno (Alquiler Clon Legal IA)",
-                    "monto": 1200.0,
-                    "vencimiento": fecha_futura_2,
-                    "estado": "Pendiente"
-                },
-                {
-                    "id": "FAC-003",
-                    "cliente": "Startup Alpha (Asesoría Finanzas)",
-                    "monto": 400.0,
-                    "vencimiento": (hoy - timedelta(days=10)).strftime("%Y-%m-%d"),
-                    "estado": "Cobrado"
-                }
-            ],
-            "cuentas_pagar": [
-                {
-                    "id": "PROV-001",
-                    "proveedor": "OpenAI / Gemini API (Infraestructura)",
-                    "monto": 350.0,
-                    "vencimiento": fecha_futura_1,
-                    "estado": "Pendiente"
-                },
-                {
-                    "id": "PROV-002",
-                    "proveedor": "Servidores Cloud AWS",
-                    "monto": 150.0,
-                    "vencimiento": (hoy + timedelta(days=12)).strftime("%Y-%m-%d"),
-                    "estado": "Pendiente"
-                },
-                {
-                    "id": "PROV-003",
-                    "proveedor": "Desarrollador Freelance (Soporte)",
-                    "monto": 500.0,
-                    "vencimiento": (hoy - timedelta(days=1)).strftime("%Y-%m-%d"),
-                    "estado": "Pagado"
-                }
-            ]
-        }
-        with open(DB_FINANZAS, "w", encoding="utf-8") as f:
-            json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
+                "cuentas_cobrar": [
+                    {
+                        "id": "FAC-001",
+                        "cliente": "Banco del Norte (Alquiler Clon COBOL)",
+                        "monto": 850.0,
+                        "vencimiento": fecha_vencida,
+                        "estado": "Pendiente"
+                    },
+                    {
+                        "id": "FAC-002",
+                        "cliente": "Consultora Tecno (Alquiler Clon Legal IA)",
+                        "monto": 1200.0,
+                        "vencimiento": fecha_futura_2,
+                        "estado": "Pendiente"
+                    },
+                    {
+                        "id": "FAC-003",
+                        "cliente": "Startup Alpha (Asesoría Finanzas)",
+                        "monto": 400.0,
+                        "vencimiento": (hoy - timedelta(days=10)).strftime("%Y-%m-%d"),
+                        "estado": "Cobrado"
+                    }
+                ],
+                "cuentas_pagar": [
+                    {
+                        "id": "PROV-001",
+                        "proveedor": "OpenAI / Gemini API (Infraestructura)",
+                        "monto": 350.0,
+                        "vencimiento": fecha_futura_1,
+                        "estado": "Pendiente"
+                    },
+                    {
+                        "id": "PROV-002",
+                        "proveedor": "Servidores Cloud AWS",
+                        "monto": 150.0,
+                        "vencimiento": (hoy + timedelta(days=12)).strftime("%Y-%m-%d"),
+                        "estado": "Pendiente"
+                    },
+                    {
+                        "id": "PROV-003",
+                        "proveedor": "Desarrollador Freelance (Soporte)",
+                        "monto": 500.0,
+                        "vencimiento": (hoy - timedelta(days=1)).strftime("%Y-%m-%d"),
+                        "estado": "Pagado"
+                    }
+                ]
+            }
+            with open(DB_FINANZAS, "w", encoding="utf-8") as f:
+                json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
 
 def cargar_finanzas():
-    inicializar_finanzas()
-    with open(DB_FINANZAS, "r", encoding="utf-8") as f:
-        return json.load(f)
+    with db_lock:
+        inicializar_finanzas()
+        with open(DB_FINANZAS, "r", encoding="utf-8") as f:
+            return json.load(f)
 
 def guardar_finanzas(datos):
-    with open(DB_FINANZAS, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock:
+        with open(DB_FINANZAS, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
 
 def mostrar_flujo_caja():
     """Muestra la tabla de comparación Plan vs Real."""

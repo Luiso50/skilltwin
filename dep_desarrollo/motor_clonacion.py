@@ -3,39 +3,44 @@ import json
 import urllib.request
 import urllib.parse
 from datetime import datetime
+import threading
 
 DB_FILE = os.path.join(os.path.dirname(__file__), "clones_db.json")
+db_lock = threading.RLock()
 
 def inicializar_db():
     """Crea el archivo JSON de base de datos si no existe."""
-    if not os.path.exists(DB_FILE):
-        datos_iniciales = {
-            "clones": {
-                "rsanchez_cobol": {
-                    "nombre": "Roberto Sánchez",
-                    "especialidad": "Programador Senior de COBOL",
-                    "conocimiento": "La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION. Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO. Los archivos secuenciales indexados se definen en el FILE-CONTROL bajo la ENVIRONMENT DIVISION.",
-                    "fecha_creacion": "2026-07-04"
-                },
-                "ana_finanzas": {
-                    "nombre": "Ana Gómez",
-                    "especialidad": "Asesora de Finanzas Personales",
-                    "conocimiento": "La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas. Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.",
-                    "fecha_creacion": "2026-07-04"
+    with db_lock:
+        if not os.path.exists(DB_FILE):
+            datos_iniciales = {
+                "clones": {
+                    "rsanchez_cobol": {
+                        "nombre": "Roberto Sánchez",
+                        "especialidad": "Programador Senior de COBOL",
+                        "conocimiento": "La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION. Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO. Los archivos secuenciales indexados se definen en the FILE-CONTROL bajo la ENVIRONMENT DIVISION.",
+                        "fecha_creacion": "2026-07-04"
+                    },
+                    "ana_finanzas": {
+                        "nombre": "Ana Gómez",
+                        "especialidad": "Asesora de Finanzas Personales",
+                        "conocimiento": "La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas. Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.",
+                        "fecha_creacion": "2026-07-04"
+                    }
                 }
             }
-        }
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
+            with open(DB_FILE, "w", encoding="utf-8") as f:
+                json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
 
 def cargar_datos():
-    inicializar_db()
-    with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    with db_lock:
+        inicializar_db()
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
 
 def guardar_datos(datos):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock:
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
 
 def crear_clon(id_clon, nombre, especialidad, conocimiento):
     """Registra y entrena a un nuevo clon digital."""
@@ -87,7 +92,7 @@ def consultar_clon_offline(clon, pregunta):
 
 def consultar_clon_online(clon, pregunta, api_key):
     """Consulta al clon enviando su base de conocimiento a Gemini a través de HTTP directo."""
-    url = f"https://generativetoolkit.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     
     prompt = (
         f"Eres el clon digital de {clon['nombre']}, experto en {clon['especialidad']}.\n"
