@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 import threading
 
 # Soporte para JSON (legacy) y SQLite (nuevo)

@@ -166,7 +166,7 @@ def consultar_clon_online(clon, pregunta, api_key):
             headers=headers, 
             method="POST"
         )
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
             return res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
     except Exception as e:

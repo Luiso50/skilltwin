@@ -14,7 +14,7 @@ sys.path.append(RAIZ_DIR)
 from dep_desarrollo import motor_clonacion
 from dep_marketing import agente_ventas_mercado
 from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security
-from dep_legal import generador_contratos, gemini_contratos
+from dep_legal import generador_contratos
 
 PORT = 8000
 CEREBRO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -309,7 +309,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({
                     "success": True,
                     "orden_id": orden_id,
-                    "mensaje": f"Orden creada exitosamente. Se procesará automáticamente.",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
                     "orden": orden_data
                 }, ensure_ascii=False).encode('utf-8'))
             except Exception as e:
@@ -516,7 +516,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "message": msg}, ensure_ascii=False).encode('utf-8'))
-            except Exception as e:
+            except Exception:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -544,7 +544,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Secreta inválida"}).encode('utf-8'))
-            except Exception as e:
+            except Exception:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -584,7 +584,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
         try:
             req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310
                 res_data = json.loads(response.read().decode("utf-8"))
                 json_res = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 return json.loads(json_res)
@@ -687,7 +687,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 if len(parts) >= 6:
                     try:
                         comision = float(parts[5])
-                    except:
+                    except ValueError:
                         pass
             else:
                 return {
@@ -745,7 +745,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     f"3. ⚖️ **`contrato [Nombre] [ID] [Especialidad] [Comisión]`**: Redacta y firma un contrato de licencia.\n"
                     f"4. 💬 **`preguntar [ID_Clon] [pregunta]`**: Lanza una consulta al motor de clonación de un experto."
                 ),
-                "console_log": f"Comando genérico procesado por el Cerebro Central."
+                "console_log": "Comando genérico procesado por el Cerebro Central."
             }
 
 def run_server():

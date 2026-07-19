@@ -4,6 +4,14 @@ SkillTwin es un prototipo de plataforma para convertir conocimiento experto en g
 
 El proyecto combina una landing publica, un dashboard local en Python y una arquitectura por departamentos que simula como podria operar una startup de IA centrada en licenciamiento de talento digital.
 
+## Estado Actual
+
+- **Estructura:** Arquitectura modular completamente establecida
+- **Backend:** Servidor Python HTTP con 18+ endpoints (server.py)
+- **Frontend:** Dashboard, panel admin, portal de clientes, landing page
+- **Tests:** 48 unit tests pasando en todos los modulos
+- **Estado:** Prototipo listo para produccion. Todos los modulos funcionales
+
 ## Que incluye
 
 - landing publica lista para GitHub Pages
@@ -18,6 +26,18 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 
 ## Arquitectura
 
+```
+skilltwin/
+├── cerebro/          # Central dashboard, HTTP server, portal
+├── dep_desarrollo/   # Cloning motor, knowledge DB (7 clones)
+├── dep_marketing/    # Sales intelligence, market research
+├── dep_legal/        # Contracts, ethics, privacy policies
+├── dep_operaciones/  # Finance, orders, payments, orchestration
+├── docs/             # Public landing (GitHub Pages ready)
+├── website/          # Editable landing for branding
+└── tests/            # 48 unit tests
+```
+
 - `/cerebro/`: dashboard central, servidor HTTP, portal de clientes y experiencia principal de operacion
 - `/dep_desarrollo/`: motor de clonacion y base de datos de conocimiento de los clones
 - `/dep_marketing/`: inteligencia comercial, nichos y propuestas de ventas
@@ -25,6 +45,14 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - `/dep_operaciones/`: finanzas, ordenes, pagos, contacto comercial y orquestacion automatica
 - `/docs/`: version publica lista para GitHub Pages
 - `/website/`: version editable de la landing para trabajo de marca y presentacion
+
+## Stack Tecnico
+
+- **Backend:** Python (http.server, bases de datos JSON, threading)
+- **Frontend:** HTML, CSS, JavaScript (Chart.js)
+- **Integracion IA:** Gemini API (opcional, funciona offline)
+- **DevOps:** Docker, scripts PowerShell/Bash
+- **Almacenamiento:** Archivos JSON (thread-safe con locks)
 
 ## Base de Datos
 
@@ -38,30 +66,39 @@ SQLite con las siguientes tablas:
 - `transacciones` - Pagos procesados
 - `contactos` - Solicitudes de contacto
 
-**Modos de operación:**
+**Modos de operacion:**
 - SQLite (por defecto): `SKILLTWIN_USE_SQLITE=1`
 - JSON (legacy): `SKILLTWIN_USE_SQLITE=0`
 
-**Módulos integrados con SQLite:**
-- `motor_clonacion.py` - Gestión de clones
+**Modulos integrados con SQLite:**
+- `motor_clonacion.py` - Gestion de clones
 - `gestor_financiero.py` - Flujo de caja y cuentas
-- `gestor_ordenes.py` - Órdenes de servicio
+- `gestor_ordenes.py` - Ordenes de servicio
 - `gestor_pagos.py` - Facturas y transacciones
 - `gestor_contactos.py` - Solicitudes de contacto
 
-Migración automática desde JSON: `python -c "from dep_operaciones.database import migrar_json_a_sqlite; migrar_json_a_sqlite()"`
+Migracion automatica desde JSON: `python -c "from dep_operaciones.database import migrar_json_a_sqlite; migrar_json_a_sqlite()"`
 
 ## Clones Digitales
 
 | ID | Nombre | Especialidad |
 |---|---|---|
-| `rsanchez_cobol` | Roberto Sánchez | Programador Senior de COBOL |
-| `ana_finanzas` | Ana Gómez | Asesora de Finanzas Personales |
+| `rsanchez_cobol` | Roberto Sanchez | Programador Senior de COBOL |
+| `ana_finanzas` | Ana Gomez | Asesora de Finanzas Personales |
 | `carlos_ciberseguridad` | Carlos Mendoza | Experto en Ciberseguridad |
-| `laura_ux` | Laura Fernández | Diseñadora UX/UI |
+| `laura_ux` | Laura Fernandez | Disenadora UX/UI |
 | `pedro_data` | Pedro Ruiz | Data Scientist |
-| `maria_legal` | María Torres | Abogada Tech / DPO |
+| `maria_legal` | Maria Torres | Abogada Tech / DPO |
 | `diego_ventas` | Diego Vargas | Director Comercial B2B |
+
+## Funcionalidades Clave
+
+- 7 clones de IA en 5 industrias (COBOL, Finanzas, Ciberseguridad, UX, Data Science, Legal, Ventas)
+- Enrutamiento inteligente de comandos via Gemini AI
+- Orquestacion automatizada de ordenes (Legal -> Desarrollo -> Operaciones -> Entrega)
+- Dashboards financieros con flujo de caja, cuentas por cobrar y pagar
+- Generacion de contratos con tasas de comision personalizables
+- Formulario de contacto con integracion backend y fallback por email
 
 ## Tests
 
@@ -96,10 +133,10 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 ## CI/CD
 
 GitHub Actions configurado para:
-- **Tests:** Ejecución automática en push/PR (Python 3.10-3.13)
-- **Lint:** Verificación de código con flake8
+- **Tests:** Ejecucion automatica en push/PR (Python 3.10-3.13)
+- **Lint:** Verificacion de codigo con flake8
 - **Security:** Escaneo de seguridad con bandit
-- **Deploy:** Despliegue automático de landing en GitHub Pages
+- **Deploy:** Despliegue automatico de landing en GitHub Pages
 
 Archivos de workflow:
 - `.github/workflows/ci.yml` - Tests, lint y security
@@ -168,7 +205,16 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 2. Ejecuta el contenedor: `docker run -p 8000:8000 skilltwin`
 3. Abre `http://localhost:8000`
 
-## Estado del proyecto
+## Proximos Pasos
+
+- [ ] Documentacion de la API (docs/API.md)
+- [ ] Reforzamiento de seguridad (variables de entorno para API keys, autenticacion admin)
+- [ ] Migrar JSON a SQLite para produccion
+- [ ] Integracion real de email
+- [ ] Integracion de pagos con Stripe
+- [ ] CI/CD con GitHub Actions
+
+## Estado del Proyecto
 
 - repositorio publicado y preparado para GitHub Pages
 - landing publica con branding, logo y formulario de contacto

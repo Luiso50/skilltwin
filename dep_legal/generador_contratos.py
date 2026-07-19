@@ -9,7 +9,6 @@ def generar_contrato(id_experto, nombre, especialidad, comision=15.0):
     if not os.path.exists(CONTRATOS_DIR):
         os.makedirs(CONTRATOS_DIR)
         
-    fecha_actual = datetime.now().strftime("%d de %B de %Y")
     nombre_archivo = f"contrato_{id_experto}.txt"
     ruta_guardado = os.path.join(CONTRATOS_DIR, nombre_archivo)
     
@@ -57,7 +56,7 @@ Representante de la Plataforma            Licenciante del Clon
     try:
         with open(ruta_guardado, "w", encoding="utf-8") as f:
             f.write(plantilla)
-        print(f"\n[CONTRATO] Contrato de licencia generado con exito!")
+        print("\n[CONTRATO] Contrato de licencia generado con exito!")
         print(f"[ARCHIVO] Guardado en: {ruta_guardado}")
         return ruta_guardado
     except Exception as e:

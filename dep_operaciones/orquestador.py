@@ -3,16 +3,14 @@ import sys
 import json
 import threading
 import time
-from datetime import datetime
 
 # Agregar rutas
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(RAIZ_DIR)
 
-from dep_operaciones import gestor_ordenes, gestor_financiero, gestor_pagos
-from dep_legal import generador_contratos, gemini_contratos
+from dep_operaciones import gestor_ordenes, gestor_pagos
+from dep_legal import gemini_contratos
 from dep_desarrollo import motor_clonacion
-from dep_marketing import agente_ventas_mercado
 
 class OrquestadorAutonomo:
     """
@@ -112,7 +110,7 @@ class OrquestadorAutonomo:
             
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "legal", "completada",
-                f"Contrato generado y validado con IA. Contrato guardado en sistema."
+                "Contrato generado y validado con IA. Contrato guardado en sistema."
             )
             print(f"[LEGAL] ✅ Contrato generado para {orden_id}")
             
@@ -141,7 +139,7 @@ class OrquestadorAutonomo:
             if orden["clon_id"] not in datos["clones"]:
                 raise Exception(f"Clon '{orden['clon_id']}' no encontrado")
             
-            clon = datos["clones"][orden["clon_id"]]
+            datos["clones"][orden["clon_id"]]
             
             # Crear instancia específica para este cliente
             instancia_id = f"{orden['clon_id']}__{orden_id}"
@@ -241,13 +239,6 @@ class OrquestadorAutonomo:
             # Simular envío de credenciales
             time.sleep(1)
             
-            credenciales = {
-                "usuario": f"cliente_{orden['cliente_email'].split('@')[0]}",
-                "token": "sk_live_" + orden_id[:20],
-                "url_acceso": f"https://skilltwin.io/clones/{orden['clon_id']}",
-                "fecha_expiracion": "2026-12-31"
-            }
-            
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "entrega", "completada",
                 f"✅ Acceso entregado. Email enviado a {orden['cliente_email']} con credenciales."
@@ -268,12 +259,10 @@ orquestador_global = OrquestadorAutonomo()
 
 def iniciar_orquestador():
     """Función para iniciar el orquestador desde el servidor."""
-    global orquestador_global
     if orquestador_global:
         orquestador_global.iniciar()
 
 def detener_orquestador():
     """Función para detener el orquestador desde el servidor."""
-    global orquestador_global
     if orquestador_global:
         orquestador_global.detener()

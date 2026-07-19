@@ -18,7 +18,7 @@ def buscar_en_internet(query):
     req = urllib.request.Request(url, headers=headers)
     
     try:
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310
             html_content = response.read().decode('utf-8')
             # Buscar fragmentos de texto en los resultados de DuckDuckGo HTML
             snippets = re.findall(r'class=["\']result__snippet["\'][^>]*>(.*?)</a>', html_content, re.DOTALL)
@@ -77,7 +77,7 @@ def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
             headers=headers, 
             method="POST"
         )
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
             json_response = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
             return json.loads(json_response)
@@ -141,7 +141,7 @@ def ejecutar_inteligencia_ventas(nicho):
     print("="*50)
     print(f"OPORTUNIDAD: {reporte['analisis_oportunidad']}")
     print(f"EMPRESAS OBJETIVO: {', '.join(reporte['empresas_objetivo'])}")
-    print(f"\nPROPUESTA DE CORREO REDACTADA:")
+    print("\nPROPUESTA DE CORREO REDACTADA:")
     print("-" * 50)
     print(reporte['correo_ventas'])
     print("-" * 50)

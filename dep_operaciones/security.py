@@ -1,4 +1,3 @@
-import os
 import re
 import hashlib
 import secrets
@@ -29,7 +28,6 @@ def generate_admin_token():
 
 def get_admin_token():
     """Obtiene el token actual o genera uno nuevo."""
-    global _admin_token
     if _admin_token is None:
         generate_admin_token()
     return _admin_token

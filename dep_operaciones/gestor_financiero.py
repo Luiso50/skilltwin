@@ -412,7 +412,7 @@ def dar_sugerencias():
         print(f"  - Tus ingresos reales estan en ${flujo['ingresos_real']:.2f} vs ${flujo['ingresos_plan']:.2f} planificados.")
         if ingreso_diff < 0:
             print(f"  [!] Alerta de Liquidez: Tienes un deficit de ${abs(ingreso_diff):.2f} contra tu plan original.")
-            print(f"      Recomendacion: Ejecuta llamadas de cobro para las facturas pendientes de este mes.")
+            print("      Recomendacion: Ejecuta llamadas de cobro para las facturas pendientes de este mes.")
         else:
             print("  [+] Superavit: El rendimiento de ingresos supera la meta planificada.")
 
@@ -420,7 +420,7 @@ def dar_sugerencias():
     cobros_pendientes = sum(c["monto"] for c in datos["cuentas_cobrar"] if c["estado"] == "Pendiente")
     pagos_pendientes = sum(p["monto"] for p in datos["cuentas_pagar"] if p["estado"] == "Pendiente")
     
-    print(f"\n Balance de Saldos Pendientes:")
+    print("\n Balance de Saldos Pendientes:")
     print(f"  - Total por cobrar: ${cobros_pendientes:.2f}")
     print(f"  - Total por pagar:  ${pagos_pendientes:.2f}")
     

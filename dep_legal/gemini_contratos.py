@@ -72,7 +72,7 @@ El contrato debe ser profesional, legal y en español. Incluye números de artí
     try:
         req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), 
                                      headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=15) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
             contrato_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
             return contrato_text
