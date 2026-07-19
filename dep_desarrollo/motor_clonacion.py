@@ -5,11 +5,28 @@ import urllib.parse
 from datetime import datetime
 import threading
 
+# Soporte para JSON (legacy) y SQLite (nuevo)
+USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
 DB_FILE = os.path.join(os.path.dirname(__file__), "clones_db.json")
 db_lock = threading.RLock()
 
+if USE_SQLITE:
+    try:
+        from dep_operaciones.database import cargar_clones as db_cargar_clones
+        from dep_operaciones.database import guardar_clone as db_guardar_clone
+        from dep_operaciones.database import obtener_clone as db_obtener_clone
+        from dep_operaciones.database import init_database
+        init_database()
+    except ImportError:
+        USE_SQLITE = False
+
+
 def inicializar_db():
-    """Crea el archivo JSON de base de datos si no existe."""
+    """Crea el archivo JSON de base de datos si no existe (solo modo JSON)."""
+    if USE_SQLITE:
+        return
+        
     with db_lock:
         if not os.path.exists(DB_FILE):
             datos_iniciales = {
@@ -31,19 +48,47 @@ def inicializar_db():
             with open(DB_FILE, "w", encoding="utf-8") as f:
                 json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
 
+
 def cargar_datos():
+    """Carga todos los datos de clones."""
+    if USE_SQLITE:
+        clones = db_cargar_clones()
+        return {"clones": clones}
+    
     with db_lock:
         inicializar_db()
         with open(DB_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
 
+
 def guardar_datos(datos):
+    """Guarda todos los datos de clones."""
+    if USE_SQLITE:
+        for clon_id, clon_data in datos.get("clones", {}).items():
+            db_guardar_clone(
+                clon_id,
+                clon_data["nombre"],
+                clon_data["especialidad"],
+                clon_data["conocimiento"]
+            )
+        return
+    
     with db_lock:
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(datos, f, indent=4, ensure_ascii=False)
 
+
 def crear_clon(id_clon, nombre, especialidad, conocimiento):
     """Registra y entrena a un nuevo clon digital."""
+    if USE_SQLITE:
+        existing = db_obtener_clone(id_clon)
+        if existing:
+            print(f"\n⚠️ El identificador '{id_clon}' ya existe. Intenta con otro.")
+            return False
+        db_guardar_clone(id_clon, nombre, especialidad, conocimiento)
+        print(f"\n✅ ¡Clon digital '{nombre}' ({especialidad}) creado con éxito!")
+        return True
+    
     datos = cargar_datos()
     
     if id_clon in datos["clones"]:
@@ -59,6 +104,7 @@ def crear_clon(id_clon, nombre, especialidad, conocimiento):
     guardar_datos(datos)
     print(f"\n✅ ¡Clon digital '{nombre}' ({especialidad}) creado con éxito!")
     return True
+
 
 def consultar_clon_offline(clon, pregunta):
     """Responde de forma simulada buscando palabras clave si no hay API Key."""
@@ -89,6 +135,7 @@ def consultar_clon_offline(clon, pregunta):
         f"Basado en mi conocimiento: \"{respuesta}\"\n"
         f"(Configura la variable de entorno GEMINI_API_KEY para respuestas inteligentes de IA)."
     )
+
 
 def consultar_clon_online(clon, pregunta, api_key):
     """Consulta al clon enviando su base de conocimiento a Gemini a través de HTTP directo."""
@@ -125,6 +172,7 @@ def consultar_clon_online(clon, pregunta, api_key):
     except Exception as e:
         return f"Error al conectar con la API de Gemini: {e}\nCausa: Asegúrate de que tu GEMINI_API_KEY sea correcta."
 
+
 def consultar_clon(id_clon, pregunta):
     """Orquesta la consulta decidiendo si usa el modo online u offline."""
     datos = cargar_datos()
@@ -139,6 +187,7 @@ def consultar_clon(id_clon, pregunta):
         return consultar_clon_online(clon, pregunta, api_key)
     else:
         return consultar_clon_offline(clon, pregunta)
+
 
 def menu():
     inicializar_db()
@@ -199,6 +248,7 @@ def menu():
             break
         else:
             print("\n⚠️ Opción no válida. Inténtalo de nuevo.")
+
 
 if __name__ == "__main__":
     menu()

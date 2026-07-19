@@ -11,6 +11,36 @@
             "especialidad": "Asesora de Finanzas Personales",
             "conocimiento": "La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas. Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.",
             "fecha_creacion": "2026-07-04"
+        },
+        "carlos_ciberseguridad": {
+            "nombre": "Carlos Mendoza",
+            "especialidad": "Experto en Ciberseguridad",
+            "conocimiento": "El framework OWASP Top 10 es la referencia estándar para identificar las vulnerabilidades más críticas en aplicaciones web: inyección SQL, XSS, broken authentication, y misconfiguration son las más comunes. La implementación de Zero Trust significa 'nunca confiar, siempre verificar': cada petición debe autenticarse independientemente de su origen. Para hardening de servidores, siempre: cambiar puertos por defecto, deshabilitar root login SSH, configurar fail2ban, y mantener parches actualizados. El principle of least privilege debe aplicarse a todos los sistemas y usuarios.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "laura_ux": {
+            "nombre": "Laura Fernández",
+            "especialidad": "Diseñadora UX/UI",
+            "conocimiento": "El Design Thinking sigue 5 fases: Empatizar, Definir, Idear, Prototipar y Testear. La accesibilidad WCAG 2.1 requiere: contraste mínimo 4.5:1 para texto normal, alternativa de texto para todas las imágenes, navegación completa por teclado, y semántica HTML correcta. Los principios de usabilidad de Nielsen incluyen: visibilidad del estado del sistema, correspondencia entre sistema y mundo real, control y libertad del usuario, consistencia y estándares, y prevención de errores. Para prototipado rápido, Figma permite crear wireframes interactivos en minutos usando componentes y auto-layout.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "pedro_data": {
+            "nombre": "Pedro Ruiz",
+            "especialidad": "Data Scientist",
+            "conocimiento": "Python es el lenguaje principal para ciencia de datos con librerías como pandas (manipulación), numpy (cálculo numérico), scikit-learn (ML), y matplotlib/seaborn (visualización). SQL es esencial para extraer datos: JOINs, GROUP BY, window functions, y subconsultas. Los modelos predictivos siguen un pipeline: exploración de datos, feature engineering, selección de modelo, entrenamiento, validación cruzada y despliegue. El A/B testing requiere: definir hipótesis, calcular tamaño de muestra, aleatorizar grupos, medir métricas clave, y aplicar tests estadísticos (t-test o chi-cuadrado) con nivel de significancia del 5%.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "maria_legal": {
+            "nombre": "María Torres",
+            "especialidad": "Abogada Tech / DPO",
+            "conocimiento": "El GDPR establece 6 principios para el tratamiento de datos: licitud, lealtad, transparencia, limitación de la finalidad, minimización de datos, exactitud, limitación de almacenamiento, integridad y confidencialidad. El AI Act de la UE clasifica sistemas de IA por riesgo: inaceptable (prohibido), alto (regulados estrictamente), limitado (transparencia obligatoria), y mínimo (sin regulación específica). Para contratos SaaS, las cláusulas esenciales incluyen: SLA con métricas de uptime, data processing agreement (DPA), limitación de responsabilidad, propiedad intelectual, terminación y portabilidad de datos. El DPO debe supervisar el cumplimiento normativo y servir de punto de contacto con las autoridades de control.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "diego_ventas": {
+            "nombre": "Diego Vargas",
+            "especialidad": "Director Comercial B2B",
+            "conocimiento": "El outbound sales effectivo sigue la metodología SPIN: Situation (entender el contexto), Problem (identificar el dolor), Implication (consecuencias del problema), Need-payoff (valor de la solución). Los SaaS metrics clave son: MRR/ARR, churn rate (objetivo <5% mensual), CAC payback period (<12 meses), LTV:CAC ratio (>3:1), y Net Revenue Retention (>100%). La gestión de pipeline requiere etapas claras: Prospecting, Qualification, Demo, Proposal, Negotiation, Closed Won/Lost. Cada oportunidad debe tener un score de probabilidad y próxima acción definida. El cold email personalizado tiene 3x más tasa de respuesta que el genérico: incluir trigger event específico de la empresa, referencia a un caso de uso relevante, y CTA de baja fricción.",
+            "fecha_creacion": "2026-07-19"
         }
     }
 }

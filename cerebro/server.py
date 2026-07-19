@@ -13,7 +13,7 @@ sys.path.append(RAIZ_DIR)
 
 from dep_desarrollo import motor_clonacion
 from dep_marketing import agente_ventas_mercado
-from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador
+from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security
 from dep_legal import generador_contratos, gemini_contratos
 
 PORT = 8000
@@ -82,9 +82,22 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         # Desactivar caché para desarrollo fluido
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        # Headers de seguridad
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
         super().end_headers()
 
     def do_GET(self):
+        # Rate limiting
+        client_ip = security.get_client_ip(self)
+        if not security.check_rate_limit(client_ip, self.path):
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
+            return
+            
         if self.path == '/favicon.ico':
             try:
                 logo_path = os.path.join(CEREBRO_DIR, 'logo-mark.svg')
@@ -237,6 +250,15 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
+        # Rate limiting
+        client_ip = security.get_client_ip(self)
+        if not security.check_rate_limit(client_ip, self.path):
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
+            return
+            
         if self.path == '/api/command':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -261,14 +283,20 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             
             try:
                 data = json.loads(post_data.decode('utf-8'))
-                cliente_email = data.get("cliente_email", "").strip()
-                clon_id = data.get("clon_id", "").strip()
+                cliente_email = security.sanitize_string(data.get("cliente_email", ""), 254)
+                clon_id = security.sanitize_string(data.get("clon_id", ""), 50)
                 cantidad_horas = data.get("cantidad_horas", 0)
-                descripcion_proyecto = data.get("descripcion_proyecto", "").strip()
+                descripcion_proyecto = security.sanitize_string(data.get("descripcion_proyecto", ""), 500)
                 requiere_contrato = data.get("requiere_contrato", True)
                 
                 if not cliente_email or not clon_id or cantidad_horas <= 0:
                     raise ValueError("Datos incompletos o inválidos")
+                
+                if not security.validate_email(cliente_email):
+                    raise ValueError("Formato de email inválido")
+                
+                if not security.validate_clon_id(clon_id):
+                    raise ValueError("ID de clon inválido")
                 
                 orden_id, orden_data = gestor_ordenes.crear_orden(
                     cliente_email, clon_id, cantidad_horas, 
@@ -375,9 +403,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             
             try:
                 data = json.loads(post_data.decode('utf-8'))
-                orden_id = data.get("orden_id", "").strip()
+                orden_id = security.sanitize_string(data.get("orden_id", ""), 50)
                 puntuacion = data.get("puntuacion", 0)
-                resena = data.get("resena", "").strip()
+                resena = security.sanitize_string(data.get("resena", ""), 500)
+                
+                if not security.validate_puntuacion(puntuacion):
+                    raise ValueError("Puntuación inválida (debe ser 1-5)")
                 
                 exito, mensaje = gestor_ordenes.agregar_rating_orden(orden_id, puntuacion, resena)
                 
@@ -405,15 +436,18 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             
             try:
                 data = json.loads(post_data.decode('utf-8'))
-                nombre = data.get("nombre", "").strip()
-                email = data.get("email", "").strip()
-                telefono = data.get("telefono", "").strip()
-                empresa = data.get("empresa", "").strip()
-                interes = data.get("interes", "").strip()
-                mensaje = data.get("mensaje", "").strip()
+                nombre = security.sanitize_string(data.get("nombre", ""), 100)
+                email = security.sanitize_string(data.get("email", ""), 254)
+                telefono = security.sanitize_string(data.get("telefono", ""), 20)
+                empresa = security.sanitize_string(data.get("empresa", ""), 100)
+                interes = security.sanitize_string(data.get("interes", ""), 100)
+                mensaje = security.sanitize_string(data.get("mensaje", ""), 1000)
 
                 if not nombre or not email or not mensaje:
                     raise ValueError("Nombre, email y mensaje son obligatorios")
+                
+                if not security.validate_email(email):
+                    raise ValueError("Formato de email inválido")
 
                 contacto = gestor_contactos.registrar_contacto(
                     nombre, email, telefono, empresa, interes, mensaje
@@ -433,6 +467,17 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
         elif self.path == '/api/settings':
+            # Verificar autenticación de admin
+            auth_header = self.headers.get('Authorization', '')
+            token = auth_header.replace('Bearer ', '') if auth_header.startswith('Bearer ') else ''
+            
+            if not security.validate_admin_token(token):
+                self.send_response(401)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "No autorizado. Se requiere token de administrador."}).encode('utf-8'))
+                return
+                
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             
@@ -475,7 +520,35 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
+
+        elif self.path == '/api/auth/token':
+            # Endpoint para obtener token de admin (solo para desarrollo)
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                secret = data.get("secret", "")
+                
+                # En producción, usar una contraseña segura
+                if secret == os.environ.get("SKILLTWIN_ADMIN_SECRET", "skilltwin-dev-2026"):
+                    token = security.generate_admin_token()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "token": token,
+                        "message": "Token de administrador generado. Usa este token en el header Authorization: Bearer <token>"
+                    }).encode('utf-8'))
+                else:
+                    self.send_response(403)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Secreta inválida"}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
 
     def clasificar_intencion_ia(self, comando):
         """Utiliza Gemini para analizar la intención del usuario y normalizar el comando."""

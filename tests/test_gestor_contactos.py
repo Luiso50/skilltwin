@@ -3,6 +3,9 @@ import sys
 import tempfile
 import unittest
 
+# Forzar modo JSON para tests
+os.environ["SKILLTWIN_USE_SQLITE"] = "0"
+
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 

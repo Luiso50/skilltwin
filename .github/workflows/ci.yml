@@ -1,0 +1,87 @@
+name: SkillTwin CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      env:
+        SKILLTWIN_USE_SQLITE: '0'
+      run: |
+        python -m unittest discover -s tests -v
+    
+    - name: Run tests with SQLite
+      env:
+        SKILLTWIN_USE_SQLITE: '1'
+      run: |
+        python -m unittest discover -s tests -v
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install flake8
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+    
+    - name: Run flake8
+      run: |
+        flake8 dep_desarrollo/ dep_operaciones/ dep_legal/ dep_marketing/ cerebro/ --max-line-length=120 --ignore=E501,W503,E402
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install bandit
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit
+    
+    - name: Run bandit security scan
+      run: |
+        bandit -r dep_desarrollo/ dep_operaciones/ dep_legal/ dep_marketing/ cerebro/ -ll
