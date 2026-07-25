@@ -1,3 +1,4 @@
+import os
 import re
 import hashlib
 import secrets
@@ -16,6 +17,19 @@ RATE_LIMIT_MAX_REQUESTS = 30  # por ventana
 
 # Tokens de sesión válidos (para autenticación de admin)
 _valid_tokens = {}
+
+# CSRF tokens para formularios
+_csrf_tokens = {}
+
+# Admin secret from environment (REQUIRED for production)
+def get_admin_secret():
+    """Obtiene el secret del admin desde variable de entorno."""
+    secret = os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
+    if not secret:
+        # Fallback solo para desarrollo
+        secret = "skilltwin-dev-2026"
+        print("[SECURITY] WARNING: Using default admin secret. Set SKILLTWIN_ADMIN_SECRET in production!")
+    return secret
 
 
 def generate_admin_token():
@@ -38,6 +52,50 @@ def validate_admin_token(token):
     if not token:
         return False
     return secrets.compare_digest(token, get_admin_token())
+
+
+def validate_admin_secret(secret):
+    """Valida el secret del admin contra la variable de entorno."""
+    if not secret:
+        return False
+    return secrets.compare_digest(secret, get_admin_secret())
+
+
+def generate_csrf_token(session_id):
+    """Genera un token CSRF para un formulario."""
+    token = secrets.token_urlsafe(32)
+    _csrf_tokens[token] = {
+        'session_id': session_id,
+        'created': datetime.now(),
+        'expires': datetime.now() + timedelta(hours=1)
+    }
+    return token
+
+
+def validate_csrf_token(token, session_id):
+    """Valida un token CSRF."""
+    if not token or token not in _csrf_tokens:
+        return False
+    csrf_data = _csrf_tokens[token]
+    if datetime.now() > csrf_data['expires']:
+        del _csrf_tokens[token]
+        return False
+    if csrf_data['session_id'] != session_id:
+        return False
+    del _csrf_tokens[token]  # Single use
+    return True
+
+
+def cleanup_expired_tokens():
+    """Limpia tokens expirados (llamar periódicamente)."""
+    now = datetime.now()
+    expired = [t for t, data in _valid_tokens.items() if now > data['expires']]
+    for t in expired:
+        del _valid_tokens[t]
+    
+    expired_csrf = [t for t, data in _csrf_tokens.items() if now > data['expires']]
+    for t in expired_csrf:
+        del _csrf_tokens[t]
 
 
 def create_session_token():

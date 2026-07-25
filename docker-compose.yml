@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  skilltwin:
+    build: .
+    container_name: skilltwin-app
+    ports:
+      - "8000:8000"
+    environment:
+      - SKILLTWIN_USE_SQLITE=1
+      - SKILLTWIN_ADMIN_SECRET=${SKILLTWIN_ADMIN_SECRET:-changeme_in_production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@skilltwin.com}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+    volumes:
+      - skilltwin-data:/app/dep_operaciones
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  skilltwin-data:

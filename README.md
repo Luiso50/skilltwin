@@ -201,18 +201,43 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 
 ## Docker
 
+### Opcion simple
+
 1. Construye la imagen: `docker build -t skilltwin .`
 2. Ejecuta el contenedor: `docker run -p 8000:8000 skilltwin`
 3. Abre `http://localhost:8000`
 
+### Opcion con Docker Compose (recomendado para produccion)
+
+1. Copia `.env.example` a `.env` y configura las variables
+2. Ejecuta: `docker-compose up -d`
+3. Abre `http://localhost:8000`
+
+## Variables de Entorno
+
+| Variable | Descripcion | Default |
+|----------|-------------|---------|
+| `SKILLTWIN_ADMIN_SECRET` | Secret para autenticacion admin | `skilltwin-dev-2026` (solo desarrollo) |
+| `SKILLTWIN_USE_SQLITE` | Usar SQLite (1) o JSON (0) | `1` |
+| `GEMINI_API_KEY` | API Key de Gemini AI | vacio |
+| `SMTP_HOST` | Servidor SMTP para emails | `smtp.gmail.com` |
+| `SMTP_PORT` | Puerto SMTP | `587` |
+| `SMTP_USER` | Usuario SMTP | vacio |
+| `SMTP_PASS` | Contrasena SMTP | vacio |
+| `STRIPE_SECRET_KEY` | Secret key de Stripe | vacio |
+| `STRIPE_PUBLISHABLE_KEY` | Publishable key de Stripe | vacio |
+
 ## Proximos Pasos
 
-- [ ] Documentacion de la API (docs/API.md)
-- [ ] Reforzamiento de seguridad (variables de entorno para API keys, autenticacion admin)
-- [ ] Migrar JSON a SQLite para produccion
-- [ ] Integracion real de email
-- [ ] Integracion de pagos con Stripe
-- [ ] CI/CD con GitHub Actions
+- [x] Documentacion de la API (docs/API.md)
+- [x] Reforzamiento de seguridad (variables de entorno para API keys, autenticacion admin)
+- [x] Migrar JSON a SQLite para produccion
+- [x] Integracion real de email (SMTP)
+- [x] Integracion de pagos con Stripe
+- [x] CI/CD con GitHub Actions
+- [ ] Integracion con OAuth2 para admin
+- [ ] Rate limiting persistente (Redis)
+- [ ] Monitoreo y logging avanzado
 
 ## Estado del Proyecto
 

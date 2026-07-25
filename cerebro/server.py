@@ -2,6 +2,7 @@ import http.server
 import socketserver
 import json
 import os
+import secrets
 import sys
 import urllib.parse
 import urllib.request
@@ -14,6 +15,7 @@ sys.path.append(RAIZ_DIR)
 from dep_desarrollo import motor_clonacion
 from dep_marketing import agente_ventas_mercado
 from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security
+from dep_operaciones import email_service, stripe_service
 from dep_legal import generador_contratos
 
 PORT = 8000
@@ -86,6 +88,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')
         self.send_header('X-XSS-Protection', '1; mode=block')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        self.send_header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+        if os.environ.get('SKILLTWIN_HSTS', '0') == '1':
+            self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         super().end_headers()
 
     def do_GET(self):
@@ -246,6 +252,22 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+        elif self.path == '/api/csrf-token':
+            try:
+                session_id = secrets.token_urlsafe(16)
+                token = security.generate_csrf_token(session_id)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "token": token,
+                    "session_id": session_id
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
         else:
             super().do_GET()
 
@@ -258,6 +280,16 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
             return
+        
+        # Validar Content-Type para endpoints que esperan JSON
+        content_type = self.headers.get('Content-Type', '')
+        if self.path.startswith('/api/') and self.path != '/api/contacto':
+            if 'application/json' not in content_type:
+                self.send_response(415)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Content-Type debe ser application/json"}).encode('utf-8'))
+                return
             
         if self.path == '/api/command':
             content_length = int(self.headers['Content-Length'])
@@ -452,15 +484,29 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 contacto = gestor_contactos.registrar_contacto(
                     nombre, email, telefono, empresa, interes, mensaje
                 )
+                
+                # Intentar enviar email de notificación al admin
+                email_enviado, email_error = email_service.send_contact_email(
+                    nombre, email, telefono, empresa, interes, mensaje
+                )
+                
+                # Intentar enviar confirmación al usuario
+                if email_enviado:
+                    email_service.send_confirmation_email(nombre, email)
+
+                response_data = {
+                    "success": True,
+                    "message": "Solicitud recibida correctamente. Te responderemos en breve.",
+                    "contacto": contacto
+                }
+                
+                if not email_enviado:
+                    response_data["email_warning"] = "Email no enviado: " + (email_error or "SMTP no configurado")
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json; charset=utf-8')
                 self.end_headers()
-                self.wfile.write(json.dumps({
-                    "success": True,
-                    "message": "Solicitud recibida correctamente. Te responderemos en breve.",
-                    "contacto": contacto
-                }, ensure_ascii=False).encode('utf-8'))
+                self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode('utf-8'))
             except Exception as e:
                 self.send_response(400)
                 self.send_header('Content-Type', 'application/json')
@@ -523,13 +569,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
 
         elif self.path == '/api/auth/token':
-            # Endpoint para obtener token de admin (solo para desarrollo)
+            # Endpoint para obtener token de admin
             try:
                 data = json.loads(post_data.decode('utf-8'))
                 secret = data.get("secret", "")
                 
-                # En producción, usar una contraseña segura
-                if secret == os.environ.get("SKILLTWIN_ADMIN_SECRET", "skilltwin-dev-2026"):
+                if security.validate_admin_secret(secret):
                     token = security.generate_admin_token()
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
@@ -549,6 +594,99 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
+
+        elif self.path == '/api/stripe/config':
+            # GET /api/stripe/config - Retorna la publishable key para el frontend
+            try:
+                publishable_key = stripe_service.get_publishable_key()
+                configured = stripe_service.is_stripe_configured()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "configured": configured,
+                    "publishable_key": publishable_key
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+
+        elif self.path == '/api/stripe/create-payment':
+            # POST /api/stripe/create-payment - Crea un PaymentIntent
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                amount = data.get("amount", 0)  # Amount in cents
+                orden_id = data.get("orden_id", "")
+                
+                if amount <= 0:
+                    raise ValueError("Monto inválido")
+                
+                metadata = {"orden_id": orden_id} if orden_id else None
+                
+                client_secret, error = stripe_service.create_payment_intent(
+                    amount_cents=amount,
+                    metadata=metadata
+                )
+                
+                if error:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": error}).encode('utf-8'))
+                else:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "client_secret": client_secret
+                    }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+
+        elif self.path == '/api/stripe/webhook':
+            # POST /api/stripe/webhook - Maneja webhooks de Stripe
+            content_length = int(self.headers['Content-Length'])
+            payload = self.rfile.read(content_length)
+            sig_header = self.headers.get('Stripe-Signature', '')
+            
+            try:
+                event, error = stripe_service.handle_webhook(payload, sig_header)
+                
+                if error:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": error}).encode('utf-8'))
+                    return
+                
+                # Manejar eventos de pago
+                if event['type'] == 'payment_intent.succeeded':
+                    intent = event['data']['object']
+                    orden_id = intent.get('metadata', {}).get('orden_id')
+                    if orden_id:
+                        # Actualizar estado de la orden
+                        gestor_ordenes.actualizar_pago_orden(
+                            orden_id, intent['id'], 'stripe'
+                        )
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"received": True}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
 
     def clasificar_intencion_ia(self, comando):
         """Utiliza Gemini para analizar la intención del usuario y normalizar el comando."""

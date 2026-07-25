@@ -120,6 +120,60 @@ class SecurityTests(unittest.TestCase):
     
     def test_verify_password_invalid_hash(self):
         self.assertFalse(security.verify_password("password", "invalid"))
+    
+    def test_validate_admin_secret_valid(self):
+        os.environ["SKILLTWIN_ADMIN_SECRET"] = "test-secret-123"
+        self.assertTrue(security.validate_admin_secret("test-secret-123"))
+        del os.environ["SKILLTWIN_ADMIN_SECRET"]
+    
+    def test_validate_admin_secret_invalid(self):
+        os.environ["SKILLTWIN_ADMIN_SECRET"] = "correct-secret"
+        self.assertFalse(security.validate_admin_secret("wrong-secret"))
+        self.assertFalse(security.validate_admin_secret(""))
+        self.assertFalse(security.validate_admin_secret(None))
+        del os.environ["SKILLTWIN_ADMIN_SECRET"]
+    
+    def test_get_admin_secret_default(self):
+        if "SKILLTWIN_ADMIN_SECRET" in os.environ:
+            del os.environ["SKILLTWIN_ADMIN_SECRET"]
+        secret = security.get_admin_secret()
+        self.assertEqual(secret, "skilltwin-dev-2026")
+    
+    def test_generate_csrf_token(self):
+        token = security.generate_csrf_token("session123")
+        self.assertIsNotNone(token)
+        self.assertGreater(len(token), 20)
+    
+    def test_validate_csrf_token_valid(self):
+        token = security.generate_csrf_token("session123")
+        self.assertTrue(security.validate_csrf_token(token, "session123"))
+    
+    def test_validate_csrf_token_wrong_session(self):
+        token = security.generate_csrf_token("session123")
+        self.assertFalse(security.validate_csrf_token(token, "wrong-session"))
+    
+    def test_validate_csrf_token_single_use(self):
+        token = security.generate_csrf_token("session123")
+        self.assertTrue(security.validate_csrf_token(token, "session123"))
+        self.assertFalse(security.validate_csrf_token(token, "session123"))
+    
+    def test_validate_csrf_token_expired(self):
+        token = security.generate_csrf_token("session123")
+        security._csrf_tokens[token]['expires'] = security.datetime.now() - security.timedelta(hours=1)
+        self.assertFalse(security.validate_csrf_token(token, "session123"))
+    
+    def test_cleanup_expired_tokens(self):
+        # Create tokens and expire them
+        token1 = security.create_session_token()
+        token2 = security.generate_csrf_token("session")
+        
+        security._valid_tokens[token1]['expires'] = security.datetime.now() - security.timedelta(hours=1)
+        security._csrf_tokens[token2]['expires'] = security.datetime.now() - security.timedelta(hours=1)
+        
+        security.cleanup_expired_tokens()
+        
+        self.assertNotIn(token1, security._valid_tokens)
+        self.assertNotIn(token2, security._csrf_tokens)
 
 
 if __name__ == '__main__':

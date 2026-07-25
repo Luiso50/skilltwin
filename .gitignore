@@ -9,8 +9,19 @@ env/
 venv/
 .venv/
 
+# Environment variables (SECRETS)
+.env
+.env.local
+.env.production
+
 # Server settings and local configuration
 server_settings.json
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Run scripts cache and local logs
 *.log
@@ -18,3 +29,7 @@ server_settings.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
