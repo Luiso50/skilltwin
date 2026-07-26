@@ -187,6 +187,18 @@ def check_rate_limit(ip, endpoint):
     return True
 
 
+def cleanup_rate_limit_store():
+    """Limpia IPs sin requests recientes para evitar memory leak."""
+    now = time.time()
+    window_start = now - RATE_LIMIT_WINDOW
+    stale_ips = [
+        ip for ip, entries in _rate_limit_store.items()
+        if not entries or entries[-1][0] < window_start
+    ]
+    for ip in stale_ips:
+        del _rate_limit_store[ip]
+
+
 def get_client_ip(handler):
     """Obtiene la IP real del cliente (soporta proxies)."""
     forwarded = handler.headers.get('X-Forwarded-For')

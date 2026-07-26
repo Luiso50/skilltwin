@@ -268,6 +268,22 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+        elif self.path == '/api/stripe/config':
+            try:
+                publishable_key = stripe_service.get_publishable_key()
+                configured = stripe_service.is_stripe_configured()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "configured": configured,
+                    "publishable_key": publishable_key
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
         else:
             super().do_GET()
 
@@ -570,6 +586,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == '/api/auth/token':
             # Endpoint para obtener token de admin
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
             try:
                 data = json.loads(post_data.decode('utf-8'))
                 secret = data.get("secret", "")
@@ -594,24 +612,6 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
-
-        elif self.path == '/api/stripe/config':
-            # GET /api/stripe/config - Retorna la publishable key para el frontend
-            try:
-                publishable_key = stripe_service.get_publishable_key()
-                configured = stripe_service.is_stripe_configured()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    "configured": configured,
-                    "publishable_key": publishable_key
-                }).encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
 
         elif self.path == '/api/stripe/create-payment':
             # POST /api/stripe/create-payment - Crea un PaymentIntent
