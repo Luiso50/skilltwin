@@ -295,14 +295,53 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 | `STRIPE_SECRET_KEY` | Secret key de Stripe | vacio |
 | `STRIPE_PUBLISHABLE_KEY` | Publishable key de Stripe | vacio |
 
+## Integracion de Pagos (Stripe Checkout)
+
+El sistema integra Stripe Checkout para pagos con tarjeta de credito:
+
+1. Usuario selecciona "Tarjeta de Crédito" en el portal de clientes
+2. Redirige a Stripe Checkout (pagina segura de Stripe)
+3. Usuario completa el pago
+4. Stripe notifica via webhook → factura y orden se actualizan automaticamente
+
+**Endpoints nuevos:**
+- `POST /api/stripe/create-checkout` - Crea sesion de Checkout
+- `POST /api/stripe/confirm-session` - Verifica estado del pago
+- `POST /api/stripe/webhook` - Recibe notificaciones de Stripe
+
+**Para activar:**
+1. Obtener API keys en [dashboard.stripe.com](https://dashboard.stripe.com)
+2. Configurar variables en `.env` (ver `.env.example`)
+3. Crear webhook con evento `checkout.session.completed`
+
+## Despliegue
+
+### GitHub Pages (Landing - Gratis)
+- Configurado automaticamente via GitHub Actions
+- URL: `https://luiso50.github.io/skilltwin/`
+- Contenido: Landing page, documentacion API
+
+### Backend API (Render - Gratis)
+- Configurado via `render.yaml`
+- Workflow: `.github/workflows/deploy-backend.yml`
+- **Pendiente:** Crear cuenta en Render y configurar secrets en GitHub
+
+**Secrets necesarios en GitHub:**
+- `RENDER_SERVICE_ID` - ID del servicio en Render
+- `RENDER_API_KEY` - API key de Render
+
 ## Proximos Pasos
 
 - [x] Documentacion de la API (docs/API.md)
 - [x] Reforzamiento de seguridad (variables de entorno para API keys, autenticacion admin)
 - [x] Migrar JSON a SQLite para produccion
 - [x] Integracion real de email (SMTP)
-- [x] Integracion de pagos con Stripe
-- [x] CI/CD con GitHub Actions
+- [x] Integracion de pagos con Stripe Checkout
+- [x] CI/CD con GitHub Actions (tests, lint, security)
+- [x] Configuracion para despliegue en Render (render.yaml)
+- [x] Workflow de despliegue automatico a Render
+- [ ] Crear cuenta en Render y configurar secrets
+- [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
 - [ ] Rate limiting persistente (Redis)
 - [ ] Monitoreo y logging avanzado
@@ -312,4 +351,7 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 - repositorio publicado y preparado para GitHub Pages
 - landing publica con branding, logo y formulario de contacto
 - dashboard local funcional con rutas operativas
-- estructura lista para seguir evolucionando a producto o demo comercial
+- integracion Stripe Checkout lista (requiere API keys de Stripe)
+- despliegue automatizado configurado (requiere cuenta en Render)
+- 101 tests unitarios cubriendo todos los modulos
+- CI/CD completo: tests, lint, security scan
