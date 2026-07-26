@@ -73,7 +73,7 @@ class MotorClonacionTests(unittest.TestCase):
     def test_consultar_clon_offline_respuesta(self):
         clon = motor_clonacion.cargar_datos()['clones']['rsanchez_cobol']
         respuesta = motor_clonacion.consultar_clon_offline(clon, 'que es COBOL')
-        self.assertIn('MODO OFFLINE', respuesta)
+        self.assertIn('Modo offline', respuesta)
         self.assertIn('COBOL', respuesta)
         self.assertIn('Roberto', respuesta)
 
@@ -94,7 +94,7 @@ class MotorClonacionTests(unittest.TestCase):
         try:
             respuesta = motor_clonacion.consultar_clon('rsanchez_cobol', 'que es COBOL')
             self.assertIsNotNone(respuesta)
-            self.assertIn('MODO OFFLINE', respuesta)
+            self.assertIn('Modo offline', respuesta)
         finally:
             if old_key:
                 os.environ['GEMINI_API_KEY'] = old_key

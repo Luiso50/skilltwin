@@ -1,0 +1,29 @@
+{
+  "clone_id": "rsanchez_cobol",
+  "session_id": "980315ae-3050-4a47-a9a6-c58683d07500",
+  "historial": [
+    {
+      "pregunta": "que es COBOL",
+      "respuesta": "Hola, soy el clon digital de Roberto Sánchez, especialista en Programador Senior de COBOL.\nEs mi primera interacción contigo en esta sesión.\n\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:\n- [DEFINICIONES] La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION\n- [DEFINICIONES] Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO\n\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)",
+      "timestamp": "2026-07-25T21:00:54.857964",
+      "exitosa": true
+    }
+  ],
+  "contexto": {
+    "temas": {
+      "cobol": 1
+    },
+    "ultima_pregunta": "que es COBOL",
+    "ultima_respuesta": "Hola, soy el clon digital de Roberto Sánchez, especialista en Programador Senior de COBOL.\nEs mi primera interacción contigo en esta sesión.\n\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:\n- [DEFINICIONES] La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION\n- [DEFINICIONES] Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO\n\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)",
+    "total_interacciones": 1
+  },
+  "memorias_exito": [
+    {
+      "pregunta": "que es COBOL",
+      "respuesta": "Hola, soy el clon digital de Roberto Sánchez, especialista en Programador Senior de COBOL.\nEs mi primera interacción contigo en esta sesión.\n\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:\n- [DEFINICIONES] La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION\n- [DEFINICIONES] Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO\n\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)",
+      "contexto": {},
+      "timestamp": "2026-07-25T21:00:54.857978"
+    }
+  ],
+  "ultima_actualizacion": "2026-07-25T21:00:54.858426"
+}

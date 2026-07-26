@@ -6,7 +6,18 @@ import secrets
 import sys
 import urllib.parse
 import urllib.request
+import time
+import logging
 from datetime import datetime
+from functools import wraps
+
+# Configurar logging estructurado
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('cerebro')
 
 # Añadir el directorio raíz al path para importar los módulos de los departamentos
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -66,6 +77,45 @@ class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         super().handle_error(request, client_address)
 
 class CerebroHandler(http.server.SimpleHTTPRequestHandler):
+    def send_json_response(self, data, status=200, headers=None):
+        """Helper para enviar respuestas JSON de forma consistente."""
+        response_headers = {'Content-Type': 'application/json; charset=utf-8'}
+        if headers:
+            response_headers.update(headers)
+        
+        self.send_response(status)
+        for key, value in response_headers.items():
+            self.send_header(key, value)
+        self.end_headers()
+        
+        json_data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+        self.wfile.write(json_data)
+        
+        # Log de la petición
+        logger.info(f"{self.path} -> {status} ({len(json_data)} bytes)")
+    
+    def send_error_response(self, message, status=400):
+        """Helper para enviar errores de forma consistente."""
+        self.send_json_response({"error": message}, status=status)
+    
+    def read_json_body(self):
+        """Helper para leer y parsear el body JSON de un POST."""
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length == 0:
+            return {}
+        
+        post_data = self.rfile.read(content_length)
+        return json.loads(post_data.decode('utf-8'))
+    
+    def do_OPTIONS(self):
+        """Manejar preflight requests de CORS."""
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Max-Age', '86400')
+        self.end_headers()
+
     def translate_path(self, path):
         # Servir archivos estáticos desde el directorio fijo /cerebro/.
         path = urllib.parse.urlparse(path).path
@@ -90,6 +140,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('X-XSS-Protection', '1; mode=block')
         self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
         self.send_header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+        # CORS
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         if os.environ.get('SKILLTWIN_HSTS', '0') == '1':
             self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         super().end_headers()
@@ -122,44 +176,29 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/clones':
             try:
                 datos = motor_clonacion.cargar_datos()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps(datos, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response(datos)
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/clones: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/get-settings':
             try:
                 ajustes = cargar_ajustes()
                 has_key = bool(ajustes.get("gemini_key")) or ("GEMINI_API_KEY" in os.environ and bool(os.environ["GEMINI_API_KEY"]))
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json_response({
                     "has_key": has_key,
                     "commission": ajustes.get("commission", 15.0),
                     "model": ajustes.get("model", "gemini-2.5-flash")
-                }, ensure_ascii=False).encode('utf-8'))
+                })
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/get-settings: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/finanzas-data':
             try:
                 datos = gestor_financiero.cargar_finanzas()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps(datos, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response(datos)
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/finanzas-data: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/clones-list':
             try:
                 datos = motor_clonacion.cargar_datos()
@@ -170,52 +209,35 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                         "nombre": clon_data.get("nombre", ""),
                         "especialidad": clon_data.get("especialidad", "")
                     })
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({"clones": clones_lista}, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response({"clones": clones_lista})
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/clones-list: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/ordenes'):
             try:
-                # GET /api/ordenes?email=cliente@email.com
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 cliente_email = params.get('email', [None])[0]
                 
                 ordenes = gestor_ordenes.listar_ordenes(cliente_email)
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({"ordenes": ordenes}, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response({"ordenes": ordenes})
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/ordenes: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/notificaciones'):
             try:
-                # GET /api/notificaciones?email=cliente@email.com
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 cliente_email = params.get('email', [None])[0]
                 
                 if cliente_email:
                     notificaciones = gestor_ordenes.obtener_notificaciones_no_leidas(cliente_email)
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json; charset=utf-8')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"notificaciones": notificaciones}, ensure_ascii=False).encode('utf-8'))
+                    self.send_json_response({"notificaciones": notificaciones})
                 else:
-                    raise Exception("Email de cliente requerido")
+                    self.send_error_response("Email de cliente requerido")
             except Exception as e:
-                self.send_response(400)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/notificaciones: {e}")
+                self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/facturas'):
             try:
                 query_params = urllib.parse.urlparse(self.path).query
@@ -223,67 +245,111 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 cliente_email = params.get('email', [None])[0]
                 
                 facturas = gestor_pagos.listar_facturas(cliente_email)
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({"facturas": facturas}, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response({"facturas": facturas})
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/facturas: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/admin-dashboard'):
             try:
                 stats_pagos = gestor_pagos.obtener_estadisticas_pagos()
+                ordenes_data = gestor_ordenes.cargar_ordenes()
                 stats_ordenes = {
-                    "total_ordenes": len(gestor_ordenes.cargar_ordenes()["ordenes"]),
-                    "ordenes_completadas": len([o for o in gestor_ordenes.cargar_ordenes()["ordenes"].values() if o["estado"] == "completada"])
+                    "total_ordenes": len(ordenes_data["ordenes"]),
+                    "ordenes_completadas": len([o for o in ordenes_data["ordenes"].values() if o["estado"] == "completada"])
                 }
                 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json_response({
                     "pagos": stats_pagos,
                     "ordenes": stats_ordenes
-                }, ensure_ascii=False).encode('utf-8'))
+                })
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/admin-dashboard: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/csrf-token':
             try:
                 session_id = secrets.token_urlsafe(16)
                 token = security.generate_csrf_token(session_id)
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json_response({
                     "token": token,
                     "session_id": session_id
-                }).encode('utf-8'))
+                })
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/csrf-token: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/stripe/config':
             try:
                 publishable_key = stripe_service.get_publishable_key()
                 configured = stripe_service.is_stripe_configured()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json_response({
                     "configured": configured,
                     "publishable_key": publishable_key
-                }).encode('utf-8'))
+                })
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/stripe/config: {e}")
+                self.send_error_response(str(e), 500)
+        elif self.path == '/api/export-report':
+            try:
+                query_params = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query_params)
+                report_type = params.get('type', ['clones'])[0]
+                
+                if report_type == 'clones':
+                    datos = motor_clonacion.cargar_datos()
+                    report_data = {
+                        "tipo": "reporte_clones",
+                        "fecha": datetime.now().isoformat(),
+                        "total_clones": len(datos["clones"]),
+                        "clones": datos["clones"]
+                    }
+                elif report_type == 'finanzas':
+                    datos = gestor_financiero.cargar_finanzas()
+                    report_data = {
+                        "tipo": "reporte_financiero",
+                        "fecha": datetime.now().isoformat(),
+                        "datos": datos
+                    }
+                elif report_type == 'ordenes':
+                    datos = gestor_ordenes.cargar_ordenes()
+                    report_data = {
+                        "tipo": "reporte_ordenes",
+                        "fecha": datetime.now().isoformat(),
+                        "total_ordenes": len(datos["ordenes"]),
+                        "ordenes": datos["ordenes"]
+                    }
+                else:
+                    self.send_error_response("Tipo de reporte no válido. Opciones: clones, finanzas, ordenes")
+                    return
+                
+                self.send_json_response(report_data)
+            except Exception as e:
+                logger.error(f"Error en /api/export-report: {e}")
+                self.send_error_response(str(e), 500)
+        elif self.path.startswith('/api/search-clones'):
+            try:
+                query_params = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query_params)
+                query = params.get('q', [''])[0].lower().strip()
+                
+                datos = motor_clonacion.cargar_datos()
+                resultados = []
+                
+                for clon_id, clon_data in datos["clones"].items():
+                    searchable = f"{clon_id} {clon_data.get('nombre', '')} {clon_data.get('especialidad', '')} {clon_data.get('conocimiento', '')}".lower()
+                    if query in searchable:
+                        resultados.append({
+                            "id": clon_id,
+                            "nombre": clon_data.get("nombre", ""),
+                            "especialidad": clon_data.get("especialidad", "")
+                        })
+                
+                self.send_json_response({
+                    "query": query,
+                    "resultados": resultados,
+                    "total": len(resultados)
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/search-clones: {e}")
+                self.send_error_response(str(e), 500)
         else:
             super().do_GET()
 
@@ -291,46 +357,28 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         # Rate limiting
         client_ip = security.get_client_ip(self)
         if not security.check_rate_limit(client_ip, self.path):
-            self.send_response(429)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
+            self.send_error_response("Demasiadas solicitudes. Intenta de nuevo en unos segundos.", 429)
             return
         
         # Validar Content-Type para endpoints que esperan JSON
         content_type = self.headers.get('Content-Type', '')
         if self.path.startswith('/api/') and self.path != '/api/contacto':
             if 'application/json' not in content_type:
-                self.send_response(415)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Content-Type debe ser application/json"}).encode('utf-8'))
+                self.send_error_response("Content-Type debe ser application/json", 415)
                 return
             
         if self.path == '/api/command':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 comando = data.get("command", "").strip()
                 respuesta = self.procesar_comando(comando)
-                
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps(respuesta, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response(respuesta)
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/command: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/crear-orden':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 cliente_email = security.sanitize_string(data.get("cliente_email", ""), 254)
                 clon_id = security.sanitize_string(data.get("clon_id", ""), 50)
                 cantidad_horas = data.get("cantidad_horas", 0)
@@ -351,106 +399,135 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     descripcion_proyecto, requiere_contrato
                 )
                 
-                self.send_response(201)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json_response({
                     "success": True,
                     "orden_id": orden_id,
                     "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
                     "orden": orden_data
-                }, ensure_ascii=False).encode('utf-8'))
+                }, status=201)
             except Exception as e:
-                self.send_response(400)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/crear-orden: {e}")
+                self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/marcar-leida'):
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 orden_id = data.get("orden_id", "").strip()
                 indice = data.get("indice", 0)
                 
                 exito = gestor_ordenes.marcar_notificacion_leida(orden_id, indice)
                 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json_response({
                     "success": exito,
                     "mensaje": "Notificación marcada como leída"
-                }, ensure_ascii=False).encode('utf-8'))
+                })
             except Exception as e:
-                self.send_response(400)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/marcar-leida: {e}")
+                self.send_error_response(str(e), 400)
         elif self.path == '/api/chat-clon':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 id_clon = data.get("id_clon", "").strip()
                 pregunta = data.get("pregunta", "").strip()
+                session_id = data.get("session_id", None)
                 
-                respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta)
+                if not session_id:
+                    import uuid
+                    session_id = str(uuid.uuid4())
                 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({"respuesta": respuesta_clon}, ensure_ascii=False).encode('utf-8'))
+                respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta, session_id)
+                
+                self.send_json_response({
+                    "respuesta": respuesta_clon,
+                    "session_id": session_id
+                })
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
-        elif self.path == '/api/procesar-pago':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
+                logger.error(f"Error en /api/chat-clon: {e}")
+                self.send_error_response(str(e), 500)
+        elif self.path.startswith('/api/clon-historial'):
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                query_params = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query_params)
+                clon_id = params.get('clon_id', [None])[0]
+                session_id = params.get('session_id', [None])[0]
+                
+                if not clon_id:
+                    self.send_error_response("ID de clon requerido")
+                    return
+                
+                historial = motor_clonacion.obtener_historial_conversacion(clon_id, session_id)
+                self.send_json_response({
+                    "historial": historial,
+                    "clon_id": clon_id,
+                    "session_id": session_id
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/clon-historial: {e}")
+                self.send_error_response(str(e), 400)
+        elif self.path.startswith('/api/clon-estadisticas'):
+            try:
+                query_params = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query_params)
+                clon_id = params.get('clon_id', [None])[0]
+                
+                if not clon_id:
+                    self.send_error_response("ID de clon requerido")
+                    return
+                
+                estadisticas = motor_clonacion.obtener_estadisticas_clon(clon_id)
+                self.send_json_response({
+                    "estadisticas": estadisticas,
+                    "clon_id": clon_id
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/clon-estadisticas: {e}")
+                self.send_error_response(str(e), 400)
+        elif self.path == '/api/clon-limpiar-memoria':
+            try:
+                data = self.read_json_body()
+                clon_id = data.get("clon_id", "").strip()
+                session_id = data.get("session_id", None)
+                
+                if not clon_id:
+                    self.send_error_response("ID de clon requerido")
+                    return
+                
+                motor_clonacion.limpiar_memoria_conversacion(clon_id, session_id)
+                
+                self.send_json_response({
+                    "success": True,
+                    "mensaje": "Memoria de conversación limpiada"
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/clon-limpiar-memoria: {e}")
+                self.send_error_response(str(e), 400)
+        elif self.path == '/api/procesar-pago':
+            try:
+                data = self.read_json_body()
                 factura_id = data.get("factura_id", "").strip()
                 metodo_pago = data.get("metodo_pago", "tarjeta_credito").strip()
                 
                 exito, resultado = gestor_pagos.procesar_pago(factura_id, metodo_pago)
                 
                 if exito:
-                    # Obtener la factura para actualizarla en la orden
                     factura = gestor_pagos.obtener_factura(factura_id)
                     if factura:
                         gestor_ordenes.actualizar_pago_orden(
                             factura["orden_id"], factura_id, metodo_pago
                         )
                     
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json; charset=utf-8')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({
+                    self.send_json_response({
                         "success": True,
                         "mensaje": "Pago procesado exitosamente",
                         "resultado": resultado
-                    }, ensure_ascii=False).encode('utf-8'))
+                    })
                 else:
-                    self.send_response(400)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": resultado}, ensure_ascii=False).encode('utf-8'))
+                    self.send_error_response(resultado)
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/procesar-pago: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/agregar-rating':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 orden_id = security.sanitize_string(data.get("orden_id", ""), 50)
                 puntuacion = data.get("puntuacion", 0)
                 resena = security.sanitize_string(data.get("resena", ""), 500)
@@ -461,29 +538,15 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 exito, mensaje = gestor_ordenes.agregar_rating_orden(orden_id, puntuacion, resena)
                 
                 if exito:
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json; charset=utf-8')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({
-                        "success": True,
-                        "mensaje": mensaje
-                    }, ensure_ascii=False).encode('utf-8'))
+                    self.send_json_response({"success": True, "mensaje": mensaje})
                 else:
-                    self.send_response(400)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": mensaje}, ensure_ascii=False).encode('utf-8'))
+                    self.send_error_response(mensaje)
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/agregar-rating: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/contacto':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 nombre = security.sanitize_string(data.get("nombre", ""), 100)
                 email = security.sanitize_string(data.get("email", ""), 254)
                 telefono = security.sanitize_string(data.get("telefono", ""), 20)
@@ -501,12 +564,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     nombre, email, telefono, empresa, interes, mensaje
                 )
                 
-                # Intentar enviar email de notificación al admin
                 email_enviado, email_error = email_service.send_contact_email(
                     nombre, email, telefono, empresa, interes, mensaje
                 )
                 
-                # Intentar enviar confirmación al usuario
                 if email_enviado:
                     email_service.send_confirmation_email(nombre, email)
 
@@ -519,32 +580,20 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 if not email_enviado:
                     response_data["email_warning"] = "Email no enviado: " + (email_error or "SMTP no configurado")
 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode('utf-8'))
+                self.send_json_response(response_data)
             except Exception as e:
-                self.send_response(400)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
+                logger.error(f"Error en /api/contacto: {e}")
+                self.send_error_response(str(e), 400)
         elif self.path == '/api/settings':
-            # Verificar autenticación de admin
             auth_header = self.headers.get('Authorization', '')
             token = auth_header.replace('Bearer ', '') if auth_header.startswith('Bearer ') else ''
             
             if not security.validate_admin_token(token):
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "No autorizado. Se requiere token de administrador."}).encode('utf-8'))
+                self.send_error_response("No autorizado. Se requiere token de administrador.", 401)
                 return
                 
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 api_key = data.get("gemini_key", "").strip()
                 commission = data.get("commission")
                 model = data.get("model", "gemini-2.5-flash").strip()
@@ -564,7 +613,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                         ajustes["commission"] = float(commission)
                         mensaje_parts.append(f"Comisión ajustada a {commission}%.")
                     except ValueError:
-                        mensaje_parts.append("Comisión inválida entregada; se mantuvo el valor anterior.")
+                        mensaje_parts.append("Comisión inválida; se mantuvo el valor anterior.")
 
                 if model:
                     ajustes["model"] = model
@@ -574,53 +623,33 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 guardar_ajustes(ajustes)
                 msg = " ".join(mensaje_parts) if mensaje_parts else "Configuración procesada sin cambios."
 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({"success": True, "message": msg}, ensure_ascii=False).encode('utf-8'))
-            except Exception:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
+                self.send_json_response({"success": True, "message": msg})
+            except Exception as e:
+                logger.error(f"Error en /api/settings: {e}")
+                self.send_error_response("Error interno del servidor", 500)
 
         elif self.path == '/api/auth/token':
-            # Endpoint para obtener token de admin
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
             try:
-                data = json.loads(post_data.decode('utf-8'))
+                data = self.read_json_body()
                 secret = data.get("secret", "")
                 
                 if security.validate_admin_secret(secret):
                     token = security.generate_admin_token()
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({
+                    self.send_json_response({
                         "success": True,
                         "token": token,
                         "message": "Token de administrador generado. Usa este token en el header Authorization: Bearer <token>"
-                    }).encode('utf-8'))
+                    })
                 else:
-                    self.send_response(403)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Secreta inválida"}).encode('utf-8'))
-            except Exception:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Error interno del servidor"}).encode('utf-8'))
+                    self.send_error_response("Secreta inválida", 403)
+            except Exception as e:
+                logger.error(f"Error en /api/auth/token: {e}")
+                self.send_error_response("Error interno del servidor", 500)
 
         elif self.path == '/api/stripe/create-payment':
-            # POST /api/stripe/create-payment - Crea un PaymentIntent
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            
             try:
-                data = json.loads(post_data.decode('utf-8'))
-                amount = data.get("amount", 0)  # Amount in cents
+                data = self.read_json_body()
+                amount = data.get("amount", 0)
                 orden_id = data.get("orden_id", "")
                 
                 if amount <= 0:
@@ -634,27 +663,18 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 )
                 
                 if error:
-                    self.send_response(400)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": error}).encode('utf-8'))
+                    self.send_error_response(error)
                 else:
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json; charset=utf-8')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({
+                    self.send_json_response({
                         "success": True,
                         "client_secret": client_secret
-                    }).encode('utf-8'))
+                    })
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/stripe/create-payment: {e}")
+                self.send_error_response(str(e), 500)
 
         elif self.path == '/api/stripe/webhook':
-            # POST /api/stripe/webhook - Maneja webhooks de Stripe
-            content_length = int(self.headers['Content-Length'])
+            content_length = int(self.headers.get('Content-Length', 0))
             payload = self.rfile.read(content_length)
             sig_header = self.headers.get('Stripe-Signature', '')
             
@@ -662,31 +682,21 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 event, error = stripe_service.handle_webhook(payload, sig_header)
                 
                 if error:
-                    self.send_response(400)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error": error}).encode('utf-8'))
+                    self.send_error_response(error)
                     return
                 
-                # Manejar eventos de pago
                 if event['type'] == 'payment_intent.succeeded':
                     intent = event['data']['object']
                     orden_id = intent.get('metadata', {}).get('orden_id')
                     if orden_id:
-                        # Actualizar estado de la orden
                         gestor_ordenes.actualizar_pago_orden(
                             orden_id, intent['id'], 'stripe'
                         )
                 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"received": True}).encode('utf-8'))
+                self.send_json_response({"received": True})
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                logger.error(f"Error en /api/stripe/webhook: {e}")
+                self.send_error_response(str(e), 500)
 
     def clasificar_intencion_ia(self, comando):
         """Utiliza Gemini para analizar la intención del usuario y normalizar el comando."""
@@ -887,34 +897,32 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             }
 
 def run_server():
-    # Inicializar bases de datos por seguridad
+    logger.info("=== SkillTwin Cerebro Central ===")
+    logger.info("Inicializando bases de datos...")
     motor_clonacion.inicializar_db()
     gestor_financiero.inicializar_finanzas()
     gestor_ordenes.inicializar_ordenes()
     gestor_pagos.inicializar_pagos()
     gestor_pagos.reconciliar_facturas_con_ordenes()
     
-    # Iniciar orquestador automático
+    logger.info("Iniciando orquestador automático...")
     orquestador.iniciar_orquestador()
-    print("[SERVIDOR] Orquestador automático iniciado")
     
     Handler = CerebroHandler
     ThreadingTCPServer.allow_reuse_address = True
     with ThreadingTCPServer(("", PORT), Handler) as httpd:
-        print("\n" + "="*50)
-        print(f"      SERVIDOR SKILLTWIN HABILITADO EN PUERTO {PORT}")
-        print("="*50)
-        print(">> Abre en tu navegador: http://localhost:8000")
-        print(">> Portal de Clientes: http://localhost:8000/client-portal.html")
-        print(">> Panel de Admin: http://localhost:8000/admin-dashboard.html")
-        print(">> Presiona CTRL+C para apagar el servidor.")
-        print("="*50)
+        logger.info(f"Servidor habilitado en puerto {PORT}")
+        logger.info("Rutas disponibles:")
+        logger.info("  - http://localhost:8000 (Cerebro Central)")
+        logger.info("  - http://localhost:8000/client-portal.html (Portal Clientes)")
+        logger.info("  - http://localhost:8000/admin-dashboard.html (Panel Admin)")
+        logger.info("Presiona CTRL+C para apagar el servidor.")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n[SERVIDOR] Deteniendo orquestador...")
+            logger.info("Deteniendo orquestador...")
             orquestador.detener_orquestador()
-            print("[SERVIDOR] Servidor apagado.")
+            logger.info("Servidor apagado.")
             sys.exit(0)
 
 if __name__ == "__main__":

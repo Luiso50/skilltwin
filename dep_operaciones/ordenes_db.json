@@ -249,7 +249,72 @@
                 "firma_cliente": false,
                 "fecha_firma": "2026-07-05T13:12:33.603549"
             }
+        },
+        "ORD-20260725-7B8F87": {
+            "id": "ORD-20260725-7B8F87",
+            "cliente_email": "test@example.com",
+            "clon_id": "ana_finanzas",
+            "cantidad_horas": 10,
+            "descripcion_proyecto": "Asesoria financiera",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-07-25T19:38:40.793511",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-07-25T19:38:40.793518",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
         }
     },
-    "contador_ordenes": 2
+    "contador_ordenes": 3
 }

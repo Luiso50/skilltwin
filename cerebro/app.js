@@ -1,5 +1,62 @@
 // SkillTwin HQ - Cerebro Central JavaScript Logic (Conexión Real con Servidor)
 
+// ======================================================================
+// UTILIDADES GLOBALES
+// ======================================================================
+
+// Debounce: retrasa ejecución hasta que el usuario deja de escribir
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Toast notifications
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  requestAnimationFrame(() => {
+    toast.classList.add('toast-show');
+  });
+  
+  setTimeout(() => {
+    toast.classList.remove('toast-show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Estado centralizado de la aplicación
+const AppState = {
+  activeCloneId: null,
+  currentSessionId: null,
+  clones: {},
+  settings: {},
+  listeners: new Map(),
+  
+  set(key, value) {
+    this[key] = value;
+    if (this.listeners.has(key)) {
+      this.listeners.get(key).forEach(cb => cb(value));
+    }
+  },
+  
+  on(key, callback) {
+    if (!this.listeners.has(key)) {
+      this.listeners.set(key, []);
+    }
+    this.listeners.get(key).push(callback);
+  }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   // Elements for Overview Chat
   const chatInput = document.getElementById("chat-input");
@@ -100,16 +157,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function sendCommandToBackend(text) {
     addChatBubble("user", text);
     
-    // Cambiar actividad del Cerebro a Procesando
     cerebroActivity.textContent = "Estado: Procesando instrucción...";
     addLog("cerebro", "Transmitiendo comando al orquestador backend...");
 
     try {
       const response = await fetch("/api/command", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: text })
       });
 
@@ -119,26 +173,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await response.json();
       
-      // 1. Mostrar respuesta en chat
       addChatBubble("cerebro", data.message);
       
-      // 2. Ejecutar animación del departamento responsable
       if (data.tag && departments[data.tag]) {
         animateDepartment(data.tag);
       }
       
-      // 3. Añadir entrada al Live Console
       if (data.console_log) {
         addLog(data.tag || "cerebro", data.console_log);
       }
 
-      // 4. Si es de finanzas, legal o marketing, actualizar las estadísticas dinámicas en la pestaña de detalles
       updateDynamicStats();
 
     } catch (error) {
       console.error("Error al enviar comando:", error);
-      addChatBubble("cerebro", "❌ **Error de Conexión:** No se pudo contactar con el Cerebro Central en el servidor local. Asegúrate de tener corriendo `server.py`.");
-      addLog("cerebro", `ERROR: Falla de comunicación con el orquestador backend. (${error.message})`);
+      addChatBubble("cerebro", "❌ Error de Conexión: No se pudo contactar con el Cerebro Central. Asegúrate de tener corriendo `server.py`.");
+      addLog("cerebro", `ERROR: ${error.message}`);
+      showToast("Error de conexión con el servidor", "error");
     } finally {
       cerebroActivity.textContent = "Estado: Escuchando órdenes...";
     }
@@ -157,6 +208,17 @@ document.addEventListener("DOMContentLoaded", () => {
     chatInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") handleSend();
     });
+  }
+
+  // Debounced search para input de nicho de marketing
+  const marketNichoInput = document.getElementById("market-nicho-input");
+  if (marketNichoInput) {
+    marketNichoInput.addEventListener("input", debounce((e) => {
+      const nicho = e.target.value.trim();
+      if (nicho.length > 2) {
+        addLog("marketing", `Nicho detectado: "${nicho}"`);
+      }
+    }, 300));
   }
 
 
@@ -408,6 +470,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function selectCloneForTesting(id, clone) {
     activeCloneId = id;
+    currentSessionId = null; // Resetear session_id al cambiar de clon
     
     // 1. Ocultar placeholder del chat
     if (testChatPlaceholder) testChatPlaceholder.style.display = "none";
@@ -422,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeCloneName) activeCloneName.textContent = clone.nombre;
     if (activeCloneSpecialty) activeCloneSpecialty.textContent = clone.especialidad;
     
-    // 3. Habilitar inputs
+    // 3. Habilitar inputs y botones de acción
     if (testChatInput) {
       testChatInput.removeAttribute("disabled");
       testChatInput.placeholder = `Pregúntale a ${clone.nombre.split(" ")[0]}...`;
@@ -430,7 +493,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (testSendBtn) testSendBtn.removeAttribute("disabled");
     
-    // 4. Limpiar caja de chat y agregar saludo inicial del clon
+    // 4. Habilitar botones de acción
+    const btnHistorial = document.getElementById("btn-historial");
+    const btnEstadisticas = document.getElementById("btn-estadisticas");
+    const btnLimpiarMemoria = document.getElementById("btn-limpiar-memoria");
+    if (btnHistorial) btnHistorial.removeAttribute("disabled");
+    if (btnEstadisticas) btnEstadisticas.removeAttribute("disabled");
+    if (btnLimpiarMemoria) btnLimpiarMemoria.removeAttribute("disabled");
+    
+    // 5. Limpiar caja de chat y agregar saludo inicial del clon
     if (testChatBox) {
       testChatBox.innerHTML = `
         <div class="chat-bubble cerebro-msg" style="border-left-color: var(--color-desarrollo);">
@@ -455,36 +526,38 @@ document.addEventListener("DOMContentLoaded", () => {
     testChatBox.scrollTop = testChatBox.scrollHeight;
   }
 
+  // Variable para mantener el session_id actual (usando AppState)
+  let currentSessionId = AppState.currentSessionId;
+
   // Enviar mensaje al clon
   async function sendTestChatMessage() {
     if (!activeCloneId || !testChatInput) return;
     const text = testChatInput.value.trim();
     if (!text) return;
     
-    // 1. Añadir mensaje del usuario al chat
     addTestChatBubble("user", text);
     testChatInput.value = "";
     
-    // 2. Añadir indicador de pensando
     const thinkingBubble = document.createElement("div");
     thinkingBubble.className = "chat-bubble cerebro-msg thinking-bubble";
     thinkingBubble.style.borderLeftColor = "var(--color-desarrollo)";
-    thinkingBubble.innerHTML = `<span style="opacity: 0.6;">Pensando respuesta...</span>`;
+    thinkingBubble.innerHTML = `<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span> Pensando...`;
     testChatBox.appendChild(thinkingBubble);
     testChatBox.scrollTop = testChatBox.scrollHeight;
     
-    addLog("desarrollo", `Consultando al clon '${activeCloneId}' en el backend...`);
+    addLog("desarrollo", `Consultando al clon '${activeCloneId}'...`);
 
     try {
       const response = await fetch("/api/chat-clon", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ id_clon: activeCloneId, pregunta: text })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_clon: activeCloneId,
+          pregunta: text,
+          session_id: currentSessionId
+        })
       });
       
-      // Eliminar burbuja de pensando
       if (thinkingBubble.parentNode) {
         thinkingBubble.parentNode.removeChild(thinkingBubble);
       }
@@ -492,16 +565,21 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) throw new Error("Error al consultar al servidor.");
       const data = await response.json();
       
-      // 3. Renderizar la respuesta real del clon
+      if (data.session_id) {
+        currentSessionId = data.session_id;
+        AppState.set('currentSessionId', data.session_id);
+      }
+      
       addTestChatBubble("clone", data.respuesta);
-      addLog("desarrollo", `Respuesta recibida del clon '${activeCloneId}'.`);
+      addLog("desarrollo", `Respuesta del clon '${activeCloneId}' recibida.`);
       
     } catch (error) {
       if (thinkingBubble.parentNode) {
         thinkingBubble.parentNode.removeChild(thinkingBubble);
       }
-      addTestChatBubble("clone", `❌ **Error:** No se pudo establecer conexión con el motor de clonación. Detalles: ${error.message}`);
-      addLog("desarrollo", `ERROR: Consulta fallida al clon '${activeCloneId}'. (${error.message})`);
+      addTestChatBubble("clone", `❌ Error: ${error.message}`);
+      addLog("desarrollo", `ERROR: ${error.message}`);
+      showToast("Error al consultar al clon", "error");
     }
   }
 
@@ -672,6 +750,254 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (err) {
         addLog("cerebro", `ERROR al guardar ajustes: ${err.message}`);
         alert(`❌ Error al guardar ajustes: ${err.message}`);
+      }
+    });
+  }
+
+  // ======================================================================
+  // BÚSQUEDA GLOBAL DE CLONES
+  // ======================================================================
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'chat-input search-global-input';
+  searchInput.placeholder = 'Buscar clones por nombre, especialidad...';
+  searchInput.style.cssText = 'max-width: 300px; font-size: 0.85rem;';
+  
+  const searchResults = document.createElement('div');
+  searchResults.className = 'search-results-dropdown';
+  
+  const searchWrapper = document.createElement('div');
+  searchWrapper.className = 'search-wrapper';
+  searchWrapper.style.cssText = 'position: relative; margin-left: auto;';
+  searchWrapper.appendChild(searchInput);
+  searchWrapper.appendChild(searchResults);
+  
+  const headerTitle = document.querySelector(".top-bar .page-title");
+  if (headerTitle) {
+    headerTitle.parentNode.insertBefore(searchWrapper, headerTitle.nextSibling);
+  }
+  
+  async function searchClones(query) {
+    if (!query || query.length < 2) {
+      searchResults.style.display = 'none';
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/search-clones?q=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error("Error en la búsqueda");
+      const data = await response.json();
+      
+      if (data.resultados.length === 0) {
+        searchResults.innerHTML = '<div class="search-result-empty">No se encontraron clones</div>';
+      } else {
+        searchResults.innerHTML = data.resultados.map(clon => `
+          <div class="search-result-item" data-id="${clon.id}">
+            <strong>${clon.nombre}</strong>
+            <span>${clon.especialidad}</span>
+          </div>
+        `).join('');
+      }
+      
+      searchResults.style.display = 'block';
+      
+      document.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const cloneId = item.getAttribute('data-id');
+          selectCloneForTesting(cloneId, AppState.clones[cloneId]);
+          switchTab('marketplace');
+          searchInput.value = '';
+          searchResults.style.display = 'none';
+        });
+      });
+      
+    } catch (error) {
+      console.error("Error en búsqueda:", error);
+    }
+  }
+  
+  searchInput.addEventListener('input', debounce((e) => {
+    searchClones(e.target.value);
+  }, 300));
+  
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      searchResults.style.display = 'none';
+    }, 200);
+  });
+
+  // ======================================================================
+  // FUNCIONALIDADES DE MEMORIA DE CONVERSACIÓN
+  // ======================================================================
+
+  // Botón de historial
+  const btnHistorial = document.getElementById("btn-historial");
+  if (btnHistorial) {
+    btnHistorial.addEventListener("click", async () => {
+      if (!activeCloneId) return;
+      
+      try {
+        const response = await fetch(`/api/clon-historial?clon_id=${activeCloneId}&session_id=${currentSessionId || ''}`);
+        if (!response.ok) throw new Error("No se pudo obtener el historial.");
+        const data = await response.json();
+        
+        const modal = document.createElement("div");
+        modal.className = "modal-overlay";
+        modal.innerHTML = `
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Historial de Conversación</h3>
+              <button class="modal-close" id="close-historial">&times;</button>
+            </div>
+            <div class="modal-body">
+              ${data.historial.length === 0 ? 
+                '<p class="empty-state">No hay historial de conversación para este clon.</p>' :
+                data.historial.map(item => `
+                  <div class="historial-item">
+                    <div class="timestamp">${new Date(item.timestamp).toLocaleString()}</div>
+                    <div class="pregunta">P: ${item.pregunta}</div>
+                    <div class="respuesta">R: ${item.respuesta.substring(0, 150)}...</div>
+                  </div>
+                `).join('')
+              }
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const closeModal = () => modal.remove();
+        document.getElementById("close-historial").addEventListener("click", closeModal);
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) closeModal();
+        });
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
+        
+      } catch (error) {
+        addLog("desarrollo", `ERROR: No se pudo cargar el historial. ${error.message}`);
+        showToast("Error al cargar historial", "error");
+      }
+    });
+  }
+
+  // Botón de estadísticas
+  const btnEstadisticas = document.getElementById("btn-estadisticas");
+  if (btnEstadisticas) {
+    btnEstadisticas.addEventListener("click", async () => {
+      if (!activeCloneId) return;
+      
+      try {
+        const response = await fetch(`/api/clon-estadisticas?clon_id=${activeCloneId}`);
+        if (!response.ok) throw new Error("No se pudieron obtener las estadísticas.");
+        const data = await response.json();
+        const stats = data.estadisticas;
+        
+        const modal = document.createElement("div");
+        modal.className = "modal-overlay";
+        modal.innerHTML = `
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Estadísticas del Clon</h3>
+              <button class="modal-close" id="close-estadisticas">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="estadisticas-grid">
+                <div class="estadistica-card">
+                  <div class="valor">${stats.total_interacciones}</div>
+                  <div class="etiqueta">Total Interacciones</div>
+                </div>
+                <div class="estadistica-card">
+                  <div class="valor">${stats.memorias_exito}</div>
+                  <div class="etiqueta">Memorias de Éxito</div>
+                </div>
+              </div>
+              ${stats.temas_mas_frecuentes.length > 0 ? `
+                <div class="temas-list">
+                  <h4>Temas Más Frecuentes:</h4>
+                  ${stats.temas_mas_frecuentes.map(tema => `
+                    <div class="tema-item">
+                      <span>${tema.tema}</span>
+                      <span>${tema.frecuencia} veces</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              ${stats.ultima_interaccion ? `
+                <p class="last-interaction">
+                  Última interacción: ${new Date(stats.ultima_interaccion).toLocaleString()}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const closeModal = () => modal.remove();
+        document.getElementById("close-estadisticas").addEventListener("click", closeModal);
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) closeModal();
+        });
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
+        
+      } catch (error) {
+        addLog("desarrollo", `ERROR: No se pudieron cargar las estadísticas. ${error.message}`);
+        showToast("Error al cargar estadísticas", "error");
+      }
+    });
+  }
+
+  // Botón de limpiar memoria
+  const btnLimpiarMemoria = document.getElementById("btn-limpiar-memoria");
+  if (btnLimpiarMemoria) {
+    btnLimpiarMemoria.addEventListener("click", async () => {
+      if (!activeCloneId) return;
+      
+      if (!confirm("¿Estás seguro de que quieres limpiar la memoria de conversación? Esta acción no se puede deshacer.")) {
+        return;
+      }
+      
+      try {
+        const response = await fetch("/api/clon-limpiar-memoria", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clon_id: activeCloneId,
+            session_id: currentSessionId
+          })
+        });
+        
+        if (!response.ok) throw new Error("No se pudo limpiar la memoria.");
+        
+        if (testChatBox) {
+          testChatBox.innerHTML = `
+            <div class="test-chat-placeholder">
+              <div class="pulse-icon">💬</div>
+              <p>Memoria limpiada. Inicia una nueva conversación con el clon.</p>
+            </div>
+          `;
+        }
+        
+        currentSessionId = null;
+        AppState.set('currentSessionId', null);
+        
+        addLog("desarrollo", `Memoria limpiada para el clon '${activeCloneId}'.`);
+        showToast("Memoria de conversación limpiada", "success");
+        
+      } catch (error) {
+        addLog("desarrollo", `ERROR: No se pudo limpiar la memoria. ${error.message}`);
+        showToast("Error al limpiar la memoria", "error");
       }
     });
   }

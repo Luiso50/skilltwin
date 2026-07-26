@@ -99,6 +99,73 @@ Migracion automatica desde JSON: `python -c "from dep_operaciones.database impor
 - Dashboards financieros con flujo de caja, cuentas por cobrar y pagar
 - Generacion de contratos con tasas de comision personalizables
 - Formulario de contacto con integracion backend y fallback por email
+- **Memoria de conversacion**: Los clones recuerdan preguntas anteriores en la misma sesion
+- **Conocimiento estructurado**: Base de conocimiento organizada por categorias (definiciones, mejores practicas, herramientas, procesos, consejos)
+- **Aprendizaje de interacciones**: Los clones aprenden de las respuestas que funcionan bien
+- **Contexto de sesion**: Mantiene historial de conversacion para respuestas mas coherentes
+
+## Motor de Clonacion v2.0
+
+### Nuevas Funcionalidades
+
+1. **Memoria de Conversacion**
+   - Cada clon mantiene un historial de interacciones por sesion
+   - Los clones recuerdan preguntas anteriores y pueden referenciarlas
+   - Memoria persistente entre sesiones (almacenada en archivos JSON)
+
+2. **Conocimiento Estructurado**
+   - El conocimiento se organiza automaticamente en categorias:
+     - Definiciones clave
+     - Mejores practicas
+     - Herramientas y frameworks
+     - Procesos y flujos de trabajo
+     - Consejos y tips
+   - Busqueda de informacion relevante basada en la pregunta del usuario
+
+3. **Aprendizaje de Interacciones**
+   - Los clones guardan "memorias de exito" cuando una respuesta funciona bien
+   - Busqueda de memorias similares para mejorar respuestas futuras
+   - Actualizacion automatica de contexto basado en temas de interes
+
+4. **Contexto de Sesion**
+   - Mantencion de contexto a lo largo de la conversacion
+   - Deteccion de temas recurrentes
+   - Resumen automatico de conversacion reciente
+
+### Endpoints Nuevos
+
+- `GET /api/clon-historial?clon_id=<id>&session_id=<id>` - Obtiene historial de conversacion
+- `GET /api/clon-estadisticas?clon_id=<id>` - Obtiene estadisticas de uso del clon
+- `POST /api/clon-limpiar-memoria` - Limpia la memoria de conversacion
+
+### Estructura de Memoria
+
+```json
+{
+  "clone_id": "rsanchez_cobol",
+  "session_id": "uuid-de-sesion",
+  "historial": [
+    {
+      "pregunta": "que es COBOL",
+      "respuesta": "COBOL es...",
+      "timestamp": "2026-07-25T10:30:00",
+      "exitosa": true
+    }
+  ],
+  "contexto": {
+    "temas": {"cobol": 3, "programacion": 2},
+    "ultima_pregunta": "que es COBOL",
+    "total_interacciones": 5
+  },
+  "memorias_exito": [
+    {
+      "pregunta": "como optimizar COBOL",
+      "respuesta": "Para optimizar...",
+      "timestamp": "2026-07-25T10:35:00"
+    }
+  ]
+}
+```
 
 ## Tests
 
@@ -106,8 +173,8 @@ Migracion automatica desde JSON: `python -c "from dep_operaciones.database impor
 python -m unittest discover -s tests
 ```
 
-81 tests cubriendo:
-- Motor de clonacion (11 tests)
+101 tests cubriendo:
+- Motor de clonacion (13 tests) - Incluye memoria de conversacion y conocimiento estructurado
 - Gestor financiero (10 tests)
 - Agente de ventas (7 tests)
 - Generador de contratos (8 tests)
@@ -116,6 +183,7 @@ python -m unittest discover -s tests
 - Gestor de pagos y ordenes (4 tests)
 - Seguridad (21 tests)
 - Base de datos SQLite (12 tests)
+- Nuevos endpoints de memoria y estadisticas (17 tests)
 
 ## API
 

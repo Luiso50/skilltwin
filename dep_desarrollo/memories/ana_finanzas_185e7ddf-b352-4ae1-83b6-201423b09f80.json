@@ -1,0 +1,30 @@
+{
+  "clone_id": "ana_finanzas",
+  "session_id": "185e7ddf-b352-4ae1-83b6-201423b09f80",
+  "historial": [
+    {
+      "pregunta": "dudas de ahorro",
+      "respuesta": "Hola, soy el clon digital de Ana Gómez, especialista en Asesora de Finanzas Personales.\nEs mi primera interacción contigo en esta sesión.\n\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:\n- [DEFINICIONES] La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas\n- [DEFINICIONES] Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.\n\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)",
+      "timestamp": "2026-07-25T21:20:06.791816",
+      "exitosa": true
+    }
+  ],
+  "contexto": {
+    "temas": {
+      "dudas": 1,
+      "ahorro": 1
+    },
+    "ultima_pregunta": "dudas de ahorro",
+    "ultima_respuesta": "Hola, soy el clon digital de Ana Gómez, especialista en Asesora de Finanzas Personales.\nEs mi primera interacción contigo en esta sesión.\n\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:\n- [DEFINICIONES] La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas\n- [DEFINICIONES] Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.\n\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)",
+    "total_interacciones": 1
+  },
+  "memorias_exito": [
+    {
+      "pregunta": "dudas de ahorro",
+      "respuesta": "Hola, soy el clon digital de Ana Gómez, especialista en Asesora de Finanzas Personales.\nEs mi primera interacción contigo en esta sesión.\n\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:\n- [DEFINICIONES] La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas\n- [DEFINICIONES] Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.\n\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)",
+      "contexto": {},
+      "timestamp": "2026-07-25T21:20:06.791830"
+    }
+  ],
+  "ultima_actualizacion": "2026-07-25T21:20:06.792116"
+}
