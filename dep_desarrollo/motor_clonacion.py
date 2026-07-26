@@ -430,7 +430,7 @@ def consultar_clon_offline(clon, pregunta, session_id=None):
         partes_respuesta.append(conocimiento[:200] + "...")
     
     # Pie de página
-    partes_respuesta.append(f"\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)")
+    partes_respuesta.append("\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)")
     
     respuesta_completa = "\n".join(partes_respuesta)
     
@@ -476,9 +476,9 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
     # Construir prompt mejorado
     prompt_parts = [
         f"Eres el clon digital de {nombre}, experto en {especialidad}.",
-        f"\nTu base de conocimiento estructurado es:",
+        "\nTu base de conocimiento estructurado es:",
         f"\"\"\"\n{resumen_estructurado}\n\"\"\"",
-        f"\nTu conocimiento completo es:",
+        "\nTu conocimiento completo es:",
         f"\"\"\"\n{conocimiento}\n\"\"\""
     ]
     
@@ -492,11 +492,11 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
             prompt_parts.append(f"  Respuesta exitosa: {memoria_sim['respuesta'][:200]}")
     
     prompt_parts.extend([
-        f"\nInstrucción: Responde a la pregunta del usuario utilizando tu conocimiento.",
-        f"Si es relevante, referencia interacciones anteriores de esta conversación.",
-        f"Si la pregunta no se relaciona con tu especialidad, indica que está fuera de tu campo.",
+        "\nInstrucción: Responde a la pregunta del usuario utilizando tu conocimiento.",
+        "Si es relevante, referencia interacciones anteriores de esta conversación.",
+        "Si la pregunta no se relaciona con tu especialidad, indica que está fuera de tu campo.",
         f"\nPregunta del usuario: {pregunta}",
-        f"\nRespuesta del clon:"
+        "\nRespuesta del clon:"
     ])
     
     prompt = "\n".join(prompt_parts)

@@ -6,10 +6,8 @@ import secrets
 import sys
 import urllib.parse
 import urllib.request
-import time
 import logging
 from datetime import datetime
-from functools import wraps
 
 
 def load_dotenv():

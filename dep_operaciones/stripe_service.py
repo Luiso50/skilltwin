@@ -1,6 +1,4 @@
 import os
-import json
-from datetime import datetime
 
 
 def get_stripe_config():
@@ -79,50 +77,6 @@ def confirm_payment(payment_intent_id):
             
     except Exception as e:
         return False, f"Error confirmando pago: {str(e)}"
-
-
-def create_checkout_session(amount_cents, success_url, cancel_url, metadata=None):
-    """
-    Crea una sesión de Checkout de Stripe.
-    Retorna (session_url, error_message)
-    """
-    config = get_stripe_config()
-    
-    if not config["secret_key"]:
-        return None, "Stripe no configurado"
-    
-    try:
-        import stripe
-        stripe.api_key = config["secret_key"]
-        
-        session_data = {
-            "payment_method_types": ["card"],
-            "line_items": [{
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {
-                        "name": "SkillTwin Service",
-                    },
-                    "unit_amount": amount_cents,
-                },
-                "quantity": 1,
-            }],
-            "mode": "payment",
-            "success_url": success_url,
-            "cancel_url": cancel_url,
-        }
-        
-        if metadata:
-            session_data["metadata"] = metadata
-        
-        session = stripe.checkout.Session.create(**session_data)
-        
-        return session.url, None
-        
-    except ImportError:
-        return None, "Stripe SDK no instalado"
-    except Exception as e:
-        return None, f"Error creando sesión: {str(e)}"
 
 
 def handle_webhook(payload, sig_header):
