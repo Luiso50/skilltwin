@@ -967,7 +967,7 @@
                     <option value="transferencia_bancaria">🏦 Transferencia Bancaria</option>
                     <option value="wallet_cripto">₿ Wallet Cripto</option>
                   </select>
-                  <button class="btn-small" onclick="procesarPago('${orden.pago && orden.pago.factura_id ? orden.pago.factura_id : ''}', ${idx})">✓ Pagar $${orden.monto_total ? orden.monto_total.toFixed(2) : '0.00'}</button>
+                  <button class="btn-small" onclick="procesarPago('${orden.pago && orden.pago.factura_id ? orden.pago.factura_id : ''}', ${idx}, ${orden.monto_total || 0})">✓ Pagar $${orden.monto_total ? orden.monto_total.toFixed(2) : '0.00'}</button>
                 </div>
               </div>
             ` : ''}
@@ -1014,7 +1014,7 @@
       });
     }
 
-    async function procesarPago(facturaId, idx) {
+    async function procesarPago(facturaId, idx, montoTotal) {
       if (!facturaId) {
         showAlert('No se encontró una factura válida para esta orden', 'error');
         return;
@@ -1022,6 +1022,42 @@
 
       const metodo = document.getElementById(`metodo-pago-${idx}`).value;
       
+      if (metodo === 'tarjeta_credito') {
+        await iniciarPagoStripe(facturaId, montoTotal);
+      } else {
+        await procesarPagoLocal(facturaId, metodo);
+      }
+    }
+
+    async function iniciarPagoStripe(facturaId, montoTotal) {
+      try {
+        const amountCents = Math.round(montoTotal * 100);
+        const successUrl = `${window.location.origin}/gracias.html?session_id={CHECKOUT_SESSION_ID}`;
+        const cancelUrl = `${window.location.origin}/client-portal.html`;
+        
+        const res = await fetch(`${API_BASE}/stripe/create-checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            factura_id: facturaId,
+            amount: amountCents,
+            success_url: successUrl,
+            cancel_url: cancelUrl
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.url) {
+          window.location.href = data.url;
+        } else {
+          showAlert(data.error || 'Error al iniciar pago con Stripe', 'error');
+        }
+      } catch (err) {
+        showAlert('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function procesarPagoLocal(facturaId, metodo) {
       try {
         const res = await fetch(`${API_BASE}/procesar-pago`, {
           method: 'POST',

@@ -11,6 +11,32 @@ import logging
 from datetime import datetime
 from functools import wraps
 
+
+def load_dotenv():
+    """Carga variables de entorno desde el archivo .env si existe."""
+    env_path = os.path.join(RAIZ_DIR if 'RAIZ_DIR' in dir() else os.path.dirname(os.path.abspath(__file__)), '..', '.env')
+    env_path = os.path.abspath(env_path)
+    
+    if not os.path.exists(env_path):
+        return
+    
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip()
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            elif value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            if key and key not in os.environ:
+                os.environ[key] = value
+
 # Configurar logging estructurado
 logging.basicConfig(
     level=logging.INFO,
@@ -23,13 +49,16 @@ logger = logging.getLogger('cerebro')
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(RAIZ_DIR)
 
+# Cargar variables de entorno desde .env
+load_dotenv()
+
 from dep_desarrollo import motor_clonacion
 from dep_marketing import agente_ventas_mercado
 from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security
 from dep_operaciones import email_service, stripe_service
 from dep_legal import generador_contratos
 
-PORT = 8000
+PORT = int(os.environ.get("PORT", 8000))
 CEREBRO_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(CEREBRO_DIR, "server_settings.json")
 DEFAULT_SETTINGS = {
@@ -673,6 +702,88 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/stripe/create-payment: {e}")
                 self.send_error_response(str(e), 500)
 
+        elif self.path == '/api/stripe/create-checkout':
+            try:
+                data = self.read_json_body()
+                factura_id = data.get("factura_id", "").strip()
+                orden_id = data.get("orden_id", "")
+                amount = data.get("amount", 0)
+                success_url = data.get("success_url")
+                cancel_url = data.get("cancel_url")
+                
+                if not factura_id:
+                    self.send_error_response("factura_id es requerido")
+                    return
+                
+                if amount <= 0:
+                    self.send_error_response("Monto inválido")
+                    return
+                
+                metadata = {"factura_id": factura_id}
+                if orden_id:
+                    metadata["orden_id"] = orden_id
+                
+                session_url, error = stripe_service.create_checkout_session(
+                    amount_cents=amount,
+                    factura_id=factura_id,
+                    orden_id=orden_id,
+                    success_url=success_url,
+                    cancel_url=cancel_url
+                )
+                
+                if error:
+                    self.send_error_response(error)
+                else:
+                    self.send_json_response({
+                        "success": True,
+                        "url": session_url
+                    })
+            except Exception as e:
+                logger.error(f"Error en /api/stripe/create-checkout: {e}")
+                self.send_error_response(str(e), 500)
+
+        elif self.path == '/api/stripe/confirm-session':
+            try:
+                data = self.read_json_body()
+                session_id = data.get("session_id", "").strip()
+                
+                if not session_id:
+                    self.send_error_response("session_id es requerido")
+                    return
+                
+                session_data, error = stripe_service.retrieve_checkout_session(session_id)
+                
+                if error:
+                    self.send_error_response(error)
+                    return
+                
+                if session_data["payment_status"] == "paid":
+                    factura_id = session_data["metadata"].get("factura_id")
+                    orden_id = session_data["metadata"].get("orden_id")
+                    
+                    if factura_id:
+                        gestor_pagos.procesar_pago(factura_id, "stripe")
+                    
+                    if orden_id:
+                        gestor_ordenes.actualizar_pago_orden(
+                            orden_id, session_id, "stripe"
+                        )
+                    
+                    self.send_json_response({
+                        "success": True,
+                        "paid": True,
+                        "session": session_data
+                    })
+                else:
+                    self.send_json_response({
+                        "success": True,
+                        "paid": False,
+                        "session": session_data
+                    })
+            except Exception as e:
+                logger.error(f"Error en /api/stripe/confirm-session: {e}")
+                self.send_error_response(str(e), 500)
+
         elif self.path == '/api/stripe/webhook':
             content_length = int(self.headers.get('Content-Length', 0))
             payload = self.rfile.read(content_length)
@@ -685,7 +796,20 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_error_response(error)
                     return
                 
-                if event['type'] == 'payment_intent.succeeded':
+                if event['type'] == 'checkout.session.completed':
+                    session = event['data']['object']
+                    factura_id = session.get('metadata', {}).get('factura_id')
+                    orden_id = session.get('metadata', {}).get('orden_id')
+                    
+                    if factura_id:
+                        gestor_pagos.procesar_pago(factura_id, "stripe")
+                    
+                    if orden_id:
+                        gestor_ordenes.actualizar_pago_orden(
+                            orden_id, session.get('id'), "stripe"
+                        )
+                
+                elif event['type'] == 'payment_intent.succeeded':
                     intent = event['data']['object']
                     orden_id = intent.get('metadata', {}).get('orden_id')
                     if orden_id:

@@ -151,6 +151,87 @@ def handle_webhook(payload, sig_header):
         return None, f"Error verificando webhook: {str(e)}"
 
 
+def create_checkout_session(amount_cents, factura_id, orden_id=None, success_url=None, cancel_url=None):
+    """
+    Crea una sesión de Checkout de Stripe.
+    Retorna (session_url, error_message)
+    """
+    config = get_stripe_config()
+    
+    if not config["secret_key"]:
+        return None, "Stripe no configurado. Configura STRIPE_SECRET_KEY en variables de entorno."
+    
+    try:
+        import stripe
+        stripe.api_key = config["secret_key"]
+        
+        if not success_url:
+            success_url = "http://localhost:8000/gracias.html?session_id={CHECKOUT_SESSION_ID}"
+        if not cancel_url:
+            cancel_url = "http://localhost:8000/client-portal.html"
+        
+        session_data = {
+            "payment_method_types": ["card"],
+            "line_items": [{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": "SkillTwin - Servicio de Consultoría",
+                        "description": f"Factura: {factura_id}"
+                    },
+                    "unit_amount": amount_cents,
+                },
+                "quantity": 1,
+            }],
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {
+                "factura_id": factura_id,
+                "orden_id": orden_id or ""
+            }
+        }
+        
+        session = stripe.checkout.Session.create(**session_data)
+        
+        return session.url, None
+        
+    except ImportError:
+        return None, "Stripe SDK no instalado. Ejecuta: pip install stripe"
+    except Exception as e:
+        return None, f"Error creando sesión de Checkout: {str(e)}"
+
+
+def retrieve_checkout_session(session_id):
+    """
+    Obtiene los datos de una sesión de Checkout.
+    Retorna (session_data, error_message)
+    """
+    config = get_stripe_config()
+    
+    if not config["secret_key"]:
+        return None, "Stripe no configurado"
+    
+    try:
+        import stripe
+        stripe.api_key = config["secret_key"]
+        
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        return {
+            "id": session.id,
+            "payment_status": session.payment_status,
+            "amount_total": session.amount_total,
+            "currency": session.currency,
+            "metadata": session.metadata
+        }, None
+        
+    except ImportError:
+        return None, "Stripe SDK no instalado"
+    except Exception as e:
+        return None, f"Error obteniendo sesión: {str(e)}"
+
+
 def get_publishable_key():
     """Retorna la publishable key para el frontend."""
     return get_stripe_config()["publishable_key"]

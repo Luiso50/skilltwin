@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SkillTwin | Solicitud recibida</title>
+  <title>SkillTwin | Pago completado</title>
   <style>
     :root {
       color-scheme: dark;
@@ -13,6 +13,8 @@
       --text: #f8fafc;
       --muted: #94a3b8;
       --accent: #38bdf8;
+      --success: #10b981;
+      --warning: #eab308;
     }
     * { box-sizing: border-box; }
     body {
@@ -35,23 +37,92 @@
       text-align: center;
     }
     .badge { display: inline-block; margin-bottom: 1rem; padding: 0.45rem 0.9rem; border-radius: 999px; background: rgba(56, 189, 248, 0.12); color: var(--accent); font-weight: 700; }
+    .badge.success { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+    .badge.pending { background: rgba(234, 179, 8, 0.12); color: var(--warning); }
+    .badge.error { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
     h1 { margin: 0 0 1rem; font-size: clamp(2rem, 3vw, 2.6rem); }
     p { color: var(--muted); line-height: 1.75; }
     .actions { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.8rem; }
     .btn { display: inline-block; padding: 0.9rem 1.35rem; border-radius: 999px; text-decoration: none; font-weight: 700; }
     .btn-primary { background: linear-gradient(135deg, #7c3aed, #0ea5e9); color: white; }
     .btn-secondary { background: rgba(255,255,255,0.08); color: var(--text); }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="badge">Solicitud recibida</div>
-    <h1>Gracias por contactar con SkillTwin</h1>
-    <p>Tu mensaje ha sido recibido correctamente. El equipo revisará la solicitud y te responderá en breve con una propuesta o una demo personalizada.</p>
+    <div class="badge" id="status-badge">Verificando pago...</div>
+    <div id="spinner-container"><div class="spinner"></div></div>
+    <h1 id="title">Confirmando tu pago</h1>
+    <p id="message">Estamos verificando el estado de tu transacción con Stripe.</p>
     <div class="actions">
-      <a class="btn btn-primary" href="/">Volver a la landing</a>
-      <a class="btn btn-secondary" href="/index.html">Abrir el dashboard</a>
+      <a class="btn btn-primary" href="/client-portal.html" id="btn-portal" style="display:none;">Ir al Portal de Clientes</a>
+      <a class="btn btn-secondary" href="/" id="btn-home">Volver a la landing</a>
     </div>
   </main>
+
+  <script>
+    const API_BASE = '/api';
+    
+    async function confirmPayment() {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('session_id');
+      
+      if (!sessionId) {
+        showResult('contacto', 'Solicitud recibida', 'Tu solicitud ha sido recibida correctamente. El equipo te responderá en breve.');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/stripe/confirm-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success && data.paid) {
+          showResult('success', '¡Pago completado!', 'Tu pago ha sido procesado exitosamente. La orden ha sido actualizada.');
+        } else if (data.success && !data.paid) {
+          showResult('pending', 'Pago pendiente', 'El pago está siendo procesado. Te notificaremos cuando se confirme.');
+        } else {
+          showResult('error', 'Error al verificar', 'No pudimos verificar el pago. Por favor contacta a soporte.');
+        }
+      } catch (err) {
+        showResult('error', 'Error de conexión', 'No pudimos verificar el pago. Por favor intenta de nuevo o contacta a soporte.');
+      }
+    }
+    
+    function showResult(type, title, message) {
+      const badge = document.getElementById('status-badge');
+      const spinner = document.getElementById('spinner-container');
+      const titleEl = document.getElementById('title');
+      const messageEl = document.getElementById('message');
+      const btnPortal = document.getElementById('btn-portal');
+      
+      spinner.style.display = 'none';
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      
+      badge.className = 'badge ' + type;
+      
+      if (type === 'success') {
+        badge.textContent = '¡Pago exitoso!';
+        btnPortal.style.display = 'inline-block';
+      } else if (type === 'pending') {
+        badge.textContent = 'Pago pendiente';
+        btnPortal.style.display = 'inline-block';
+      } else if (type === 'error') {
+        badge.textContent = 'Error';
+      } else {
+        badge.textContent = 'Solicitud recibida';
+        btnPortal.style.display = 'inline-block';
+      }
+    }
+    
+    confirmPayment();
+  </script>
 </body>
 </html>

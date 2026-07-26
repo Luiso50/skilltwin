@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: skilltwin-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd cerebro && python server.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: SKILLTWIN_USE_SQLITE
+        value: 1
+      - key: SKILLTWIN_ADMIN_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
