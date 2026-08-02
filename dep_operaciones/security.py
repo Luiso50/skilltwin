@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 # Token de administrador (se genera automáticamente si no existe)
 _admin_token = None
 _token_created_at = None
+ADMIN_TOKEN_LIFETIME = timedelta(hours=1)
 
 # Rate limiting: {ip: [(timestamp, endpoint), ...]}
 _rate_limit_store = defaultdict(list)
@@ -21,15 +22,9 @@ _valid_tokens = {}
 # CSRF tokens para formularios
 _csrf_tokens = {}
 
-# Admin secret from environment (REQUIRED for production)
 def get_admin_secret():
-    """Obtiene el secret del admin desde variable de entorno."""
-    secret = os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
-    if not secret:
-        # Fallback solo para desarrollo
-        secret = "skilltwin-dev-2026"
-        print("[SECURITY] WARNING: Using default admin secret. Set SKILLTWIN_ADMIN_SECRET in production!")
-    return secret
+    """Obtiene el secret administrativo configurado para el entorno."""
+    return os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
 
 
 def generate_admin_token():
@@ -42,7 +37,8 @@ def generate_admin_token():
 
 def get_admin_token():
     """Obtiene el token actual o genera uno nuevo."""
-    if _admin_token is None:
+    if (_admin_token is None or _token_created_at is None or
+            datetime.now() > _token_created_at + ADMIN_TOKEN_LIFETIME):
         generate_admin_token()
     return _admin_token
 
@@ -58,7 +54,8 @@ def validate_admin_secret(secret):
     """Valida el secret del admin contra la variable de entorno."""
     if not secret:
         return False
-    return secrets.compare_digest(secret, get_admin_secret())
+    configured_secret = get_admin_secret()
+    return bool(configured_secret) and secrets.compare_digest(secret, configured_secret)
 
 
 def generate_csrf_token(session_id):
@@ -200,9 +197,9 @@ def cleanup_rate_limit_store():
 
 
 def get_client_ip(handler):
-    """Obtiene la IP real del cliente (soporta proxies)."""
+    """Obtiene la IP del cliente, confiando en el proxy solo si se configura."""
     forwarded = handler.headers.get('X-Forwarded-For')
-    if forwarded:
+    if os.environ.get("SKILLTWIN_TRUST_PROXY") == "1" and forwarded:
         return forwarded.split(',')[0].strip()
     return handler.client_address[0]
 

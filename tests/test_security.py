@@ -23,6 +23,11 @@ class SecurityTests(unittest.TestCase):
         self.assertFalse(security.validate_admin_token("invalid-token"))
         self.assertFalse(security.validate_admin_token(""))
         self.assertFalse(security.validate_admin_token(None))
+
+    def test_validate_admin_token_expired(self):
+        token = security.generate_admin_token()
+        security._token_created_at = security.datetime.now() - security.ADMIN_TOKEN_LIFETIME
+        self.assertFalse(security.validate_admin_token(token))
     
     def test_create_session_token(self):
         token = security.create_session_token()
@@ -133,11 +138,11 @@ class SecurityTests(unittest.TestCase):
         self.assertFalse(security.validate_admin_secret(None))
         del os.environ["SKILLTWIN_ADMIN_SECRET"]
     
-    def test_get_admin_secret_default(self):
+    def test_get_admin_secret_requires_configuration(self):
         if "SKILLTWIN_ADMIN_SECRET" in os.environ:
             del os.environ["SKILLTWIN_ADMIN_SECRET"]
         secret = security.get_admin_secret()
-        self.assertEqual(secret, "skilltwin-dev-2026")
+        self.assertEqual(secret, "")
     
     def test_generate_csrf_token(self):
         token = security.generate_csrf_token("session123")

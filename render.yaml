@@ -11,6 +11,10 @@ services:
         value: 3.12.0
       - key: SKILLTWIN_USE_SQLITE
         value: 1
+      - key: SKILLTWIN_TRUST_PROXY
+        value: 1
+      - key: SKILLTWIN_PUBLIC_URL
+        sync: false
       - key: SKILLTWIN_ADMIN_SECRET
         generateValue: true
       - key: STRIPE_SECRET_KEY

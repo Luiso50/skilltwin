@@ -10,7 +10,7 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - **Backend:** Servidor Python HTTP con 18+ endpoints (server.py)
 - **Frontend:** Dashboard, panel admin, portal de clientes, landing page
 - **Tests:** 48 unit tests pasando en todos los modulos
-- **Estado:** Prototipo listo para produccion. Todos los modulos funcionales
+- **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de producción.
 
 ## Que incluye
 
@@ -285,7 +285,7 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 
 | Variable | Descripcion | Default |
 |----------|-------------|---------|
-| `SKILLTWIN_ADMIN_SECRET` | Secret para autenticacion admin | `skilltwin-dev-2026` (solo desarrollo) |
+| `SKILLTWIN_ADMIN_SECRET` | Secret obligatorio para autenticacion admin | sin valor predeterminado |
 | `SKILLTWIN_USE_SQLITE` | Usar SQLite (1) o JSON (0) | `1` |
 | `GEMINI_API_KEY` | API Key de Gemini AI | vacio |
 | `SMTP_HOST` | Servidor SMTP para emails | `smtp.gmail.com` |
@@ -313,6 +313,7 @@ El sistema integra Stripe Checkout para pagos con tarjeta de credito:
 1. Obtener API keys en [dashboard.stripe.com](https://dashboard.stripe.com)
 2. Configurar variables en `.env` (ver `.env.example`)
 3. Crear webhook con evento `checkout.session.completed`
+4. Configurar `SKILLTWIN_PUBLIC_URL` con la URL HTTPS pública del backend; Stripe nunca acepta importe, orden o URLs de retorno desde el navegador.
 
 ## Despliegue
 
@@ -343,6 +344,7 @@ El sistema integra Stripe Checkout para pagos con tarjeta de credito:
 - [ ] Crear cuenta en Render y configurar secrets
 - [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
+- [ ] Cuentas de cliente con autenticación y autorización por recurso
 - [ ] Rate limiting persistente (Redis)
 - [ ] Monitoreo y logging avanzado
 

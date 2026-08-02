@@ -23,6 +23,9 @@ server_settings.json
 *.db-wal
 *.db-shm
 
+# Runtime conversation memory
+dep_desarrollo/memories/
+
 # Run scripts cache and local logs
 *.log
 

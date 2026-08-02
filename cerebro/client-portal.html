@@ -740,29 +740,24 @@
             <p class="estimate-note">La cifra es una referencia comercial inicial. El monto definitivo puede variar según alcance, contrato y configuración del piloto.</p>
           </div>
 
-          <button type="submit" class="btn btn-primary">🚀 Crear Orden</button>
+          <button type="submit" class="btn btn-primary">🚀 Enviar Solicitud</button>
         </form>
       </div>
 
       <!-- Right Panel: Orders & Notifications -->
       <div class="panel">
-        <h2>📦 Mis Órdenes</h2>
+        <h2>📦 Seguimiento seguro</h2>
 
         <div class="trust-strip">
           <div class="trust-item"><strong>Respuesta estructurada:</strong> el sistema organiza la solicitud entre departamentos y deja trazabilidad de cada etapa.</div>
-          <div class="trust-item"><strong>Visibilidad operativa:</strong> puedes seguir órdenes, pagos y estados sin depender de correos manuales.</div>
+          <div class="trust-item"><strong>Visibilidad operativa:</strong> el seguimiento, pagos y estados se habilitan mediante una cuenta de cliente autenticada.</div>
           <div class="trust-item"><strong>Formato de piloto:</strong> la experiencia está diseñada para validar una oportunidad comercial antes de escalarla.</div>
         </div>
 
-        <div class="section-title">Notificaciones Recientes</div>
-        <div id="notifications-container" class="notifications">
-          <!-- Dinámico -->
-        </div>
-
-        <div class="section-title">Órdenes Activas</div>
+        <div class="section-title">Estado de la solicitud</div>
         <div id="orders-container">
           <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
-            Aún no tienes órdenes. ¡Crea una para empezar!
+            Envía tu solicitud. El equipo validará el alcance y habilitará el acceso seguro para seguimiento y pago.
           </div>
         </div>
 
@@ -865,7 +860,7 @@
       setTimeout(() => alert.classList.remove('show'), 5000);
     }
 
-    // Crear orden
+    // Registrar una solicitud pública; las órdenes se crean únicamente desde el flujo autenticado.
     document.getElementById('request-form').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -880,29 +875,27 @@
       }
 
       try {
-        const res = await fetch(`${API_BASE}/crear-orden`, {
+        const res = await fetch(`${API_BASE}/contacto`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            cliente_email: email,
-            clon_id: selectedCloneId,
-            cantidad_horas: horas,
-            descripcion_proyecto: descripcion,
-            requiere_contrato: contrato
+            nombre: 'Solicitud desde portal de clientes',
+            email: email,
+            interes: `Servicio con clon ${selectedCloneId}`,
+            mensaje: `Clon: ${selectedCloneId}\nHoras solicitadas: ${horas}\nContrato: ${contrato ? 'Sí' : 'No'}\n\nDescripción:\n${descripcion}`
           })
         });
 
         const data = await res.json();
         if (res.ok) {
-          showAlert(`✅ Orden ${data.orden_id} creada. Se procesará automáticamente.`, 'success');
+          showAlert('✅ Solicitud recibida. Te contactaremos para validar el alcance y habilitar tu acceso seguro.', 'success');
           document.getElementById('request-form').reset();
           selectedCloneId = null;
           selectedCloneName = null;
           document.querySelectorAll('.clone-card').forEach(el => el.classList.remove('selected'));
           updateEstimate();
-          setTimeout(() => loadOrdenes(email), 1000);
         } else {
-          showAlert(data.error || 'Error al crear orden', 'error');
+          showAlert(data.error || 'Error al enviar la solicitud', 'error');
         }
       } catch (err) {
         showAlert('Error: ' + err.message, 'error');
@@ -1148,13 +1141,6 @@
         `;
       }).join('');
     }
-
-    // Auto-refresh
-    document.getElementById('email').addEventListener('blur', (e) => {
-      if (e.target.value) {
-        loadOrdenes(e.target.value);
-      }
-    });
 
     document.getElementById('horas').addEventListener('input', updateEstimate);
     document.getElementById('tarifa').addEventListener('input', updateEstimate);

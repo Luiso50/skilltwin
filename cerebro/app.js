@@ -4,6 +4,39 @@
 // UTILIDADES GLOBALES
 // ======================================================================
 
+let adminToken = null;
+const nativeFetch = window.fetch.bind(window);
+
+async function getAdminToken() {
+  if (adminToken) return adminToken;
+
+  const secret = window.prompt("Introduce el secreto de administrador para acceder al dashboard:");
+  if (!secret) throw new Error("Se requiere autenticación de administrador.");
+
+  const response = await nativeFetch("/api/auth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ secret })
+  });
+  const data = await response.json();
+  if (!response.ok || !data.token) throw new Error(data.error || "No fue posible autenticar al administrador.");
+
+  adminToken = data.token;
+  return adminToken;
+}
+
+window.fetch = async (resource, options = {}) => {
+  const url = typeof resource === "string" ? resource : resource.url;
+  if (!url.includes("/api/") || url.includes("/api/auth/token")) {
+    return nativeFetch(resource, options);
+  }
+
+  const token = await getAdminToken();
+  const headers = new Headers(options.headers || {});
+  headers.set("Authorization", `Bearer ${token}`);
+  return nativeFetch(resource, { ...options, headers });
+};
+
 // Debounce: retrasa ejecución hasta que el usuario deja de escribir
 function debounce(func, wait) {
   let timeout;

@@ -8,7 +8,7 @@ services:
       - "8000:8000"
     environment:
       - SKILLTWIN_USE_SQLITE=1
-      - SKILLTWIN_ADMIN_SECRET=${SKILLTWIN_ADMIN_SECRET:-changeme_in_production}
+      - SKILLTWIN_ADMIN_SECRET=${SKILLTWIN_ADMIN_SECRET:?Set SKILLTWIN_ADMIN_SECRET in .env}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
@@ -21,6 +21,7 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     volumes:
       - skilltwin-data:/app/dep_operaciones
+      - skilltwin-memories:/app/dep_desarrollo/memories
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
@@ -31,3 +32,4 @@ services:
 
 volumes:
   skilltwin-data:
+  skilltwin-memories:

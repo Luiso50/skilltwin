@@ -9,6 +9,17 @@ Base URL: `http://localhost:8000`
 - **Admin Authentication:** Bearer token required for settings endpoint
 - **Security Headers:** X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
 
+## Authentication and production access
+
+Set `SKILLTWIN_ADMIN_SECRET` before starting the server, then obtain a short-lived
+administrator bearer token through `POST /api/auth/token`. Operational, financial,
+order, payment-creation, dashboard, report, configuration and clone-memory endpoints
+require `Authorization: Bearer <token>`.
+
+The public client portal only submits service requests. It does not expose customer
+orders, invoices, payments or notifications until customer accounts with resource-level
+authorization are implemented. Static files are limited to the `cerebro/` directory.
+
 ## Endpoints GET
 
 ### GET /api/clones
@@ -192,6 +203,7 @@ Obtiene un token de administrador (solo para desarrollo).
 ---
 
 ### POST /api/command
+**Authentication:** Administrator bearer token required.
 Envía un comando de texto al Cerebro Central. El sistema usa IA para clasificar la intención y rutar al departamento correcto.
 
 **Request Body:**
@@ -218,6 +230,7 @@ Envía un comando de texto al Cerebro Central. El sistema usa IA para clasificar
 ---
 
 ### POST /api/crear-orden
+**Authentication:** Administrator bearer token required.
 Crea una nueva orden de servicio. El orquestador la procesa automáticamente.
 
 **Request Body:**
@@ -244,6 +257,7 @@ Crea una nueva orden de servicio. El orquestador la procesa automáticamente.
 ---
 
 ### POST /api/chat-clon
+**Authentication:** Administrator bearer token required.
 Consulta a un clon digital específico.
 
 **Request Body:**
@@ -264,6 +278,7 @@ Consulta a un clon digital específico.
 ---
 
 ### POST /api/procesar-pago
+**Authentication:** Administrator bearer token required. Stripe is the production payment path.
 Procesa el pago de una factura.
 
 **Request Body:**
@@ -288,6 +303,7 @@ Procesa el pago de una factura.
 ---
 
 ### POST /api/agregar-rating
+**Authentication:** Administrator bearer token required until customer identities exist.
 Califica una orden completada (1-5 estrellas).
 
 **Request Body:**
@@ -357,6 +373,7 @@ Marca una notificación como leída.
 ---
 
 ### POST /api/settings
+**Authentication:** Administrator bearer token required.
 Actualiza la configuración del servidor (API key, comisión, modelo).
 
 **Request Body:**

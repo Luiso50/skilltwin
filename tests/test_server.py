@@ -56,6 +56,32 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(guardados['gemini_key'], 'nueva_key')
         self.assertEqual(guardados['commission'], 25.0)
 
+    def test_resolve_static_path_rejects_parent_directory(self):
+        import server
+
+        self.assertIsNone(server.resolve_static_path('/../.env'))
+        self.assertIsNone(server.resolve_static_path('/%2e%2e/.env'))
+
+    def test_resolve_static_path_keeps_files_within_cerebro(self):
+        import server
+
+        path = server.resolve_static_path('/index.html')
+        self.assertTrue(path.startswith(server.CEREBRO_DIR))
+
+    def test_register_stripe_payment_rejects_tampered_amount(self):
+        import server
+        factura = {
+            'id': 'FAC-001',
+            'orden_id': 'ORD-001',
+            'monto_total': 99.99,
+            'estado': 'pendiente',
+        }
+        with patch.object(server.gestor_pagos, 'obtener_factura', return_value=factura), \
+             patch.object(server.gestor_pagos, 'procesar_pago') as procesar_pago:
+            with self.assertRaises(ValueError):
+                server.register_stripe_payment('FAC-001', 'ORD-001', 1, 'cs_test')
+        procesar_pago.assert_not_called()
+
 
 class ServerEndpointTests(unittest.TestCase):
     def setUp(self):

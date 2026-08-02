@@ -64,6 +64,55 @@ DEFAULT_SETTINGS = {
     "commission": 15.0,
     "model": "gemini-2.5-flash"
 }
+MAX_REQUEST_BODY_SIZE = 1_048_576
+
+
+def resolve_static_path(request_path):
+    """Resolve a static request path without allowing it to escape cerebro/."""
+    relative_path = urllib.parse.unquote(urllib.parse.urlparse(request_path).path).lstrip("/")
+    if not relative_path:
+        relative_path = "index.html"
+
+    root = os.path.realpath(CEREBRO_DIR)
+    candidate = os.path.realpath(os.path.join(root, relative_path))
+    if os.path.commonpath((root, candidate)) != root:
+        return None
+    return candidate
+
+
+def get_pending_invoice(factura_id):
+    """Return server-owned payment details for a pending invoice."""
+    factura = gestor_pagos.obtener_factura(factura_id)
+    if not factura:
+        raise ValueError("Factura no encontrada")
+    if factura.get("estado") != "pendiente":
+        raise ValueError("La factura no está pendiente de pago")
+    amount_cents = round(float(factura["monto_total"]) * 100)
+    if amount_cents <= 0:
+        raise ValueError("La factura no tiene un monto válido")
+    return factura, amount_cents
+
+
+def register_stripe_payment(factura_id, orden_id, amount_cents, reference):
+    """Validate Stripe metadata against the invoice before recording payment."""
+    factura = gestor_pagos.obtener_factura(factura_id)
+    if not factura:
+        raise ValueError("Factura no encontrada")
+    if factura.get("orden_id") != orden_id:
+        raise ValueError("La orden no coincide con la factura")
+    if not isinstance(amount_cents, int) or amount_cents <= 0:
+        raise ValueError("Stripe no proporcionó un importe válido")
+    if round(float(factura["monto_total"]) * 100) != amount_cents:
+        raise ValueError("El importe de Stripe no coincide con la factura")
+    if factura.get("estado") == "pagada":
+        return
+    if factura.get("estado") != "pendiente":
+        raise ValueError("La factura no está pendiente de pago")
+
+    success, result = gestor_pagos.procesar_pago(factura_id, "stripe", reference)
+    if not success:
+        raise ValueError(result)
+    gestor_ordenes.actualizar_pago_orden(orden_id, factura_id, "stripe")
 
 def cargar_ajustes():
     if not os.path.exists(SETTINGS_FILE):
@@ -127,35 +176,43 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     
     def read_json_body(self):
         """Helper para leer y parsear el body JSON de un POST."""
-        content_length = int(self.headers.get('Content-Length', 0))
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+        except ValueError as exc:
+            raise ValueError("Content-Length inválido") from exc
+        if content_length > MAX_REQUEST_BODY_SIZE:
+            raise ValueError("El cuerpo de la solicitud supera el tamaño máximo permitido")
         if content_length == 0:
             return {}
         
         post_data = self.rfile.read(content_length)
         return json.loads(post_data.decode('utf-8'))
+
+    def require_admin(self):
+        """Require a valid bearer token before serving privileged resources."""
+        auth_header = self.headers.get('Authorization', '')
+        token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
+        if security.validate_admin_token(token):
+            return True
+        self.send_error_response("No autorizado.", 401)
+        return False
     
     def do_OPTIONS(self):
         """Manejar preflight requests de CORS."""
         self.send_response(204)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.send_header('Access-Control-Max-Age', '86400')
         self.end_headers()
 
     def translate_path(self, path):
-        # Servir archivos estáticos desde el directorio fijo /cerebro/.
-        path = urllib.parse.urlparse(path).path
-        path = path.lstrip('/')
-        if not path:
-            path = 'index.html'
-
-        full_path = os.path.join(CEREBRO_DIR, path)
+        full_path = resolve_static_path(path)
+        if full_path is None:
+            return os.path.join(CEREBRO_DIR, "__not_found__")
         if os.path.isdir(full_path):
-            for index in ['index.html']:
-                index_file = os.path.join(full_path, index)
-                if os.path.exists(index_file):
-                    return index_file
+            index_file = os.path.join(full_path, 'index.html')
+            if os.path.exists(index_file):
+                return index_file
         return full_path
 
     def end_headers(self):
@@ -167,10 +224,6 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('X-XSS-Protection', '1; mode=block')
         self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
         self.send_header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-        # CORS
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         if os.environ.get('SKILLTWIN_HSTS', '0') == '1':
             self.send_header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         super().end_headers()
@@ -220,6 +273,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/get-settings: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/finanzas-data':
+            if not self.require_admin():
+                return
             try:
                 datos = gestor_financiero.cargar_finanzas()
                 self.send_json_response(datos)
@@ -241,6 +296,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/clones-list: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/ordenes'):
+            if not self.require_admin():
+                return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
@@ -252,6 +309,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/ordenes: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/notificaciones'):
+            if not self.require_admin():
+                return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
@@ -266,6 +325,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/notificaciones: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/facturas'):
+            if not self.require_admin():
+                return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
@@ -277,6 +338,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/facturas: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/admin-dashboard'):
+            if not self.require_admin():
+                return
             try:
                 stats_pagos = gestor_pagos.obtener_estadisticas_pagos()
                 ordenes_data = gestor_ordenes.cargar_ordenes()
@@ -315,6 +378,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/stripe/config: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/export-report':
+            if not self.require_admin():
+                return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
@@ -395,6 +460,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
         if self.path == '/api/command':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 comando = data.get("command", "").strip()
@@ -404,6 +471,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/command: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/crear-orden':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 cliente_email = security.sanitize_string(data.get("cliente_email", ""), 254)
@@ -436,6 +505,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/crear-orden: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/marcar-leida'):
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 orden_id = data.get("orden_id", "").strip()
@@ -451,6 +522,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/marcar-leida: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/chat-clon':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 id_clon = data.get("id_clon", "").strip()
@@ -471,6 +544,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/chat-clon: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/clon-historial'):
+            if not self.require_admin():
+                return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
@@ -491,6 +566,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/clon-historial: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/clon-estadisticas'):
+            if not self.require_admin():
+                return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
@@ -509,6 +586,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/clon-estadisticas: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/clon-limpiar-memoria':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 clon_id = data.get("clon_id", "").strip()
@@ -528,6 +607,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/clon-limpiar-memoria: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/procesar-pago':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 factura_id = data.get("factura_id", "").strip()
@@ -553,6 +634,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/procesar-pago: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/agregar-rating':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
                 orden_id = security.sanitize_string(data.get("orden_id", ""), 50)
@@ -612,11 +695,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/contacto: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/settings':
-            auth_header = self.headers.get('Authorization', '')
-            token = auth_header.replace('Bearer ', '') if auth_header.startswith('Bearer ') else ''
-            
-            if not security.validate_admin_token(token):
-                self.send_error_response("No autorizado. Se requiere token de administrador.", 401)
+            if not self.require_admin():
                 return
                 
             try:
@@ -674,18 +753,19 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response("Error interno del servidor", 500)
 
         elif self.path == '/api/stripe/create-payment':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
-                amount = data.get("amount", 0)
-                orden_id = data.get("orden_id", "")
-                
-                if amount <= 0:
-                    raise ValueError("Monto inválido")
-                
-                metadata = {"orden_id": orden_id} if orden_id else None
+                factura_id = security.sanitize_string(data.get("factura_id", ""), 50)
+                factura, amount_cents = get_pending_invoice(factura_id)
+                metadata = {
+                    "factura_id": factura_id,
+                    "orden_id": factura["orden_id"],
+                }
                 
                 client_secret, error = stripe_service.create_payment_intent(
-                    amount_cents=amount,
+                    amount_cents=amount_cents,
                     metadata=metadata
                 )
                 
@@ -701,32 +781,22 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 500)
 
         elif self.path == '/api/stripe/create-checkout':
+            if not self.require_admin():
+                return
             try:
                 data = self.read_json_body()
-                factura_id = data.get("factura_id", "").strip()
-                orden_id = data.get("orden_id", "")
-                amount = data.get("amount", 0)
-                success_url = data.get("success_url")
-                cancel_url = data.get("cancel_url")
-                
-                if not factura_id:
-                    self.send_error_response("factura_id es requerido")
-                    return
-                
-                if amount <= 0:
-                    self.send_error_response("Monto inválido")
-                    return
-                
-                metadata = {"factura_id": factura_id}
-                if orden_id:
-                    metadata["orden_id"] = orden_id
+                factura_id = security.sanitize_string(data.get("factura_id", ""), 50)
+                factura, amount_cents = get_pending_invoice(factura_id)
+                public_url = os.environ.get("SKILLTWIN_PUBLIC_URL", "").rstrip("/")
+                if not public_url:
+                    raise ValueError("SKILLTWIN_PUBLIC_URL debe configurarse para crear pagos")
                 
                 session_url, error = stripe_service.create_checkout_session(
-                    amount_cents=amount,
+                    amount_cents=amount_cents,
                     factura_id=factura_id,
-                    orden_id=orden_id,
-                    success_url=success_url,
-                    cancel_url=cancel_url
+                    orden_id=factura["orden_id"],
+                    success_url=f"{public_url}/gracias.html?session_id={{CHECKOUT_SESSION_ID}}",
+                    cancel_url=f"{public_url}/client-portal.html"
                 )
                 
                 if error:
@@ -759,24 +829,23 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     factura_id = session_data["metadata"].get("factura_id")
                     orden_id = session_data["metadata"].get("orden_id")
                     
-                    if factura_id:
-                        gestor_pagos.procesar_pago(factura_id, "stripe")
-                    
-                    if orden_id:
-                        gestor_ordenes.actualizar_pago_orden(
-                            orden_id, session_id, "stripe"
-                        )
+                    if not factura_id or not orden_id:
+                        raise ValueError("La sesión de Stripe no contiene la factura y orden requeridas")
+                    register_stripe_payment(
+                        factura_id,
+                        orden_id,
+                        session_data["amount_total"],
+                        session_data["id"],
+                    )
                     
                     self.send_json_response({
                         "success": True,
                         "paid": True,
-                        "session": session_data
                     })
                 else:
                     self.send_json_response({
                         "success": True,
                         "paid": False,
-                        "session": session_data
                     })
             except Exception as e:
                 logger.error(f"Error en /api/stripe/confirm-session: {e}")
@@ -799,21 +868,27 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     factura_id = session.get('metadata', {}).get('factura_id')
                     orden_id = session.get('metadata', {}).get('orden_id')
                     
-                    if factura_id:
-                        gestor_pagos.procesar_pago(factura_id, "stripe")
-                    
-                    if orden_id:
-                        gestor_ordenes.actualizar_pago_orden(
-                            orden_id, session.get('id'), "stripe"
-                        )
+                    if not factura_id or not orden_id:
+                        raise ValueError("El evento no contiene la factura y orden requeridas")
+                    register_stripe_payment(
+                        factura_id,
+                        orden_id,
+                        session.get("amount_total"),
+                        session.get("id"),
+                    )
                 
                 elif event['type'] == 'payment_intent.succeeded':
                     intent = event['data']['object']
+                    factura_id = intent.get('metadata', {}).get('factura_id')
                     orden_id = intent.get('metadata', {}).get('orden_id')
-                    if orden_id:
-                        gestor_ordenes.actualizar_pago_orden(
-                            orden_id, intent['id'], 'stripe'
-                        )
+                    if not factura_id or not orden_id:
+                        raise ValueError("El evento no contiene la factura y orden requeridas")
+                    register_stripe_payment(
+                        factura_id,
+                        orden_id,
+                        intent.get("amount"),
+                        intent["id"],
+                    )
                 
                 self.send_json_response({"received": True})
             except Exception as e:
@@ -1020,6 +1095,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
 def run_server():
     logger.info("=== SkillTwin Cerebro Central ===")
+    if not security.get_admin_secret():
+        raise RuntimeError("SKILLTWIN_ADMIN_SECRET debe configurarse antes de iniciar el servidor")
     logger.info("Inicializando bases de datos...")
     motor_clonacion.inicializar_db()
     gestor_financiero.inicializar_finanzas()
