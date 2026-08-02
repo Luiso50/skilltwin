@@ -13,7 +13,7 @@ class EmailServiceTests(unittest.TestCase):
     
     def test_get_smtp_config_default(self):
         config = email_service.get_smtp_config()
-        self.assertEqual(config["host"], "smtp.gmail.com")
+        self.assertEqual(config["host"], "smtp.zoho.com")
         self.assertEqual(config["port"], 587)
     
     def test_get_smtp_config_from_env(self):
