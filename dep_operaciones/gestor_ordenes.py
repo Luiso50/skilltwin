@@ -12,10 +12,10 @@ db_lock = threading.RLock()
 
 if USE_SQLITE:
     try:
-        from database import cargar_ordenes as db_cargar_ordenes
-        from database import guardar_orden as db_guardar_orden
-        from database import obtener_orden as db_obtener_orden
-        from database import init_database
+        from dep_operaciones.database import cargar_ordenes as db_cargar_ordenes
+        from dep_operaciones.database import guardar_orden as db_guardar_orden
+        from dep_operaciones.database import obtener_orden as db_obtener_orden
+        from dep_operaciones.database import init_database
         init_database()
     except ImportError:
         USE_SQLITE = False

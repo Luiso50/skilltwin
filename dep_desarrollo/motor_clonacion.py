@@ -443,7 +443,7 @@ def consultar_clon_offline(clon, pregunta, session_id=None):
 def consultar_clon_online(clon, pregunta, api_key, session_id=None):
     """Consulta al clon con contexto de memoria y conocimiento estructurado."""
     model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
     
     nombre = clon["nombre"]
     especialidad = clon["especialidad"]
@@ -501,7 +501,10 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
     
     prompt = "\n".join(prompt_parts)
     
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key
+    }
     body = {
         "contents": [{
             "parts": [{"text": prompt}]
@@ -515,7 +518,7 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
             headers=headers, 
             method="POST"
         )
-        with urllib.request.urlopen(req) as response:  # nosec B310
+        with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
             respuesta = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
             

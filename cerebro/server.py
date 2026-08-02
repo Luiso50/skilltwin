@@ -60,7 +60,6 @@ PORT = int(os.environ.get("PORT", 8000))
 CEREBRO_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(CEREBRO_DIR, "server_settings.json")
 DEFAULT_SETTINGS = {
-    "gemini_key": "",
     "commission": 15.0,
     "model": "gemini-2.5-flash"
 }
@@ -137,9 +136,7 @@ def guardar_ajustes(ajustes):
 
 # Cargar la configuración inicial al arrancar el servidor
 INICIAL_SETTINGS = cargar_ajustes()
-if INICIAL_SETTINGS.get("gemini_key"):
-    os.environ["GEMINI_API_KEY"] = INICIAL_SETTINGS["gemini_key"]
-if INICIAL_SETTINGS.get("model"):
+if INICIAL_SETTINGS.get("model") and not os.environ.get("GEMINI_MODEL"):
     os.environ["GEMINI_MODEL"] = INICIAL_SETTINGS["model"]
 
 
@@ -155,7 +152,10 @@ class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def send_json_response(self, data, status=200, headers=None):
         """Helper para enviar respuestas JSON de forma consistente."""
-        response_headers = {'Content-Type': 'application/json; charset=utf-8'}
+        response_headers = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+        }
         if headers:
             response_headers.update(headers)
         
@@ -263,7 +263,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/get-settings':
             try:
                 ajustes = cargar_ajustes()
-                has_key = bool(ajustes.get("gemini_key")) or ("GEMINI_API_KEY" in os.environ and bool(os.environ["GEMINI_API_KEY"]))
+                has_key = bool(os.environ.get("GEMINI_API_KEY"))
                 self.send_json_response({
                     "has_key": has_key,
                     "commission": ajustes.get("commission", 15.0),
@@ -442,6 +442,48 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.error(f"Error en /api/search-clones: {e}")
                 self.send_error_response(str(e), 500)
+        elif self.path.startswith('/api/clon-historial'):
+            if not self.require_admin():
+                return
+            try:
+                query_params = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query_params)
+                clon_id = params.get('clon_id', [None])[0]
+                session_id = params.get('session_id', [None])[0]
+                
+                if not clon_id:
+                    self.send_error_response("ID de clon requerido")
+                    return
+                
+                historial = motor_clonacion.obtener_historial_conversacion(clon_id, session_id)
+                self.send_json_response({
+                    "historial": historial,
+                    "clon_id": clon_id,
+                    "session_id": session_id
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/clon-historial: {e}")
+                self.send_error_response(str(e), 400)
+        elif self.path.startswith('/api/clon-estadisticas'):
+            if not self.require_admin():
+                return
+            try:
+                query_params = urllib.parse.urlparse(self.path).query
+                params = urllib.parse.parse_qs(query_params)
+                clon_id = params.get('clon_id', [None])[0]
+                
+                if not clon_id:
+                    self.send_error_response("ID de clon requerido")
+                    return
+                
+                estadisticas = motor_clonacion.obtener_estadisticas_clon(clon_id)
+                self.send_json_response({
+                    "estadisticas": estadisticas,
+                    "clon_id": clon_id
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/clon-estadisticas: {e}")
+                self.send_error_response(str(e), 400)
         else:
             super().do_GET()
 
@@ -543,48 +585,6 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.error(f"Error en /api/chat-clon: {e}")
                 self.send_error_response(str(e), 500)
-        elif self.path.startswith('/api/clon-historial'):
-            if not self.require_admin():
-                return
-            try:
-                query_params = urllib.parse.urlparse(self.path).query
-                params = urllib.parse.parse_qs(query_params)
-                clon_id = params.get('clon_id', [None])[0]
-                session_id = params.get('session_id', [None])[0]
-                
-                if not clon_id:
-                    self.send_error_response("ID de clon requerido")
-                    return
-                
-                historial = motor_clonacion.obtener_historial_conversacion(clon_id, session_id)
-                self.send_json_response({
-                    "historial": historial,
-                    "clon_id": clon_id,
-                    "session_id": session_id
-                })
-            except Exception as e:
-                logger.error(f"Error en /api/clon-historial: {e}")
-                self.send_error_response(str(e), 400)
-        elif self.path.startswith('/api/clon-estadisticas'):
-            if not self.require_admin():
-                return
-            try:
-                query_params = urllib.parse.urlparse(self.path).query
-                params = urllib.parse.parse_qs(query_params)
-                clon_id = params.get('clon_id', [None])[0]
-                
-                if not clon_id:
-                    self.send_error_response("ID de clon requerido")
-                    return
-                
-                estadisticas = motor_clonacion.obtener_estadisticas_clon(clon_id)
-                self.send_json_response({
-                    "estadisticas": estadisticas,
-                    "clon_id": clon_id
-                })
-            except Exception as e:
-                logger.error(f"Error en /api/clon-estadisticas: {e}")
-                self.send_error_response(str(e), 400)
         elif self.path == '/api/clon-limpiar-memoria':
             if not self.require_admin():
                 return
@@ -708,9 +708,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 mensaje_parts = []
 
                 if api_key:
-                    ajustes["gemini_key"] = api_key
                     os.environ["GEMINI_API_KEY"] = api_key
-                    mensaje_parts.append("GEMINI_API_KEY guardada exitosamente.")
+                    mensaje_parts.append("GEMINI_API_KEY actualizada para esta sesión. Reinicia el servidor para aplicar cambios.")
                 elif "GEMINI_API_KEY" in os.environ and os.environ["GEMINI_API_KEY"]:
                     mensaje_parts.append("GEMINI_API_KEY permanece sin cambios.")
 
@@ -902,7 +901,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             return None
 
         model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         
         prompt = (
             f"Eres el Cerebro Central de SkillTwin. Analiza el siguiente comando del usuario y clasifícalo en un departamento.\n\n"
@@ -921,7 +920,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             f"}}"
         )
 
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        }
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"responseMimeType": "application/json"}
@@ -1095,8 +1097,17 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
 def run_server():
     logger.info("=== SkillTwin Cerebro Central ===")
-    if not security.get_admin_secret():
+    admin_secret = security.get_admin_secret()
+    if not admin_secret:
         raise RuntimeError("SKILLTWIN_ADMIN_SECRET debe configurarse antes de iniciar el servidor")
+    trivial_secrets = {"skilltwin-dev-2026", "admin", "secret", "password", "123456"}
+    if admin_secret.lower() in trivial_secrets:
+        raise RuntimeError(
+            "SKILLTWIN_ADMIN_SECRET es trivial y no es seguro. "
+            "Genera uno robusto: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
+    if not os.environ.get("GEMINI_API_KEY"):
+        logger.warning("GEMINI_API_KEY no configurada - modo offline activado")
     logger.info("Inicializando bases de datos...")
     motor_clonacion.inicializar_db()
     gestor_financiero.inicializar_finanzas()

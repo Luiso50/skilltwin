@@ -40,6 +40,59 @@ class GestorContactosTests(unittest.TestCase):
         self.assertEqual(len(datos['contactos']), 1)
         self.assertEqual(datos['contactos'][0]['empresa'], 'SkillTwin')
 
+    def test_registrar_contacto_genera_id(self):
+        contacto = gestor_contactos.registrar_contacto(
+            nombre='Ana García',
+            email='ana@example.com',
+            telefono='',
+            empresa='',
+            interes='',
+            mensaje='Test'
+        )
+        self.assertIn('id', contacto)
+        self.assertIsNotNone(contacto['id'])
+
+    def test_registrar_contacto_genera_fecha(self):
+        contacto = gestor_contactos.registrar_contacto(
+            nombre='Test',
+            email='test@example.com',
+            telefono='',
+            empresa='',
+            interes='',
+            mensaje='Test'
+        )
+        self.assertIn('fecha', contacto)
+        self.assertIsNotNone(contacto['fecha'])
+
+    def test_registrar_contacto_estado_inicial(self):
+        contacto = gestor_contactos.registrar_contacto(
+            nombre='Test',
+            email='test@example.com',
+            telefono='',
+            empresa='',
+            interes='',
+            mensaje='Test'
+        )
+        self.assertEqual(contacto['estado'], 'nuevo')
+
+    def test_registrar_multiples_contactos(self):
+        for i in range(3):
+            gestor_contactos.registrar_contacto(
+                nombre=f'Contacto {i}',
+                email=f'contacto{i}@example.com',
+                telefono='',
+                empresa='',
+                interes='',
+                mensaje=f'Mensaje {i}'
+            )
+        datos = gestor_contactos.cargar_contactos()
+        self.assertEqual(len(datos['contactos']), 3)
+
+    def test_cargar_contactos_vacio(self):
+        datos = gestor_contactos.cargar_contactos()
+        self.assertIn('contactos', datos)
+        self.assertEqual(len(datos['contactos']), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

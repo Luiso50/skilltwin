@@ -13,9 +13,9 @@ db_lock = threading.RLock()
 
 if USE_SQLITE:
     try:
-        from database import cargar_contactos as db_cargar_contactos
-        from database import guardar_contacto as db_guardar_contacto
-        from database import init_database
+        from dep_operaciones.database import cargar_contactos as db_cargar_contactos
+        from dep_operaciones.database import guardar_contacto as db_guardar_contacto
+        from dep_operaciones.database import init_database
         init_database()
     except ImportError:
         USE_SQLITE = False

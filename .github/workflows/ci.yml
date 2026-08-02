@@ -64,7 +64,7 @@ jobs:
     
     - name: Run flake8
       run: |
-        flake8 dep_desarrollo/ dep_operaciones/ dep_legal/ dep_marketing/ cerebro/ --max-line-length=120 --ignore=E501,W503,E402,W291,W293,E226,E302,E305,E128,E129,W504
+        flake8 dep_desarrollo/ dep_operaciones/ dep_legal/ dep_marketing/ cerebro/ --max-line-length=120 --ignore=E501,W503,E402,E305,E128,E129,W504
 
   security:
     runs-on: ubuntu-latest

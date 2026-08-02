@@ -17,11 +17,11 @@ db_lock = threading.RLock()
 
 if USE_SQLITE:
     try:
-        from database import cargar_facturas as db_cargar_facturas
-        from database import guardar_factura as db_guardar_factura
-        from database import obtener_factura as db_obtener_factura
-        from database import get_connection
-        from database import init_database
+        from dep_operaciones.database import cargar_facturas as db_cargar_facturas
+        from dep_operaciones.database import guardar_factura as db_guardar_factura
+        from dep_operaciones.database import obtener_factura as db_obtener_factura
+        from dep_operaciones.database import get_connection
+        from dep_operaciones.database import init_database
         init_database()
     except ImportError:
         USE_SQLITE = False

@@ -143,6 +143,16 @@ def init_database():
                 estado TEXT DEFAULT 'nuevo'
             )
         """)
+        
+        # Indices para consultas frecuentes
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_email ON ordenes(cliente_email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_clon ON ordenes(clon_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_orden ON facturas(orden_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_estado ON facturas(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_factura ON transacciones(factura_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_email ON contactos(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_estado ON contactos(estado)")
 
 
 def migrar_json_a_sqlite():

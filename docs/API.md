@@ -374,7 +374,7 @@ Marca una notificación como leída.
 
 ### POST /api/settings
 **Authentication:** Administrator bearer token required.
-Actualiza la configuración del servidor (API key, comisión, modelo).
+Actualiza la configuración del servidor (comisión, modelo). La API key de Gemini se configura via variable de entorno `GEMINI_API_KEY`.
 
 **Request Body:**
 ```json
@@ -389,7 +389,7 @@ Actualiza la configuración del servidor (API key, comisión, modelo).
 ```json
 {
   "success": true,
-  "message": "GEMINI_API_KEY guardada exitosamente. Comisión ajustada a 15.0%."
+  "message": "GEMINI_API_KEY actualizada para esta sesión. Comisión ajustada a 15.0%."
 }
 ```
 

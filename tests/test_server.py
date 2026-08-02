@@ -28,32 +28,32 @@ class ServerConfigTests(unittest.TestCase):
         import server
         server.SETTINGS_FILE = self.settings_path
         ajustes = server.cargar_ajustes()
-        self.assertIn('gemini_key', ajustes)
+        self.assertNotIn('gemini_key', ajustes)
         self.assertIn('commission', ajustes)
         self.assertIn('model', ajustes)
 
     def test_cargar_ajustes_archivo_existe(self):
         import importlib
         import server
-        config_test = {'gemini_key': 'test_key_123', 'commission': 20.0, 'model': 'gemini-test'}
+        config_test = {'commission': 20.0, 'model': 'gemini-test'}
         with open(self.settings_path, 'w', encoding='utf-8') as f:
             json.dump(config_test, f)
         server.SETTINGS_FILE = self.settings_path
 
         ajustes = server.cargar_ajustes()
-        self.assertEqual(ajustes['gemini_key'], 'test_key_123')
+        self.assertNotIn('gemini_key', ajustes)
         self.assertEqual(ajustes['commission'], 20.0)
 
     def test_guardar_ajustes(self):
         import importlib
         import server
         server.SETTINGS_FILE = self.settings_path
-        nuevos_ajustes = {'gemini_key': 'nueva_key', 'commission': 25.0, 'model': 'nuevo_modelo'}
+        nuevos_ajustes = {'commission': 25.0, 'model': 'nuevo_modelo'}
         server.guardar_ajustes(nuevos_ajustes)
 
         with open(self.settings_path, 'r', encoding='utf-8') as f:
             guardados = json.load(f)
-        self.assertEqual(guardados['gemini_key'], 'nueva_key')
+        self.assertNotIn('gemini_key', guardados)
         self.assertEqual(guardados['commission'], 25.0)
 
     def test_resolve_static_path_rejects_parent_directory(self):
