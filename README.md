@@ -9,8 +9,8 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - **Estructura:** Arquitectura modular completamente establecida
 - **Backend:** Servidor Python HTTP con 18+ endpoints (server.py)
 - **Frontend:** Dashboard, panel admin, portal de clientes, landing page
-- **Tests:** 105 pruebas unitarias cubriendo los módulos principales
-- **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de producción.
+- **Tests:** 116 pruebas (unitarias + integracion) cubriendo los modulos principales
+- **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de produccion.
 
 ## Que incluye
 
@@ -21,7 +21,7 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - operaciones para ordenes, pagos, ratings y alertas
 - identidad visual y flujo de contacto para demos o pilotos
 - 7 clones digitales en 5 industrias (COBOL, Finanzas, Ciberseguridad, UX, Data Science, Legal, Ventas)
-- 105 pruebas unitarias para lógica de negocio, seguridad, API y persistencia
+- 116 pruebas (unitarias + integracion) para logica de negocio, seguridad, API y persistencia
 - documentacion completa de la API
 
 ## Arquitectura
@@ -35,14 +35,14 @@ skilltwin/
 ├── dep_operaciones/  # Finance, orders, payments, orchestration
 ├── docs/             # Public landing (GitHub Pages ready)
 ├── website/          # Editable landing for branding
-└── tests/            # 105 pruebas unitarias
+└── tests/            # 116 pruebas (unitarias + integracion)
 ```
 
 - `/cerebro/`: dashboard central, servidor HTTP, portal de clientes y experiencia principal de operacion
 - `/dep_desarrollo/`: motor de clonacion y base de datos de conocimiento de los clones
 - `/dep_marketing/`: inteligencia comercial, nichos y propuestas de ventas
 - `/dep_legal/`: contratos, etica y soporte legal del modelo
-- `/dep_operaciones/`: finanzas, ordenes, pagos, contacto comercial y orquestacion automatica
+- `/dep_operaciones/`: finanzas, ordenes, pagos, contacto comercial, orquestacion automatica y CLI
 - `/docs/`: version publica lista para GitHub Pages
 - `/website/`: version editable de la landing para trabajo de marca y presentacion
 
@@ -76,6 +76,10 @@ SQLite con las siguientes tablas:
 - `gestor_ordenes.py` - Ordenes de servicio
 - `gestor_pagos.py` - Facturas y transacciones
 - `gestor_contactos.py` - Solicitudes de contacto
+
+**Otros modulos:**
+- `cli.py` - Interfaz de linea de comandos para gestion financiera
+- `database.py` - Capa de persistencia SQLite con indices optimizados
 
 Migracion automatica desde JSON: `python -c "from dep_operaciones.database import migrar_json_a_sqlite; migrar_json_a_sqlite()"`
 
@@ -173,8 +177,8 @@ Migracion automatica desde JSON: `python -c "from dep_operaciones.database impor
 python -m unittest discover -s tests
 ```
 
-105 pruebas cubriendo motor de clonación, finanzas, contratos, operaciones, pagos,
-seguridad, persistencia SQLite y configuración del servidor.
+116 pruebas cubriendo motor de clonacion, finanzas, contratos, operaciones, pagos,
+seguridad, persistencia SQLite, configuracion del servidor y tests de integracion HTTP.
 
 ## API
 
@@ -184,12 +188,15 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 
 - Rate limiting (30 req/min por IP)
 - Sanitizacion de inputs (proteccion XSS)
-- Autenticación administrativa obligatoria y tokens con expiración
-- Autorización para datos financieros, órdenes, facturas, reportes y pagos
-- Validación de importe, factura y orden en pagos Stripe
-- Rutas estáticas confinadas al directorio `/cerebro/`
-- Headers de seguridad (X-Content-Type-Options, X-Frame-Options)
+- Autenticacion administrativa obligatoria y tokens con expiracion
+- Autorizacion para datos financieros, ordenes, facturas, reportes y pagos
+- Validacion de importe, factura y orden en pagos Stripe
+- Rutas estaticas confinadas al directorio `/cerebro/`
+- Headers de seguridad (X-Content-Type-Options, X-Frame-Options, Access-Control-Allow-Origin)
 - Base de datos SQLite con foreign keys y WAL mode
+- API key de Gemini via header `x-goog-api-key` (no en query params)
+- Servidor rechaza secrets triviales (skilltwin-dev-2026, admin, password, etc.)
+- GEMINI_API_KEY obligatoria en variables de entorno (no en server_settings.json)
 
 ## CI/CD
 
@@ -222,10 +229,10 @@ Archivos de workflow:
 1. Entra en `/cerebro/`.
 2. Ejecuta `python server.py`.
 3. Abre `http://localhost:8000`.
-4. Configura `SKILLTWIN_ADMIN_SECRET` en `.env` antes de iniciar el servidor.
-5. Si tienes acceso a Gemini, configura `GEMINI_API_KEY` y el modelo desde Ajustes.
+4. Configura `SKILLTWIN_ADMIN_SECRET` en `.env` antes de iniciar el servidor (obligatorio, no acepta valores triviales).
+5. Si tienes acceso a Gemini, configura `GEMINI_API_KEY` en `.env`.
 
-El servidor crea automaticamente `server_settings.json` en `/cerebro/` para guardar la configuracion local.
+El servidor guarda configuracion local (comision, modelo) en `server_settings.json`. La API key de Gemini se gestiona exclusivamente via variables de entorno por seguridad.
 
 ## Entradas principales
 
@@ -341,11 +348,16 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - [x] CI/CD con GitHub Actions (tests, lint, security)
 - [x] Configuracion para despliegue en Render (render.yaml)
 - [x] Workflow de despliegue automatico a Render
-- [x] Protección de rutas, datos operativos y flujo de pagos
+- [x] Proteccion de rutas, datos operativos y flujo de pagos
+- [x] Indices SQLite para consultas frecuentes
+- [x] Tests de integracion HTTP
+- [x] API key de Gemini via header (no query params)
+- [x] CORS headers en todas las respuestas JSON
+- [x] Validacion de secrets triviales
 - [ ] Crear cuenta en Render y configurar secrets
 - [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
-- [ ] Cuentas de cliente con autenticación y autorización por recurso
+- [ ] Cuentas de cliente con autenticacion y autorizacion por recurso
 - [ ] Rate limiting persistente (Redis)
 - [ ] Monitoreo y logging avanzado
 
@@ -354,8 +366,10 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - repositorio publicado y preparado para GitHub Pages
 - landing publica con branding, logo y formulario de contacto
 - dashboard local funcional con rutas operativas
-- portal público para solicitudes comerciales; el acceso a órdenes y pagos requiere cuentas de cliente
-- integración Stripe Checkout con importes validados en servidor (requiere API keys)
+- portal publico para solicitudes comerciales; el acceso a ordenes y pagos requiere cuentas de cliente
+- integracion Stripe Checkout con importes validados en servidor (requiere API keys)
 - despliegue automatizado configurado (requiere cuenta en Render)
-- 105 pruebas unitarias cubriendo los módulos principales
+- 116 pruebas (unitarias + integracion) cubriendo los modulos principales
 - CI/CD completo: tests, lint, security scan
+- CORS configurado para consumo desde cualquier origen
+- API key de Gemini gestionada via variables de entorno (no en archivos)
