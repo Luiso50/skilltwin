@@ -7,8 +7,9 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 ## Estado Actual
 
 - **Estructura:** Arquitectura modular completamente establecida
-- **Backend:** Servidor Python HTTP con 18+ endpoints (server.py)
+- **Backend:** Servidor Python HTTP con 25+ endpoints (server.py)
 - **Frontend:** Dashboard, panel admin, portal de clientes, landing page
+- **Auth:** Registro/login de usuarios con hash de passwords (bcrypt)
 - **Tests:** 150 pruebas (unitarias + integracion) cubriendo los modulos principales
 - **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de produccion.
 
@@ -62,9 +63,10 @@ SQLite con las siguientes tablas:
 - `cuentas_cobrar` - Facturas pendientes
 - `cuentas_pagar` - Pagos pendientes
 - `ordenes` - Ordenes de servicio
-- `facturas` - Facturas generadas
-- `transacciones` - Pagos procesados
+- `facturas` - Facturas generadas (17 columnas: montos, fechas, metadata Stripe)
+- `transacciones` - Pagos procesados (13 columnas: referencia, auth, detalles)
 - `contactos` - Solicitudes de contacto
+- `users` - Usuarios registrados (email, password_hash, role)
 
 **Modos de operacion:**
 - SQLite (por defecto): `SKILLTWIN_USE_SQLITE=1`
@@ -194,14 +196,16 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 - Rate limiting configurable (default: 30 req/min por IP, con `Retry-After` header)
 - CORS configurable via `SKILLTWIN_CORS_ORIGINS` (default: `*`)
 - Sanitizacion de inputs (proteccion XSS)
-- Proteccion CSRF para formularios
+- Proteccion CSRF para formularios (logging de intentos invalidos)
 - Autenticacion administrativa obligatoria y tokens con expiracion
-- Autenticacion de clientes con session tokens
+- Autenticacion de clientes con session tokens (register/login/me)
+- Hash de passwords con bcrypt (no texto plano)
 - Autorizacion para datos financieros, ordenes, facturas, reportes y pagos
+- Autenticacion requerida en `/api/stripe/confirm-session`
 - Validacion de importe, factura y orden en pagos Stripe
 - Rutas estaticas confinadas al directorio `/cerebro/`
 - Headers de seguridad (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy)
-- Base de datos SQLite con foreign keys y WAL mode
+- Base de datos SQLite con foreign keys, WAL mode e indices optimizados
 - API key de Gemini via header `x-goog-api-key` (no en query params)
 - Servidor rechaza secrets triviales (skilltwin-dev-2026, admin, password, etc.)
 - GEMINI_API_KEY obligatoria en variables de entorno (no en server_settings.json)
@@ -311,6 +315,7 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 | `SMTP_FROM` | Email remitente | `teamskiltwinhq@zohomail.com` |
 | `STRIPE_SECRET_KEY` | Secret key de Stripe | vacio |
 | `STRIPE_PUBLISHABLE_KEY` | Publishable key de Stripe | vacio |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signing secret de Stripe | vacio |
 
 ## Integracion de Pagos (Stripe Checkout)
 
@@ -321,16 +326,19 @@ El sistema integra Stripe Checkout para pagos con tarjeta de crédito mediante e
 3. El cliente completa el pago en Stripe Checkout.
 4. Stripe notifica por webhook y el servidor valida importe, factura y orden antes de actualizar el estado.
 
-**Endpoints nuevos:**
-- `POST /api/stripe/create-checkout` - Crea sesion de Checkout
-- `POST /api/stripe/confirm-session` - Verifica estado del pago
-- `POST /api/stripe/webhook` - Recibe notificaciones de Stripe
+**Endpoints:**
+- `GET /api/stripe/config` - Obtiene configuracion de Stripe (publishable key)
+- `POST /api/stripe/create-payment` - Crea PaymentIntent (requiere admin)
+- `POST /api/stripe/create-checkout` - Crea sesion de Checkout (requiere admin)
+- `POST /api/stripe/confirm-session` - Verifica estado del pago (requiere auth)
+- `POST /api/stripe/webhook` - Recibe notificaciones de Stripe (valida firma)
 
 **Para activar:**
 1. Obtener API keys en [dashboard.stripe.com](https://dashboard.stripe.com)
 2. Configurar variables en `.env` (ver `.env.example`)
 3. Crear webhook con evento `checkout.session.completed`
-4. Configurar `SKILLTWIN_PUBLIC_URL` con la URL HTTPS pública del backend; Stripe nunca acepta importe, orden o URLs de retorno desde el navegador.
+4. Configurar `STRIPE_WEBHOOK_SECRET` con el signing secret del webhook
+5. Configurar `SKILLTWIN_PUBLIC_URL` con la URL HTTPS pública del backend
 
 El portal público registra solicitudes comerciales. No muestra órdenes, facturas,
 pagos ni notificaciones hasta que existan cuentas de cliente con autorización por recurso.
@@ -373,10 +381,13 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - [x] Health endpoint con metricas
 - [x] Rate limiting con Retry-After header
 - [x] Configuracion CORS configurable
+- [x] Autenticacion de usuarios (register/login/me)
+- [x] Schema DB expandido (facturas 17 cols, transacciones 13 cols)
+- [x] Auth en /api/stripe/confirm-session
+- [x] Guardar cuentas_cobrar/pagar en SQLite
 - [ ] Crear cuenta en Render y configurar secrets
 - [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
-- [ ] Cuentas de cliente con autenticacion y autorizacion por recurso
 - [ ] Rate limiting persistente (Redis)
 - [ ] Monitoreo y logging avanzado (Grafana/Prometheus)
 
@@ -386,7 +397,9 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - landing publica con branding, logo y formulario de contacto
 - dashboard local funcional con rutas operativas
 - portal publico para solicitudes comerciales; el acceso a ordenes y pagos requiere cuentas de cliente
+- autenticacion de usuarios completa (register/login/me) con bcrypt
 - integracion Stripe Checkout con importes validados en servidor (requiere API keys)
+- webhook de Stripe con validacion de firma
 - despliegue automatizado configurado (requiere cuenta en Render)
 - 150 pruebas (unitarias + integracion) cubriendo los modulos principales
 - CI/CD completo: tests, lint, Docker build
@@ -398,6 +411,8 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - Health endpoint con metricas de uptime y errores
 - Rate limiting configurable con Retry-After header
 - Documentacion completa de la API (docs/API.md)
+- Schema de base de datos completo (facturas 17 cols, transacciones 13 cols, users)
+- Indices optimizados para consultas frecuentes
 
 ## Contacto
 

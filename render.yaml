@@ -17,6 +17,18 @@ services:
         sync: false
       - key: SKILLTWIN_ADMIN_SECRET
         generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.zoho.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        value: teamskiltwinhq@zohomail.com
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: teamskiltwinhq@zohomail.com
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_PUBLISHABLE_KEY
