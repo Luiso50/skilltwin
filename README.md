@@ -9,7 +9,7 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - **Estructura:** Arquitectura modular completamente establecida
 - **Backend:** Servidor Python HTTP con 18+ endpoints (server.py)
 - **Frontend:** Dashboard, panel admin, portal de clientes, landing page
-- **Tests:** 48 unit tests pasando en todos los modulos
+- **Tests:** 105 pruebas unitarias cubriendo los módulos principales
 - **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de producción.
 
 ## Que incluye
@@ -21,7 +21,7 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - operaciones para ordenes, pagos, ratings y alertas
 - identidad visual y flujo de contacto para demos o pilotos
 - 7 clones digitales en 5 industrias (COBOL, Finanzas, Ciberseguridad, UX, Data Science, Legal, Ventas)
-- 48 tests unitarios cubriendo todos los modulos
+- 105 pruebas unitarias para lógica de negocio, seguridad, API y persistencia
 - documentacion completa de la API
 
 ## Arquitectura
@@ -35,7 +35,7 @@ skilltwin/
 ├── dep_operaciones/  # Finance, orders, payments, orchestration
 ├── docs/             # Public landing (GitHub Pages ready)
 ├── website/          # Editable landing for branding
-└── tests/            # 48 unit tests
+└── tests/            # 105 pruebas unitarias
 ```
 
 - `/cerebro/`: dashboard central, servidor HTTP, portal de clientes y experiencia principal de operacion
@@ -48,11 +48,11 @@ skilltwin/
 
 ## Stack Tecnico
 
-- **Backend:** Python (http.server, bases de datos JSON, threading)
+- **Backend:** Python (`http.server`, SQLite y threading)
 - **Frontend:** HTML, CSS, JavaScript (Chart.js)
 - **Integracion IA:** Gemini API (opcional, funciona offline)
 - **DevOps:** Docker, scripts PowerShell/Bash
-- **Almacenamiento:** Archivos JSON (thread-safe con locks)
+- **Almacenamiento:** SQLite por defecto; JSON solo para compatibilidad legacy
 
 ## Base de Datos
 
@@ -111,7 +111,7 @@ Migracion automatica desde JSON: `python -c "from dep_operaciones.database impor
 1. **Memoria de Conversacion**
    - Cada clon mantiene un historial de interacciones por sesion
    - Los clones recuerdan preguntas anteriores y pueden referenciarlas
-   - Memoria persistente entre sesiones (almacenada en archivos JSON)
+   - Memoria persistente entre sesiones en desarrollo y Docker mediante volumen
 
 2. **Conocimiento Estructurado**
    - El conocimiento se organiza automaticamente en categorias:
@@ -173,17 +173,8 @@ Migracion automatica desde JSON: `python -c "from dep_operaciones.database impor
 python -m unittest discover -s tests
 ```
 
-101 tests cubriendo:
-- Motor de clonacion (13 tests) - Incluye memoria de conversacion y conocimiento estructurado
-- Gestor financiero (10 tests)
-- Agente de ventas (7 tests)
-- Generador de contratos (8 tests)
-- Configuracion del servidor (8 tests)
-- Gestor de contactos (1 test)
-- Gestor de pagos y ordenes (4 tests)
-- Seguridad (21 tests)
-- Base de datos SQLite (12 tests)
-- Nuevos endpoints de memoria y estadisticas (17 tests)
+105 pruebas cubriendo motor de clonación, finanzas, contratos, operaciones, pagos,
+seguridad, persistencia SQLite y configuración del servidor.
 
 ## API
 
@@ -193,9 +184,11 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 
 - Rate limiting (30 req/min por IP)
 - Sanitizacion de inputs (proteccion XSS)
-- Autenticacion para endpoints admin
+- Autenticación administrativa obligatoria y tokens con expiración
+- Autorización para datos financieros, órdenes, facturas, reportes y pagos
+- Validación de importe, factura y orden en pagos Stripe
+- Rutas estáticas confinadas al directorio `/cerebro/`
 - Headers de seguridad (X-Content-Type-Options, X-Frame-Options)
-- Errores sin exposicion de informacion sensible
 - Base de datos SQLite con foreign keys y WAL mode
 
 ## CI/CD
@@ -229,7 +222,8 @@ Archivos de workflow:
 1. Entra en `/cerebro/`.
 2. Ejecuta `python server.py`.
 3. Abre `http://localhost:8000`.
-4. Si tienes acceso a Gemini, configura `GEMINI_API_KEY` y el modelo desde Ajustes.
+4. Configura `SKILLTWIN_ADMIN_SECRET` en `.env` antes de iniciar el servidor.
+5. Si tienes acceso a Gemini, configura `GEMINI_API_KEY` y el modelo desde Ajustes.
 
 El servidor crea automaticamente `server_settings.json` en `/cerebro/` para guardar la configuracion local.
 
@@ -272,7 +266,7 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 ### Opcion simple
 
 1. Construye la imagen: `docker build -t skilltwin .`
-2. Ejecuta el contenedor: `docker run -p 8000:8000 skilltwin`
+2. Ejecuta el contenedor: `docker run --rm -e SKILLTWIN_ADMIN_SECRET="<secreto-seguro>" -p 8000:8000 skilltwin`
 3. Abre `http://localhost:8000`
 
 ### Opcion con Docker Compose (recomendado para produccion)
@@ -286,6 +280,8 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 | Variable | Descripcion | Default |
 |----------|-------------|---------|
 | `SKILLTWIN_ADMIN_SECRET` | Secret obligatorio para autenticacion admin | sin valor predeterminado |
+| `SKILLTWIN_PUBLIC_URL` | URL HTTPS pública del backend para Stripe | sin valor predeterminado |
+| `SKILLTWIN_TRUST_PROXY` | Confiar en `X-Forwarded-For` tras proxy gestionado | `0` |
 | `SKILLTWIN_USE_SQLITE` | Usar SQLite (1) o JSON (0) | `1` |
 | `GEMINI_API_KEY` | API Key de Gemini AI | vacio |
 | `SMTP_HOST` | Servidor SMTP para emails | `smtp.gmail.com` |
@@ -297,12 +293,12 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 
 ## Integracion de Pagos (Stripe Checkout)
 
-El sistema integra Stripe Checkout para pagos con tarjeta de credito:
+El sistema integra Stripe Checkout para pagos con tarjeta de crédito mediante el flujo administrativo:
 
-1. Usuario selecciona "Tarjeta de Crédito" en el portal de clientes
-2. Redirige a Stripe Checkout (pagina segura de Stripe)
-3. Usuario completa el pago
-4. Stripe notifica via webhook → factura y orden se actualizan automaticamente
+1. Un administrador autenticado crea el checkout para una factura pendiente.
+2. El servidor toma importe y orden de la factura, no del navegador.
+3. El cliente completa el pago en Stripe Checkout.
+4. Stripe notifica por webhook y el servidor valida importe, factura y orden antes de actualizar el estado.
 
 **Endpoints nuevos:**
 - `POST /api/stripe/create-checkout` - Crea sesion de Checkout
@@ -315,6 +311,9 @@ El sistema integra Stripe Checkout para pagos con tarjeta de credito:
 3. Crear webhook con evento `checkout.session.completed`
 4. Configurar `SKILLTWIN_PUBLIC_URL` con la URL HTTPS pública del backend; Stripe nunca acepta importe, orden o URLs de retorno desde el navegador.
 
+El portal público registra solicitudes comerciales. No muestra órdenes, facturas,
+pagos ni notificaciones hasta que existan cuentas de cliente con autorización por recurso.
+
 ## Despliegue
 
 ### GitHub Pages (Landing - Gratis)
@@ -325,7 +324,8 @@ El sistema integra Stripe Checkout para pagos con tarjeta de credito:
 ### Backend API (Render - Gratis)
 - Configurado via `render.yaml`
 - Workflow: `.github/workflows/deploy-backend.yml`
-- **Pendiente:** Crear cuenta en Render y configurar secrets en GitHub
+- Configura en Render: `SKILLTWIN_ADMIN_SECRET`, `SKILLTWIN_PUBLIC_URL` y, si se usan, las credenciales de Gemini, Stripe y SMTP.
+- En Render, `SKILLTWIN_TRUST_PROXY=1` ya está configurado para obtener la IP del cliente desde el proxy gestionado.
 
 **Secrets necesarios en GitHub:**
 - `RENDER_SERVICE_ID` - ID del servicio en Render
@@ -341,6 +341,7 @@ El sistema integra Stripe Checkout para pagos con tarjeta de credito:
 - [x] CI/CD con GitHub Actions (tests, lint, security)
 - [x] Configuracion para despliegue en Render (render.yaml)
 - [x] Workflow de despliegue automatico a Render
+- [x] Protección de rutas, datos operativos y flujo de pagos
 - [ ] Crear cuenta en Render y configurar secrets
 - [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
@@ -353,7 +354,8 @@ El sistema integra Stripe Checkout para pagos con tarjeta de credito:
 - repositorio publicado y preparado para GitHub Pages
 - landing publica con branding, logo y formulario de contacto
 - dashboard local funcional con rutas operativas
-- integracion Stripe Checkout lista (requiere API keys de Stripe)
+- portal público para solicitudes comerciales; el acceso a órdenes y pagos requiere cuentas de cliente
+- integración Stripe Checkout con importes validados en servidor (requiere API keys)
 - despliegue automatizado configurado (requiere cuenta en Render)
-- 101 tests unitarios cubriendo todos los modulos
+- 105 pruebas unitarias cubriendo los módulos principales
 - CI/CD completo: tests, lint, security scan
