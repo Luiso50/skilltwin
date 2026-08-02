@@ -192,7 +192,7 @@
         <div class="pricing-grid">
           <article class="pricing-card">
             <p class="pricing-label">Demo estratégica</p>
-            <h4>149 EUR</h4>
+            <h4>$149 USD</h4>
             <p>Ideal para presentar el concepto, revisar el flujo y validar si SkillTwin encaja con tu caso.</p>
             <ul>
               <li>Sesión guiada de producto</li>
@@ -202,7 +202,7 @@
           </article>
           <article class="pricing-card featured">
             <p class="pricing-label">Piloto corporativo</p>
-            <h4>790 EUR</h4>
+            <h4>$790 USD</h4>
             <p>La opción más seria para testear una vertical con gemelos digitales, portal y supervisión operativa.</p>
             <ul>
               <li>Configuración de un caso de uso</li>
@@ -236,7 +236,7 @@
             <p>Para agendar una demo, recibir soporte o hablar de un piloto corporativo:</p>
             <ul>
               <li><strong>WhatsApp:</strong> <a href="https://wa.me/34600000000">+34 600 000 000</a></li>
-              <li><strong>Email:</strong> <a href="mailto:hola@skilltwin.ai">hola@skilltwin.ai</a></li>
+              <li><strong>Email:</strong> <a href="mailto:teamskiltwinhq@zohomail.com">teamskiltwinhq@zohomail.com</a></li>
               <li><strong>Horario:</strong> Lunes a viernes, 09:00–18:00</li>
             </ul>
           </article>
@@ -329,7 +329,7 @@
         } catch (error) {
           const subject = encodeURIComponent(`Solicitud de ${payload.nombre || 'cliente'} - SkillTwin`);
           const body = encodeURIComponent(`Nombre: ${payload.nombre || ''}\nEmail: ${payload.email || ''}\nTeléfono: ${payload.telefono || ''}\nEmpresa: ${payload.empresa || ''}\nInterés: ${payload.interes || ''}\n\nMensaje:\n${payload.mensaje || ''}`);
-          window.location.href = `mailto:hola@skilltwin.ai?subject=${subject}&body=${body}`;
+          window.location.href = `mailto:teamskiltwinhq@zohomail.com?subject=${subject}&body=${body}`;
           if (contactStatus) {
             contactStatus.textContent = 'Se ha abierto tu cliente de correo para completar el contacto.';
             contactStatus.className = 'form-status success';

@@ -23,7 +23,7 @@ def generar_contrato_gemini(orden_id, cliente_email, clon_id, clon_nombre,
                                         especialidad, cantidad_horas, monto_total, comision)
     
     model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
     
     # Fecha de vencimiento (30 días después)
     fecha_inicio = datetime.now()
@@ -59,7 +59,7 @@ Genera un contrato en formato TEXTO que incluya:
 El contrato debe ser profesional, legal y en español. Incluye números de artículos para referencia.
 """
     
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {

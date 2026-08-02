@@ -119,10 +119,11 @@ def create_checkout_session(amount_cents, factura_id, orden_id=None, success_url
         import stripe
         stripe.api_key = config["secret_key"]
         
+        base_url = os.environ.get("SKILLTWIN_PUBLIC_URL", "http://localhost:8000")
         if not success_url:
-            success_url = "http://localhost:8000/gracias.html?session_id={CHECKOUT_SESSION_ID}"
+            success_url = f"{base_url}/gracias.html?session_id={{CHECKOUT_SESSION_ID}}"
         if not cancel_url:
-            cancel_url = "http://localhost:8000/client-portal.html"
+            cancel_url = f"{base_url}/client-portal.html"
         
         session_data = {
             "payment_method_types": ["card"],

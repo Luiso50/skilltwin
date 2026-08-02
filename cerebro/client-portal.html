@@ -636,8 +636,36 @@
       <div class="header-badge">Operación conectada</div>
     </header>
 
-    <!-- Main Grid -->
-    <div class="grid">
+    <!-- Auth Section (shown when not logged in) -->
+    <div id="auth-section" class="grid" style="display: none;">
+      <div class="panel" style="max-width: 450px; margin: 60px auto;">
+        <h2 id="auth-title">Iniciar Sesión</h2>
+        <div id="auth-alert" style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 6px; font-size: 0.9rem;"></div>
+
+        <form id="auth-form">
+          <div class="form-group" id="nombre-group" style="display: none;">
+            <label for="auth-nombre">Nombre completo</label>
+            <input type="text" id="auth-nombre" placeholder="Tu nombre">
+          </div>
+          <div class="form-group">
+            <label for="auth-email">Email</label>
+            <input type="email" id="auth-email" required placeholder="cliente@empresa.com">
+          </div>
+          <div class="form-group">
+            <label for="auth-password">Contraseña</label>
+            <input type="password" id="auth-password" required placeholder="Mínimo 8 caracteres" minlength="8">
+          </div>
+          <button type="submit" class="btn-submit" id="auth-submit-btn">Iniciar Sesión</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
+          <span id="auth-toggle-text">¿No tienes cuenta?</span>
+          <a href="#" id="auth-toggle-link" style="color: var(--primary); text-decoration: none;">Regístrate</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Main Grid (shown when logged in) -->
+    <div class="grid" id="main-content" style="display: none;">
       <!-- Left Panel: Request Form -->
       <div class="panel">
         <h2>📝 Solicitar Servicio</h2>
@@ -776,6 +804,94 @@
     const API_BASE = '/api';
     let selectedCloneId = null;
     let selectedCloneName = null;
+    let authToken = localStorage.getItem('skilltwin_token');
+    let isRegisterMode = false;
+
+    // Auth functions
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-title').textContent = isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión';
+      document.getElementById('auth-submit-btn').textContent = isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión';
+      document.getElementById('auth-toggle-text').textContent = isRegisterMode ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?';
+      document.getElementById('auth-toggle-link').textContent = isRegisterMode ? 'Inicia sesión' : 'Regístrate';
+      document.getElementById('nombre-group').style.display = isRegisterMode ? 'block' : 'none';
+      document.getElementById('auth-alert').style.display = 'none';
+    }
+
+    function showAuthAlert(msg, isError) {
+      const el = document.getElementById('auth-alert');
+      el.style.display = 'block';
+      el.style.background = isError ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)';
+      el.style.color = isError ? '#ef4444' : '#10b981';
+      el.textContent = msg;
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const nombre = document.getElementById('auth-nombre').value.trim();
+      const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+      const body = isRegisterMode ? { email, password, nombre } : { email, password };
+
+      try {
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error de autenticación');
+        authToken = data.token;
+        localStorage.setItem('skilltwin_token', authToken);
+        showMainContent();
+      } catch (err) {
+        showAuthAlert(err.message, true);
+      }
+    }
+
+    async function checkAuth() {
+      if (!authToken) { showAuthSection(); return; }
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!res.ok) { localStorage.removeItem('skilltwin_token'); authToken = null; showAuthSection(); return; }
+        showMainContent();
+      } catch { showAuthSection(); }
+    }
+
+    function showAuthSection() {
+      document.getElementById('auth-section').style.display = 'grid';
+      document.getElementById('main-content').style.display = 'none';
+    }
+
+    async function showMainContent() {
+      document.getElementById('auth-section').style.display = 'none';
+      document.getElementById('main-content').style.display = 'grid';
+      loadClones();
+      // Load user's orders
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+        if (data.user) {
+          document.getElementById('email').value = data.user.email;
+          loadOrdenes(data.user.email);
+        }
+      } catch {}
+    }
+
+    function logout() {
+      localStorage.removeItem('skilltwin_token');
+      authToken = null;
+      showAuthSection();
+    }
+
+    // Init auth
+    document.getElementById('auth-toggle-link').addEventListener('click', (e) => { e.preventDefault(); toggleAuthMode(); });
+    document.getElementById('auth-form').addEventListener('submit', handleAuth);
 
     const PLAN_CONFIG = {
       demo: { label: 'Demo estratégica', multiplier: 1, legalFee: 0 },
@@ -1148,7 +1264,7 @@
     document.getElementById('contrato').addEventListener('change', updateEstimate);
 
     // Initial load
-    loadClones();
+    checkAuth();
     updateEstimate();
   </script>
 </body>

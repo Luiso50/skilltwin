@@ -4,14 +4,14 @@ import os
 import threading
 from datetime import datetime
 from contextlib import contextmanager
+from typing import Generator, Optional
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "skilltwin.db")
-db_lock = threading.RLock()
+DB_PATH: str = os.environ.get("SKILLTWIN_DB_PATH") or os.path.join(os.path.dirname(__file__), "skilltwin.db")
+db_lock: threading.RLock = threading.RLock()
 
 
 @contextmanager
-def get_connection():
-    """Context manager para obtener conexión SQLite thread-safe."""
+def get_connection() -> Generator[sqlite3.Connection, None, None]:
     with db_lock:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
@@ -141,6 +141,18 @@ def init_database():
                 mensaje TEXT NOT NULL,
                 fecha TEXT NOT NULL,
                 estado TEXT DEFAULT 'nuevo'
+            )
+        """)
+        
+        # Tabla de usuarios (autenticación)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                role TEXT DEFAULT 'customer',
+                created_at TEXT NOT NULL
             )
         """)
         
@@ -347,6 +359,25 @@ def cargar_ordenes():
         return result
 
 
+def cargar_ordenes_pendientes():
+    """Carga solo órdenes pendientes de procesamiento (optimizado para orquestador)."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM ordenes WHERE estado = 'pendiente'")
+        rows = cursor.fetchall()
+        result = {}
+        for row in rows:
+            d = dict(row)
+            d["etapas"] = json.loads(d["etapas"])
+            d["notificaciones"] = json.loads(d["notificaciones"])
+            d["pago"] = json.loads(d["pago"])
+            d["rating"] = json.loads(d["rating"])
+            d["contrato"] = json.loads(d["contrato"])
+            d["archivos_entregables"] = json.loads(d["archivos_entregables"])
+            result[d["id"]] = d
+        return result
+
+
 def guardar_orden(orden):
     """Guarda o actualiza una orden."""
     with get_connection() as conn:
@@ -437,3 +468,37 @@ def guardar_contacto(nombre, email, telefono, empresa, interes, mensaje):
         """, (nombre, email, telefono, empresa, interes, mensaje,
               datetime.now().isoformat()))
         return cursor.lastrowid
+
+
+# Funciones de acceso a datos para usuarios
+def crear_usuario(email, password_hash, nombre, role="customer"):
+    """Crea un nuevo usuario. Retorna el ID o None si el email ya existe."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO users (email, password_hash, nombre, role, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (email.lower().strip(), password_hash, nombre, role,
+                  datetime.now().isoformat()))
+            return cursor.lastrowid
+        except Exception:
+            return None
+
+
+def obtener_usuario_por_email(email):
+    """Obtiene un usuario por su email."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email.lower().strip(),))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def obtener_usuario_por_id(user_id):
+    """Obtiene un usuario por su ID."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None

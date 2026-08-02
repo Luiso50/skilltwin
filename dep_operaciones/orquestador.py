@@ -49,12 +49,15 @@ class OrquestadorAutonomo:
     
     def _procesar_ordenes_pendientes(self):
         """Busca y procesa órdenes en estado 'pendiente'."""
-        ordenes = gestor_ordenes.cargar_ordenes()
+        from dep_operaciones.database import cargar_ordenes_pendientes
+        try:
+            ordenes = cargar_ordenes_pendientes()
+        except Exception:
+            ordenes = gestor_ordenes.cargar_ordenes()
+            ordenes = {"ordenes": {k: v for k, v in ordenes.get("ordenes", {}).items() if v.get("estado") == "pendiente"}}
         
-        for orden_id, orden in ordenes["ordenes"].items():
-            # Solo procesar órdenes pendientes de etapa legal
-            if (orden["estado"] == "pendiente" and 
-                orden["etapas"]["legal"]["estado"] == "pendiente"):
+        for orden_id, orden in ordenes.items():
+            if (orden["etapas"]["legal"]["estado"] == "pendiente"):
                 self._procesar_orden(orden_id)
     
     def _procesar_orden(self, orden_id):

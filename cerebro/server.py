@@ -7,27 +7,31 @@ import sys
 import urllib.parse
 import urllib.request
 import logging
+import time
+import uuid
 from datetime import datetime
 
 
+_metrics = {
+    "requests_total": 0,
+    "errors_total": 0,
+    "start_time": time.time(),
+    "response_times": []
+}
+
+
 def load_dotenv():
-    """Carga variables de entorno desde el archivo .env si existe."""
     env_path = os.path.join(RAIZ_DIR if 'RAIZ_DIR' in dir() else os.path.dirname(os.path.abspath(__file__)), '..', '.env')
     env_path = os.path.abspath(env_path)
-    
     if not os.path.exists(env_path):
         return
-    
     with open(env_path, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            if '=' not in line:
+            if not line or line.startswith('#') or '=' not in line:
                 continue
             key, _, value = line.partition('=')
-            key = key.strip()
-            value = value.strip()
+            key, value = key.strip(), value.strip()
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
             elif value.startswith("'") and value.endswith("'"):
@@ -35,7 +39,26 @@ def load_dotenv():
             if key and key not in os.environ:
                 os.environ[key] = value
 
-# Configurar logging estructurado
+
+def _generate_request_id():
+    return uuid.uuid4().hex[:12]
+
+
+def _record_response_time(duration):
+    _metrics["response_times"].append(duration)
+    if len(_metrics["response_times"]) > 1000:
+        _metrics["response_times"] = _metrics["response_times"][-500:]
+
+
+def _get_uptime():
+    return int(time.time() - _metrics["start_time"])
+
+
+def _get_avg_response_time():
+    times = _metrics["response_times"]
+    return round(sum(times) / len(times) * 1000, 2) if times else 0
+
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -52,9 +75,35 @@ load_dotenv()
 
 from dep_desarrollo import motor_clonacion
 from dep_marketing import agente_ventas_mercado
-from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security
+from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security, database
 from dep_operaciones import email_service, stripe_service
 from dep_legal import generador_contratos
+
+
+class _Cache:
+    def __init__(self, ttl_seconds=300):
+        self._store = {}
+        self._ttl = ttl_seconds
+
+    def get(self, key):
+        if key in self._store:
+            value, ts = self._store[key]
+            if time.time() - ts < self._ttl:
+                return value
+            del self._store[key]
+        return None
+
+    def set(self, key, value):
+        self._store[key] = (value, time.time())
+
+    def invalidate(self, key=None):
+        if key:
+            self._store.pop(key, None)
+        else:
+            self._store.clear()
+
+
+_cache = _Cache(ttl_seconds=int(os.environ.get("SKILLTWIN_CACHE_TTL", "300")))
 
 PORT = int(os.environ.get("PORT", 8000))
 CEREBRO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -150,11 +199,24 @@ class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         super().handle_error(request, client_address)
 
 class CerebroHandler(http.server.SimpleHTTPRequestHandler):
+    def _get_cors_origin(self):
+        origin = self.headers.get('Origin', '')
+        allowed_raw = os.environ.get("SKILLTWIN_CORS_ORIGINS", "")
+        if allowed_raw:
+            allowed = [o.strip() for o in allowed_raw.split(",") if o.strip()]
+            if origin and origin in allowed:
+                return origin
+            return allowed[0] if allowed else ""
+        return "*"
+
+    def log_message(self, format, *args):
+        logger.info(format % args)
+
     def send_json_response(self, data, status=200, headers=None):
-        """Helper para enviar respuestas JSON de forma consistente."""
         response_headers = {
             'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': self._get_cors_origin(),
+            'X-Request-ID': getattr(self, 'request_id', '')
         }
         if headers:
             response_headers.update(headers)
@@ -167,8 +229,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         json_data = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.wfile.write(json_data)
         
-        # Log de la petición
-        logger.info(f"{self.path} -> {status} ({len(json_data)} bytes)")
+        duration = time.time() - getattr(self, '_start_time', time.time())
+        _record_response_time(duration)
+        _metrics["requests_total"] += 1
+        if status >= 400:
+            _metrics["errors_total"] += 1
+        
+        logger.info(f"{self.path} -> {status} ({len(json_data)} bytes, {duration*1000:.1f}ms)")
     
     def send_error_response(self, message, status=400):
         """Helper para enviar errores de forma consistente."""
@@ -196,14 +263,36 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             return True
         self.send_error_response("No autorizado.", 401)
         return False
+
+    def require_customer(self):
+        """Require a valid customer session token. Retorna datos del usuario o None."""
+        auth_header = self.headers.get('Authorization', '')
+        token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
+        user_data = security.get_session_user(token)
+        if user_data:
+            return user_data
+        self.send_error_response("Sesión inválida. Inicia sesión para continuar.", 401)
+        return None
     
     def do_OPTIONS(self):
         """Manejar preflight requests de CORS."""
         self.send_response(204)
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Session-ID')
         self.send_header('Access-Control-Max-Age', '86400')
         self.end_headers()
+
+    def require_csrf(self):
+        """Valida token CSRF para endpoints state-changing. Retorna True si válido."""
+        token = self.headers.get('X-CSRF-Token', '')
+        session_id = self.headers.get('X-Session-ID', '')
+        if not token or not session_id:
+            self.send_error_response("CSRF token requerido", 403)
+            return False
+        if not security.validate_csrf_token(token, session_id):
+            self.send_error_response("CSRF token inválido o expirado", 403)
+            return False
+        return True
 
     def translate_path(self, path):
         full_path = resolve_static_path(path)
@@ -229,15 +318,35 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
-        # Rate limiting
+        self.request_id = _generate_request_id()
+        self._start_time = time.time()
+        
         client_ip = security.get_client_ip(self)
         if not security.check_rate_limit(client_ip, self.path):
+            retry_after = security.get_rate_limit_retry_after(client_ip)
             self.send_response(429)
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Retry-After', str(retry_after))
+            self.send_header('X-Request-ID', self.request_id)
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
+            _metrics["errors_total"] += 1
             return
             
+        if self.path == '/api/health':
+            import platform
+            self.send_json_response({
+                "status": "ok",
+                "service": "skilltwin",
+                "uptime_seconds": _get_uptime(),
+                "requests_total": _metrics["requests_total"],
+                "errors_total": _metrics["errors_total"],
+                "avg_response_ms": _get_avg_response_time(),
+                "python_version": platform.python_version(),
+                "database": "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json"
+            })
+            return
+
         if self.path == '/favicon.ico':
             try:
                 logo_path = os.path.join(CEREBRO_DIR, 'logo-mark.svg')
@@ -255,8 +364,11 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
         elif self.path == '/api/clones':
             try:
-                datos = motor_clonacion.cargar_datos()
-                self.send_json_response(datos)
+                cached = _cache.get("clones_full")
+                if cached is None:
+                    cached = motor_clonacion.cargar_datos()
+                    _cache.set("clones_full", cached)
+                self.send_json_response(cached)
             except Exception as e:
                 logger.error(f"Error en /api/clones: {e}")
                 self.send_error_response(str(e), 500)
@@ -272,6 +384,24 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.error(f"Error en /api/get-settings: {e}")
                 self.send_error_response(str(e), 500)
+        elif self.path == '/api/auth/me':
+            auth_header = self.headers.get('Authorization', '')
+            token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
+            user_data = security.get_session_user(token)
+            if not user_data:
+                self.send_error_response("No autenticado", 401)
+                return
+            try:
+                user = database.obtener_usuario_por_id(user_data["user_id"])
+                if user:
+                    self.send_json_response({
+                        "user": {"id": user["id"], "email": user["email"], "nombre": user["nombre"], "role": user["role"]}
+                    })
+                else:
+                    self.send_error_response("Usuario no encontrado", 404)
+            except Exception as e:
+                logger.error(f"Error en /api/auth/me: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/finanzas-data':
             if not self.require_admin():
                 return
@@ -283,15 +413,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/clones-list':
             try:
-                datos = motor_clonacion.cargar_datos()
-                clones_lista = []
-                for clon_id, clon_data in datos["clones"].items():
-                    clones_lista.append({
-                        "id": clon_id,
-                        "nombre": clon_data.get("nombre", ""),
-                        "especialidad": clon_data.get("especialidad", "")
-                    })
-                self.send_json_response({"clones": clones_lista})
+                cached = _cache.get("clones_list")
+                if cached is None:
+                    datos = motor_clonacion.cargar_datos()
+                    cached = [{"id": cid, "nombre": c.get("nombre", ""), "especialidad": c.get("especialidad", "")}
+                              for cid, c in datos["clones"].items()]
+                    _cache.set("clones_list", cached)
+                self.send_json_response({"clones": cached})
             except Exception as e:
                 logger.error(f"Error en /api/clones-list: {e}")
                 self.send_error_response(str(e), 500)
@@ -422,10 +550,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 params = urllib.parse.parse_qs(query_params)
                 query = params.get('q', [''])[0].lower().strip()
                 
-                datos = motor_clonacion.cargar_datos()
-                resultados = []
+                cached = _cache.get("clones_full")
+                if cached is None:
+                    cached = motor_clonacion.cargar_datos()
+                    _cache.set("clones_full", cached)
                 
-                for clon_id, clon_data in datos["clones"].items():
+                resultados = []
+                for clon_id, clon_data in cached["clones"].items():
                     searchable = f"{clon_id} {clon_data.get('nombre', '')} {clon_data.get('especialidad', '')} {clon_data.get('conocimiento', '')}".lower()
                     if query in searchable:
                         resultados.append({
@@ -488,10 +619,19 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
-        # Rate limiting
+        self.request_id = _generate_request_id()
+        self._start_time = time.time()
+        
         client_ip = security.get_client_ip(self)
         if not security.check_rate_limit(client_ip, self.path):
-            self.send_error_response("Demasiadas solicitudes. Intenta de nuevo en unos segundos.", 429)
+            retry_after = security.get_rate_limit_retry_after(client_ip)
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Retry-After', str(retry_after))
+            self.send_header('X-Request-ID', self.request_id)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
+            _metrics["errors_total"] += 1
             return
         
         # Validar Content-Type para endpoints que esperan JSON
@@ -656,6 +796,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/contacto':
             try:
+                csrf_token = self.headers.get('X-CSRF-Token', '')
+                if csrf_token:
+                    session_id = self.headers.get('X-Session-ID', '')
+                    if not security.validate_csrf_token(csrf_token, session_id):
+                        self.send_error_response("CSRF token inválido", 403)
+                        return
+
                 data = self.read_json_body()
                 nombre = security.sanitize_string(data.get("nombre", ""), 100)
                 email = security.sanitize_string(data.get("email", ""), 254)
@@ -750,6 +897,62 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.error(f"Error en /api/auth/token: {e}")
                 self.send_error_response("Error interno del servidor", 500)
+
+        elif self.path == '/api/auth/register':
+            try:
+                data = self.read_json_body()
+                email = security.sanitize_string(data.get("email", ""), 254)
+                password = data.get("password", "")
+                nombre = security.sanitize_string(data.get("nombre", ""), 100)
+
+                if not email or not password or not nombre:
+                    raise ValueError("Email, contraseña y nombre son obligatorios")
+                if not security.validate_email(email):
+                    raise ValueError("Formato de email inválido")
+                if len(password) < 8:
+                    raise ValueError("La contraseña debe tener al menos 8 caracteres")
+
+                existing = database.obtener_usuario_por_email(email)
+                if existing:
+                    raise ValueError("Este email ya está registrado")
+
+                password_hash = security.hash_password(password)
+                user_id = database.crear_usuario(email, password_hash, nombre)
+                if not user_id:
+                    raise ValueError("Error al crear el usuario")
+
+                session_token = security.create_session_token(user_id, email)
+                self.send_json_response({
+                    "success": True,
+                    "token": session_token,
+                    "user": {"id": user_id, "email": email, "nombre": nombre, "role": "customer"}
+                }, status=201)
+            except Exception as e:
+                logger.error(f"Error en /api/auth/register: {e}")
+                self.send_error_response(str(e), 400)
+
+        elif self.path == '/api/auth/login':
+            try:
+                data = self.read_json_body()
+                email = security.sanitize_string(data.get("email", ""), 254)
+                password = data.get("password", "")
+
+                if not email or not password:
+                    raise ValueError("Email y contraseña son obligatorios")
+
+                user = database.obtener_usuario_por_email(email)
+                if not user or not security.verify_password(password, user["password_hash"]):
+                    raise ValueError("Credenciales inválidas")
+
+                session_token = security.create_session_token(user["id"], user["email"])
+                self.send_json_response({
+                    "success": True,
+                    "token": session_token,
+                    "user": {"id": user["id"], "email": user["email"], "nombre": user["nombre"], "role": user["role"]}
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/auth/login: {e}")
+                self.send_error_response(str(e), 400)
 
         elif self.path == '/api/stripe/create-payment':
             if not self.require_admin():

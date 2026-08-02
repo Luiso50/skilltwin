@@ -5,46 +5,39 @@ import secrets
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Optional, Dict, List, Tuple, Any
 
-# Token de administrador (se genera automáticamente si no existe)
-_admin_token = None
-_token_created_at = None
-ADMIN_TOKEN_LIFETIME = timedelta(hours=1)
+_admin_token: Optional[str] = None
+_token_created_at: Optional[datetime] = None
+ADMIN_TOKEN_LIFETIME: timedelta = timedelta(hours=1)
 
-# Rate limiting: {ip: [(timestamp, endpoint), ...]}
-_rate_limit_store = defaultdict(list)
-RATE_LIMIT_WINDOW = 60  # segundos
-RATE_LIMIT_MAX_REQUESTS = 30  # por ventana
+_rate_limit_store: Dict[str, List[Tuple[float, str]]] = defaultdict(list)
+RATE_LIMIT_WINDOW: int = int(os.environ.get("SKILLTWIN_RATE_LIMIT_WINDOW", "60"))
+RATE_LIMIT_MAX_REQUESTS: int = int(os.environ.get("SKILLTWIN_RATE_LIMIT_MAX", "30"))
 
-# Tokens de sesión válidos (para autenticación de admin)
-_valid_tokens = {}
+_valid_tokens: Dict[str, Dict[str, Any]] = {}
+_csrf_tokens: Dict[str, Dict[str, Any]] = {}
 
-# CSRF tokens para formularios
-_csrf_tokens = {}
 
-def get_admin_secret():
-    """Obtiene el secret administrativo configurado para el entorno."""
+def get_admin_secret() -> str:
     return os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
 
 
-def generate_admin_token():
-    """Genera un token de administrador único."""
+def generate_admin_token() -> str:
     global _admin_token, _token_created_at
     _admin_token = secrets.token_urlsafe(32)
     _token_created_at = datetime.now()
     return _admin_token
 
 
-def get_admin_token():
-    """Obtiene el token actual o genera uno nuevo."""
+def get_admin_token() -> str:
     if (_admin_token is None or _token_created_at is None or
             datetime.now() > _token_created_at + ADMIN_TOKEN_LIFETIME):
         generate_admin_token()
     return _admin_token
 
 
-def validate_admin_token(token):
-    """Valida si un token de administrador es válido."""
+def validate_admin_token(token: Optional[str]) -> bool:
     if not token:
         return False
     return secrets.compare_digest(token, get_admin_token())
@@ -95,14 +88,27 @@ def cleanup_expired_tokens():
         del _csrf_tokens[t]
 
 
-def create_session_token():
-    """Crea un token de sesión temporal."""
+def create_session_token(user_id=None, email=None):
+    """Crea un token de sesión temporal con datos del usuario."""
     token = secrets.token_urlsafe(32)
     _valid_tokens[token] = {
         'created': datetime.now(),
-        'expires': datetime.now() + timedelta(hours=1)
+        'expires': datetime.now() + timedelta(hours=24),
+        'user_id': user_id,
+        'email': email
     }
     return token
+
+
+def get_session_user(token):
+    """Obtiene los datos del usuario de un token de sesión."""
+    if not token or token not in _valid_tokens:
+        return None
+    session = _valid_tokens[token]
+    if datetime.now() > session['expires']:
+        del _valid_tokens[token]
+        return None
+    return {"user_id": session.get("user_id"), "email": session.get("email")}
 
 
 def validate_session_token(token):
@@ -182,6 +188,16 @@ def check_rate_limit(ip, endpoint):
     # Registrar esta request
     _rate_limit_store[ip].append((now, endpoint))
     return True
+
+
+def get_rate_limit_retry_after(ip):
+    """Retorna los segundos hasta que el rate limit se reinicie para una IP."""
+    if not _rate_limit_store[ip]:
+        return RATE_LIMIT_WINDOW
+    oldest = min(ts for ts, _ in _rate_limit_store[ip])
+    elapsed = time.time() - oldest
+    remaining = RATE_LIMIT_WINDOW - elapsed
+    return max(1, int(remaining) + 1)
 
 
 def cleanup_rate_limit_store():

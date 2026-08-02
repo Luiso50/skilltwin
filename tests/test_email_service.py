@@ -55,11 +55,11 @@ class EmailServiceTests(unittest.TestCase):
     @patch('dep_operaciones.email_service.get_smtp_config')
     def test_send_contact_email_success(self, mock_config, mock_smtp):
         mock_config.return_value = {
-            "user": "admin@skilltwin.com",
+            "user": "teamskiltwinhq@zohomail.com",
             "pass": "password123",
-            "host": "smtp.gmail.com",
+            "host": "smtp.zoho.com",
             "port": 587,
-            "from": "noreply@skilltwin.com"
+            "from": "teamskiltwinhq@zohomail.com"
         }
         
         mock_server = MagicMock()
@@ -73,7 +73,7 @@ class EmailServiceTests(unittest.TestCase):
         self.assertTrue(success)
         self.assertIsNone(error)
         mock_server.starttls.assert_called_once()
-        mock_server.login.assert_called_once_with("admin@skilltwin.com", "password123")
+        mock_server.login.assert_called_once_with("teamskiltwinhq@zohomail.com", "password123")
 
 
 if __name__ == '__main__':

@@ -83,6 +83,7 @@ class ConversacionMemoria:
             interaccion["feedback"] = feedback
         
         self.historial.append(interaccion)
+        self.historial = self.historial[-50:]
         
         # Si fue exitosa, guardar como memoria de éxito
         if exitosa:
@@ -92,6 +93,7 @@ class ConversacionMemoria:
                 "contexto": self.contexto.copy(),
                 "timestamp": datetime.now().isoformat()
             })
+            self.memorias_exito = self.memorias_exito[-20:]
         
         self._actualizar_contexto(pregunta, respuesta)
         self._guardar_memoria()

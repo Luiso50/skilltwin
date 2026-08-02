@@ -2,27 +2,31 @@ import os
 import sys
 import tempfile
 import unittest
-import json
-
-# Forzar modo JSON para tests
-os.environ["SKILLTWIN_USE_SQLITE"] = "0"
+import importlib
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 
-from dep_operaciones import gestor_ordenes
-from dep_operaciones import gestor_pagos
-
 
 class GestorPagoOrdenTests(unittest.TestCase):
     def setUp(self):
+        os.environ["SKILLTWIN_USE_SQLITE"] = "0"
         self.tmpdir = tempfile.TemporaryDirectory()
         self.db_path = os.path.join(self.tmpdir.name, 'ordenes_test.json')
         self.pagos_db_path = os.path.join(self.tmpdir.name, 'pagos_test.json')
+
+        from dep_operaciones import gestor_ordenes, gestor_pagos
+        importlib.reload(gestor_ordenes)
+        importlib.reload(gestor_pagos)
+
         gestor_ordenes.DB_ORDENES = self.db_path
         gestor_pagos.DB_PAGOS = self.pagos_db_path
         gestor_ordenes.inicializar_ordenes()
         gestor_pagos.inicializar_pagos()
+
+        self.gestor_ordenes = gestor_ordenes
+        self.gestor_pagos = gestor_pagos
+
         self.orden_id, _ = gestor_ordenes.crear_orden(
             cliente_email='cliente@test.com',
             clon_id='rsanchez_cobol',
@@ -35,21 +39,21 @@ class GestorPagoOrdenTests(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_vincular_factura_no_marca_pago_como_pagado(self):
-        ok = gestor_ordenes.actualizar_pago_orden(self.orden_id, 'FAC-TEST-001', 'pendiente')
+        ok = self.gestor_ordenes.actualizar_pago_orden(self.orden_id, 'FAC-TEST-001', 'pendiente')
         self.assertTrue(ok)
 
-        orden = gestor_ordenes.obtener_orden(self.orden_id)
+        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
         self.assertEqual(orden['pago']['factura_id'], 'FAC-TEST-001')
         self.assertEqual(orden['pago']['estado_pago'], 'pendiente')
         self.assertIsNone(orden['pago']['fecha_pago'])
         self.assertIsNone(orden['pago']['metodo_pago'])
 
     def test_pago_real_si_marca_factura_como_pagada(self):
-        gestor_ordenes.actualizar_pago_orden(self.orden_id, 'FAC-TEST-001', 'pendiente')
-        ok = gestor_ordenes.actualizar_pago_orden(self.orden_id, 'FAC-TEST-001', 'tarjeta_credito')
+        self.gestor_ordenes.actualizar_pago_orden(self.orden_id, 'FAC-TEST-001', 'pendiente')
+        ok = self.gestor_ordenes.actualizar_pago_orden(self.orden_id, 'FAC-TEST-001', 'tarjeta_credito')
         self.assertTrue(ok)
 
-        orden = gestor_ordenes.obtener_orden(self.orden_id)
+        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
         self.assertEqual(orden['pago']['estado_pago'], 'pagada')
         self.assertEqual(orden['pago']['metodo_pago'], 'tarjeta_credito')
         self.assertIsNotNone(orden['pago']['fecha_pago'])
@@ -80,9 +84,9 @@ class GestorPagoOrdenTests(unittest.TestCase):
             },
             'contador_ordenes': 1
         }
-        gestor_ordenes.guardar_ordenes(legacy)
+        self.gestor_ordenes.guardar_ordenes(legacy)
 
-        datos = gestor_ordenes.cargar_ordenes()
+        datos = self.gestor_ordenes.cargar_ordenes()
         orden = datos['ordenes']['ORD-LEGACY']
 
         self.assertIn('rating', orden)
@@ -118,22 +122,22 @@ class GestorPagoOrdenTests(unittest.TestCase):
             },
             'contador_ordenes': 1
         }
-        gestor_ordenes.guardar_ordenes(legacy)
-        gestor_pagos.guardar_pagos({
+        self.gestor_ordenes.guardar_ordenes(legacy)
+        self.gestor_pagos.guardar_pagos({
             'transacciones': {},
             'facturas': {},
             'metodos_pago': ['tarjeta_credito', 'transferencia_bancaria', 'wallet_cripto'],
             'total_procesado': 0.0
         })
 
-        cambios = gestor_pagos.reconciliar_facturas_con_ordenes()
+        cambios = self.gestor_pagos.reconciliar_facturas_con_ordenes()
         self.assertEqual(cambios, 1)
 
-        orden = gestor_ordenes.obtener_orden('ORD-LEGACY')
+        orden = self.gestor_ordenes.obtener_orden('ORD-LEGACY')
         self.assertIsNotNone(orden['pago']['factura_id'])
         self.assertEqual(orden['pago']['estado_pago'], 'pendiente')
 
-        pagos = gestor_pagos.cargar_pagos()
+        pagos = self.gestor_pagos.cargar_pagos()
         self.assertEqual(len(pagos['facturas']), 1)
         factura = next(iter(pagos['facturas'].values()))
         self.assertEqual(factura['orden_id'], 'ORD-LEGACY')

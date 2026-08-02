@@ -8,11 +8,11 @@ from datetime import datetime
 def get_smtp_config():
     """Obtiene la configuración SMTP desde variables de entorno."""
     return {
-        "host": os.environ.get("SMTP_HOST", "smtp.gmail.com"),
+        "host": os.environ.get("SMTP_HOST", "smtp.zoho.com"),
         "port": int(os.environ.get("SMTP_PORT", "587")),
         "user": os.environ.get("SMTP_USER", ""),
         "pass": os.environ.get("SMTP_PASS", ""),
-        "from": os.environ.get("SMTP_FROM", "noreply@skilltwin.com")
+        "from": os.environ.get("SMTP_FROM", "teamskiltwinhq@zohomail.com")
     }
 
 
@@ -154,7 +154,7 @@ def send_confirmation_email(nombre, email):
                 <p>Mientras tanto, puedes explorar nuestra plataforma:</p>
                 
                 <div style="text-align: center; margin: 25px 0;">
-                    <a href="http://localhost:8000" style="background: #e94560; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visitar SkillTwin</a>
+                    <a href="{os.environ.get('SKILLTWIN_PUBLIC_URL', 'http://localhost:8000')}" style="background: #e94560; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visitar SkillTwin</a>
                 </div>
                 
                 <p style="color: #666; font-size: 12px;">

@@ -108,6 +108,31 @@ class SecurityTests(unittest.TestCase):
         
         # La siguiente debería ser bloqueada
         self.assertFalse(security.check_rate_limit(ip, "/api/test"))
+
+    def test_rate_limit_retry_after_returns_seconds(self):
+        ip = "192.168.1.200"
+        security._rate_limit_store.clear()
+        
+        # Sin requests, retorna el window completo
+        retry = security.get_rate_limit_retry_after(ip)
+        self.assertGreaterEqual(retry, 1)
+        self.assertLessEqual(retry, security.RATE_LIMIT_WINDOW + 1)
+
+    def test_rate_limit_retry_after_decreases(self):
+        ip = "192.168.1.201"
+        security._rate_limit_store.clear()
+        
+        # Hacer un request
+        security.check_rate_limit(ip, "/api/test")
+        retry1 = security.get_rate_limit_retry_after(ip)
+        
+        # Simular tiempo avanzado
+        security._rate_limit_store[ip] = [
+            (security.time.time() - 30, "/api/test")
+        ]
+        retry2 = security.get_rate_limit_retry_after(ip)
+        
+        self.assertLess(retry2, retry1)
     
     def test_hash_password(self):
         hashed = security.hash_password("mypassword")
