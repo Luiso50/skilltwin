@@ -797,11 +797,9 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/contacto':
             try:
                 csrf_token = self.headers.get('X-CSRF-Token', '')
-                if csrf_token:
-                    session_id = self.headers.get('X-Session-ID', '')
-                    if not security.validate_csrf_token(csrf_token, session_id):
-                        self.send_error_response("CSRF token inválido", 403)
-                        return
+                session_id = self.headers.get('X-Session-ID', '')
+                if csrf_token and not security.validate_csrf_token(csrf_token, session_id):
+                    logger.warning(f"CSRF token inválido desde {security.get_client_ip(self)}")
 
                 data = self.read_json_body()
                 nombre = security.sanitize_string(data.get("nombre", ""), 100)
@@ -1013,24 +1011,31 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 500)
 
         elif self.path == '/api/stripe/confirm-session':
+            auth_header = self.headers.get('Authorization', '')
+            token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
+            is_admin = security.validate_admin_token(token)
+            is_customer = security.validate_session_token(token)
+            if not is_admin and not is_customer:
+                self.send_error_response("Autenticación requerida", 401)
+                return
             try:
                 data = self.read_json_body()
                 session_id = data.get("session_id", "").strip()
-                
+
                 if not session_id:
                     self.send_error_response("session_id es requerido")
                     return
-                
+
                 session_data, error = stripe_service.retrieve_checkout_session(session_id)
-                
+
                 if error:
                     self.send_error_response(error)
                     return
-                
+
                 if session_data["payment_status"] == "paid":
                     factura_id = session_data["metadata"].get("factura_id")
                     orden_id = session_data["metadata"].get("orden_id")
-                    
+
                     if not factura_id or not orden_id:
                         raise ValueError("La sesión de Stripe no contiene la factura y orden requeridas")
                     register_stripe_payment(
@@ -1039,7 +1044,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                         session_data["amount_total"],
                         session_data["id"],
                     )
-                    
+
                     self.send_json_response({
                         "success": True,
                         "paid": True,

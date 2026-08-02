@@ -157,8 +157,19 @@ def guardar_pagos(datos):
         with get_connection() as conn:
             cursor = conn.cursor()
             for trans_id, trans in datos.get("transacciones", {}).items():
-                cursor.execute("INSERT OR REPLACE INTO transacciones (id, factura_id, tipo, monto, metodo_pago, estado, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (trans["id"], trans.get("factura_id"), trans.get("tipo", "pago"), trans["monto"], trans.get("metodo_pago"), trans["estado"], trans.get("fecha_transaccion", datetime.now().isoformat())))
+                cursor.execute("""INSERT OR REPLACE INTO transacciones
+                    (id, factura_id, orden_id, cliente_email, tipo, monto, moneda,
+                     metodo_pago, numero_referencia, codigo_autorizacion, detalles_respuesta,
+                     estado, fecha)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (trans["id"], trans.get("factura_id"), trans.get("orden_id"),
+                     trans.get("cliente_email", ""), trans.get("tipo", "pago"),
+                     trans["monto"], trans.get("moneda", "USD"),
+                     trans.get("metodo_pago"), trans.get("numero_referencia", ""),
+                     trans.get("codigo_autorizacion", ""),
+                     json.dumps(trans.get("detalles_respuesta", {})),
+                     trans.get("estado", "completada"),
+                     trans.get("fecha_transaccion", datetime.now().isoformat())))
         return
     with db_lock:
         with open(DB_PAGOS, "w", encoding="utf-8") as f:
@@ -206,8 +217,15 @@ def procesar_pago(factura_id, metodo_pago, numero_referencia=""):
         transaccion, resultado = _apply_pago(factura, metodo_pago, numero_referencia)
         db_guardar_factura(factura)
         with get_connection() as conn:
-            conn.cursor().execute("INSERT INTO transacciones (id, factura_id, tipo, monto, metodo_pago, estado, fecha) VALUES (?, ?, 'pago', ?, ?, 'completada', ?)",
-                (transaccion["id"], factura_id, factura["monto_total"], metodo_pago, datetime.now().isoformat()))
+            conn.cursor().execute("""INSERT INTO transacciones
+                (id, factura_id, orden_id, cliente_email, tipo, monto, moneda, metodo_pago,
+                 numero_referencia, codigo_autorizacion, detalles_respuesta, estado, fecha)
+                VALUES (?, ?, ?, ?, 'pago', ?, 'USD', ?, ?, ?, ?, 'completada', ?)""",
+                (transaccion["id"], factura_id, transaccion.get("orden_id"),
+                 transaccion.get("cliente_email", ""), transaccion["monto"], metodo_pago,
+                 transaccion.get("numero_referencia", ""), transaccion.get("codigo_autorizacion", ""),
+                 json.dumps(transaccion.get("detalles_respuesta", {})),
+                 datetime.now().isoformat()))
         return True, resultado
 
     datos = cargar_pagos()

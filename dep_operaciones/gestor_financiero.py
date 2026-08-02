@@ -79,7 +79,16 @@ def cargar_finanzas():
 def guardar_finanzas(datos):
     if USE_SQLITE:
         for mes, valores in datos.get("flujo_caja", {}).items():
-            db_guardar_flujo_caja(mes, valores["ingresos_plan"], valores["ingresos_real"], valores["egresos_plan"], valores["egresos_real"])
+            db_guardar_flujo_caja(mes, valores["ingresos_plan"], valores["ingresos_real"],
+                                  valores["egresos_plan"], valores["egresos_real"])
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            for c in datos.get("cuentas_cobrar", []):
+                cursor.execute("""INSERT OR REPLACE INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
+                    VALUES (?, ?, ?, ?, ?)""", (c["id"], c["cliente"], c["monto"], c["vencimiento"], c["estado"]))
+            for p in datos.get("cuentas_pagar", []):
+                cursor.execute("""INSERT OR REPLACE INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
+                    VALUES (?, ?, ?, ?, ?)""", (p["id"], p["proveedor"], p["monto"], p["vencimiento"], p["estado"]))
         return
     with db_lock:
         with open(DB_FINANZAS, "w", encoding="utf-8") as f:

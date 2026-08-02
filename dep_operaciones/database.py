@@ -104,11 +104,18 @@ def init_database():
                 id TEXT PRIMARY KEY,
                 orden_id TEXT,
                 cliente_email TEXT NOT NULL,
+                fecha_emision TEXT,
+                fecha_vencimiento TEXT,
+                monto_subtotal REAL DEFAULT 0.0,
+                comision_plataforma REAL DEFAULT 0.0,
                 monto_total REAL NOT NULL,
-                comision REAL DEFAULT 0.0,
-                monto_experto REAL DEFAULT 0.0,
+                moneda TEXT DEFAULT 'USD',
                 estado TEXT DEFAULT 'pendiente',
                 metodo_pago TEXT,
+                metodo_pago_seleccionado TEXT,
+                referencia_transaccion TEXT,
+                detalles TEXT DEFAULT '{}',
+                notas TEXT DEFAULT '',
                 fecha_creacion TEXT NOT NULL,
                 fecha_pago TEXT,
                 FOREIGN KEY (orden_id) REFERENCES ordenes(id)
@@ -120,9 +127,15 @@ def init_database():
             CREATE TABLE IF NOT EXISTS transacciones (
                 id TEXT PRIMARY KEY,
                 factura_id TEXT,
+                orden_id TEXT,
+                cliente_email TEXT,
                 tipo TEXT NOT NULL,
                 monto REAL NOT NULL,
+                moneda TEXT DEFAULT 'USD',
                 metodo_pago TEXT,
+                numero_referencia TEXT,
+                codigo_autorizacion TEXT,
+                detalles_respuesta TEXT DEFAULT '{}',
                 estado TEXT DEFAULT 'completada',
                 fecha TEXT NOT NULL,
                 FOREIGN KEY (factura_id) REFERENCES facturas(id)
@@ -162,9 +175,14 @@ def init_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_clon ON ordenes(clon_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_orden ON facturas(orden_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_estado ON facturas(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_cliente_email ON facturas(cliente_email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_factura ON transacciones(factura_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_estado ON transacciones(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_fecha ON transacciones(fecha)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_email ON contactos(email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_estado ON contactos(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cuentas_cobrar_estado ON cuentas_cobrar(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cuentas_pagar_estado ON cuentas_pagar(estado)")
 
 
 def migrar_json_a_sqlite():
@@ -241,22 +259,33 @@ def migrar_json_a_sqlite():
             
             for fac_id, factura in data.get("facturas", {}).items():
                 cursor.execute("""
-                    INSERT OR IGNORE INTO facturas (id, orden_id, cliente_email, monto_total,
-                        comision, monto_experto, estado, metodo_pago, fecha_creacion, fecha_pago)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT OR IGNORE INTO facturas (id, orden_id, cliente_email, fecha_emision,
+                        fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
+                        moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
+                        detalles, notas, fecha_creacion, fecha_pago)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email", ""),
-                      factura.get("monto_total", 0.0), factura.get("comision", 0.0),
-                      factura.get("monto_experto", 0.0), factura.get("estado", "pendiente"),
-                      factura.get("metodo_pago"), factura.get("fecha_creacion", datetime.now().isoformat()),
+                      factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
+                      factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", factura.get("comision", 0.0)),
+                      factura.get("monto_total", 0.0), factura.get("moneda", "USD"),
+                      factura.get("estado", "pendiente"), factura.get("metodo_pago"),
+                      factura.get("metodo_pago_seleccionado"), factura.get("referencia_transaccion"),
+                      json.dumps(factura.get("detalles", {})), factura.get("notas", ""),
+                      factura.get("fecha_creacion", datetime.now().isoformat()),
                       factura.get("fecha_pago")))
-            
+
             for trans_id, trans in data.get("transacciones", {}).items():
                 cursor.execute("""
-                    INSERT OR IGNORE INTO transacciones (id, factura_id, tipo, monto, metodo_pago, estado, fecha)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (trans["id"], trans.get("factura_id"), trans["tipo"],
-                      trans["monto"], trans.get("metodo_pago"), trans["estado"],
-                      trans["fecha"]))
+                    INSERT OR IGNORE INTO transacciones (id, factura_id, orden_id, cliente_email,
+                        tipo, monto, moneda, metodo_pago, numero_referencia, codigo_autorizacion,
+                        detalles_respuesta, estado, fecha)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (trans["id"], trans.get("factura_id"), trans.get("orden_id"),
+                      trans.get("cliente_email", ""), trans.get("tipo", "pago"),
+                      trans["monto"], trans.get("moneda", "USD"), trans.get("metodo_pago"),
+                      trans.get("numero_referencia", ""), trans.get("codigo_autorizacion", ""),
+                      json.dumps(trans.get("detalles_respuesta", {})),
+                      trans.get("estado", "completada"), trans.get("fecha")))
         
         # Migrar contactos
         contactos_path = os.path.join(os.path.dirname(__file__), "contactos_db.json")
@@ -430,13 +459,20 @@ def guardar_factura(factura):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO facturas (id, orden_id, cliente_email, monto_total,
-                comision, monto_experto, estado, metodo_pago, fecha_creacion, fecha_pago)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (factura["id"], factura.get("orden_id"), factura["cliente_email"],
-              factura["monto_total"], factura.get("comision", 0.0),
-              factura.get("monto_experto", 0.0), factura["estado"],
-              factura.get("metodo_pago"), factura["fecha_creacion"],
+            INSERT OR REPLACE INTO facturas (id, orden_id, cliente_email, fecha_emision,
+                fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
+                moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
+                detalles, notas, fecha_creacion, fecha_pago)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email"),
+              factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
+              factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", 0.0),
+              factura["monto_total"], factura.get("moneda", "USD"), factura["estado"],
+              factura.get("metodo_pago"), factura.get("metodo_pago_seleccionado"),
+              factura.get("referencia_transaccion"),
+              json.dumps(factura.get("detalles", {})),
+              factura.get("notas", ""),
+              factura.get("fecha_creacion", datetime.now().isoformat()),
               factura.get("fecha_pago")))
 
 

@@ -53,11 +53,11 @@ class OrquestadorAutonomo:
         try:
             ordenes = cargar_ordenes_pendientes()
         except Exception:
-            ordenes = gestor_ordenes.cargar_ordenes()
-            ordenes = {"ordenes": {k: v for k, v in ordenes.get("ordenes", {}).items() if v.get("estado") == "pendiente"}}
-        
+            datos = gestor_ordenes.cargar_ordenes()
+            ordenes = {k: v for k, v in datos.get("ordenes", {}).items() if v.get("estado") == "pendiente"}
+
         for orden_id, orden in ordenes.items():
-            if (orden["etapas"]["legal"]["estado"] == "pendiente"):
+            if orden.get("etapas", {}).get("legal", {}).get("estado") == "pendiente":
                 self._procesar_orden(orden_id)
     
     def _procesar_orden(self, orden_id):
