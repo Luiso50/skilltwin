@@ -21,7 +21,7 @@ _metrics = {
 
 
 def load_dotenv():
-    env_path = os.path.join(RAIZ_DIR if 'RAIZ_DIR' in dir() else os.path.dirname(os.path.abspath(__file__)), '..', '.env')
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
     env_path = os.path.abspath(env_path)
     if not os.path.exists(env_path):
         return

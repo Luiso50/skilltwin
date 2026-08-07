@@ -1,41 +1,62 @@
 // SkillTwin HQ - Cerebro Central JavaScript Logic (Conexión Real con Servidor)
 
 // ======================================================================
-// UTILIDADES GLOBALES
+// UTILIDADES GLOBALES - AUTENTICACIÓN BASADA EN TOKEN (localStorage)
 // ======================================================================
 
-let adminToken = null;
 const nativeFetch = window.fetch.bind(window);
 
-async function getAdminToken() {
-  if (adminToken) return adminToken;
-
-  const secret = window.prompt("Introduce el secreto de administrador para acceder al dashboard:");
-  if (!secret) throw new Error("Se requiere autenticación de administrador.");
-
-  const response = await nativeFetch("/api/auth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ secret })
-  });
-  const data = await response.json();
-  if (!response.ok || !data.token) throw new Error(data.error || "No fue posible autenticar al administrador.");
-
-  adminToken = data.token;
-  return adminToken;
+// Obtener token guardado
+function getStoredToken() {
+  return localStorage.getItem("skilltwin_token");
 }
 
+// Verificar si hay sesión válida al cargar
+function checkAuth() {
+  const token = getStoredToken();
+  const user = localStorage.getItem("skilltwin_user");
+  
+  if (!token || !user) {
+    // No hay sesión, redirigir a login
+    window.location.href = "login.html";
+    return false;
+  }
+  return true;
+}
+
+// Wrapper de fetch que inyecta el token automáticamente
 window.fetch = async (resource, options = {}) => {
   const url = typeof resource === "string" ? resource : resource.url;
-  if (!url.includes("/api/") || url.includes("/api/auth/token")) {
+  
+  // Endpoints públicos que no necesitan token
+  const publicEndpoints = ["/api/auth/login", "/api/auth/register", "/api/auth/token", "/api/contacto", "/api/csrf-token", "/api/health", "/api/stripe/config"];
+  const isPublic = publicEndpoints.some(ep => url.includes(ep));
+  
+  if (!url.includes("/api/") || isPublic) {
     return nativeFetch(resource, options);
   }
 
-  const token = await getAdminToken();
+  const token = getStoredToken();
+  if (!token) {
+    // Token expirado o eliminado, redirigir
+    localStorage.removeItem("skilltwin_token");
+    localStorage.removeItem("skilltwin_user");
+    window.location.href = "login.html";
+    throw new Error("Sesión expirada");
+  }
+
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
+  headers.set("Content-Type", "application/json");
+  
   return nativeFetch(resource, { ...options, headers });
 };
+
+// Verificar autenticación al cargar la app
+if (!checkAuth()) {
+  // checkAuth ya redirige, pero por si acaso detenemos la ejecución
+  throw new Error("Redirigiendo a login...");
+}
 
 // Debounce: retrasa ejecución hasta que el usuario deja de escribir
 function debounce(func, wait) {
@@ -49,6 +70,13 @@ function debounce(func, wait) {
     timeout = setTimeout(later, wait);
   };
 }
+
+// Función global de logout
+window.logout = function() {
+  localStorage.removeItem("skilltwin_token");
+  localStorage.removeItem("skilltwin_user");
+  window.location.href = "login.html";
+};
 
 // Toast notifications
 function showToast(message, type = 'info') {
@@ -91,6 +119,31 @@ const AppState = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  // ======================================================================
+  // CARGAR INFO DE USUARIO EN SIDEBAR
+  // ======================================================================
+  const userData = JSON.parse(localStorage.getItem("skilltwin_user") || "{}");
+  if (userData.nombre) {
+    const userNameEl = document.querySelector(".user-name");
+    const userRoleEl = document.querySelector(".user-role");
+    const userAvatarEl = document.getElementById("owner-avatar");
+    if (userNameEl) userNameEl.textContent = userData.nombre;
+    if (userRoleEl) userRoleEl.textContent = userData.role === "admin" ? "Administrador" : "Usuario";
+    if (userAvatarEl) userAvatarEl.textContent = userData.nombre.charAt(0).toUpperCase();
+  }
+
+  // Botón de logout en sidebar (lo inyectamos al final del user-profile)
+  const userProfile = document.querySelector(".user-profile");
+  if (userProfile && !document.getElementById("btn-logout")) {
+    const logoutBtn = document.createElement("button");
+    logoutBtn.id = "btn-logout";
+    logoutBtn.className = "action-btn";
+    logoutBtn.style.cssText = "width: 100%; margin-top: 0.75rem; padding: 0.5rem; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: var(--text-secondary);";
+    logoutBtn.innerHTML = "🚪 Cerrar sesión";
+    logoutBtn.addEventListener("click", () => window.logout());
+    userProfile.appendChild(logoutBtn);
+  }
+
   // Elements for Overview Chat
   const chatInput = document.getElementById("chat-input");
   const sendBtn = document.getElementById("send-btn");

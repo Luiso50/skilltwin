@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirigiendo... - SkillTwin</title>
+  <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a0f1a;
+      font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+      color: #e8eefc;
+    }
+    .home-container {
+      text-align: center;
+      padding: 2rem;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1.5rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #00f2fe, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    p { color: #9ca3af; font-size: 1.1rem; margin-bottom: 2rem; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #00f2fe;
+      border-radius: 50%;
+      margin: 0 auto;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fallback { margin-top: 1.5rem; font-size: 0.9rem; color: #6b7280; }
+    .fallback a { color: #00f2fe; text-decoration: none; }
+    .fallback a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="home-container">
+    <img src="logo-mark.svg" alt="SkillTwin" class="logo">
+    <h1>Sesión iniciada</h1>
+    <p>Redirigiendo al Cerebro Central...</p>
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="fallback">
+      Si no eres redirigido automáticamente, <a href="index.html">haz clic aquí</a>.
+    </div>
+  </div>
+
+  <script>
+    // Verificar token y redirigir
+    (function() {
+      const token = localStorage.getItem("skilltwin_token");
+      const user = localStorage.getItem("skilltwin_user");
+      
+      if (token && user) {
+        // Token existe, ir al dashboard
+        window.location.href = "index.html";
+      } else {
+        // No hay sesión, ir a login
+        window.location.href = "login.html";
+      }
+    })();
+  </script>
+</body>
+</html>
