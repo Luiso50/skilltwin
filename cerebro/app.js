@@ -658,7 +658,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sender === 'clone') {
       bubble.style.borderLeftColor = "var(--color-desarrollo)";
     }
-    bubble.innerHTML = text.replace(/\n/g, "<br>");
+    bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
     testChatBox.appendChild(bubble);
     testChatBox.scrollTop = testChatBox.scrollHeight;
   }

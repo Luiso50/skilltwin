@@ -603,7 +603,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/search-clones: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/clon-historial'):
-            if not self.require_admin():
+            if not self.require_customer_or_admin():
                 return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
@@ -625,7 +625,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/clon-historial: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/clon-estadisticas'):
-            if not self.require_admin():
+            if not self.require_customer_or_admin():
                 return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
@@ -738,7 +738,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/marcar-leida: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/chat-clon':
-            if not self.require_admin():
+            if not self.require_customer_or_admin():
                 return
             try:
                 data = self.read_json_body()
@@ -760,7 +760,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/chat-clon: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/clon-limpiar-memoria':
-            if not self.require_admin():
+            if not self.require_customer_or_admin():
                 return
             try:
                 data = self.read_json_body()
