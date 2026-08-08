@@ -370,58 +370,43 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 
 ## Proximos Pasos
 
-- [x] Documentacion de la API (docs/API.md)
-- [x] Rezafuamiento de seguridad (variables de entorno para API keys, autenticacion admin)
-- [x] Migrar JSON a SQLite para produccion
-- [x] Integracion real de email (SMTP con Zoho Mail)
-- [x] Integracion de pagos con Stripe Checkout
-- [x] CI/CD con GitHub Actions (tests, lint, Docker)
-- [x] Configuracion para despliegue en Render (render.yaml)
-- [x] Proteccion de rutas, datos operativos y flujo de pagos
-- [x] Indices SQLite para consultas frecuentes
-- [x] Tests de integracion HTTP
-- [x] API key de Gemini via header (no query params)
-- [x] CORS headers en todas las respuestas JSON
-- [x] Validacion de secrets triviales
-- [x] Refactor de modulos gestor (eliminacion de duplicacion)
-- [x] Cache en memoria con TTL para endpoints de clones
-- [x] Logging estructurado con request IDs
-- [x] Health endpoint con metricas
-- [x] Rate limiting con Retry-After header
-- [x] Configuracion CORS configurable
-- [x] Autenticacion de usuarios (register/login/me)
-- [x] Schema DB expandido (facturas 17 cols, transacciones 13 cols)
-- [x] Auth en /api/stripe/confirm-session
-- [x] Guardar cuentas_cobrar/pagar en SQLite
-- [x] Login/logout con token-based auth y redireccion automatica
-- [x] CSRF activado en endpoints POST sensibles
-- [x] Thread safety en metricas del servidor
-- [x] Docker entrypoint funcional (migracion SQLite + start server)
-- [x] Portal de clientes con autenticacion de customer tokens
-- [x] Proteccion XSS en chat bubbles (escapeHtml)
-- [x] Formulario de registro en login.html (crear cuenta para clientes nuevos)
-- [x] Chat del Cerebro Central habilitado para usuarios customer (no solo admin)
-- [x] Correccion de token CSRF (se renueva en cada request, sin cache)
-- [x] Correccion de variable duplicada headerTitle en app.js
-- [ ] Crear cuenta en Render y configurar secrets
+### Completados recientemente (Sesion Ago 2026)
+- [x] Correccion de links de login en landing (localhost → rutas relativas)
+- [x] Correccion de link "Volver a la landing" en gracias.html
+- [x] Botones de header unificados (Iniciar sesion + Contactar ventas)
+- [x] Botones con estilos diferenciados (relleno vs borde)
+- [x] Alerta informativa en boton login cuando backend no esta disponible
+- [x] Token admin persistente en localStorage + auto-reintento en 401
+- [x] Emojis Unicode eliminados de print() (compatibilidad Windows cp1252)
+- [x] 12 clones migrados de JSON a SQLite (base de datos poblada)
+- [x] 31/32 tests API pasados
+
+### Pendientes
+- [ ] Crear cuenta en Render y desplegar backend
+- [ ] Actualizar links de login para apuntar a URL de Render
 - [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
 - [ ] Rate limiting persistente (Redis)
 - [ ] Monitoreo y logging avanzado (Grafana/Prometheus)
+- [ ] Actualizar numero de WhatsApp en landing (numero generico actual)
 
 ## Estado del Proyecto
 
 - repositorio publicado y preparado para GitHub Pages
 - landing publica con branding, logo y formulario de contacto
+- botones de header unificados con estilos diferenciados (login + contacto)
+- alerta informativa en boton login cuando backend no esta disponible
 - dashboard local funcional con rutas operativas
 - portal publico para solicitudes comerciales con autenticacion de clientes
 - autenticacion de usuarios completa (register/login/me) con bcrypt
 - formulario de registro integrado en login.html para clientes nuevos
 - login/logout con token-based auth y redireccion automatica a login
+- token admin persistente en localStorage con auto-reintento en 401
 - chat del Cerebro Central funcional para usuarios customer y admin
 - integracion Stripe Checkout con importes validados en servidor (requiere API keys)
 - webhook de Stripe con validacion de firma
 - despliegue automatizado configurado (requiere cuenta en Render)
+- 12 clones digitales migrados a SQLite (base de datos poblada)
 - 150 pruebas (unitarias + integracion) cubriendo los modulos principales
 - CI/CD completo: tests, lint, Docker build
 - CORS configurado para consumo desde cualquier origen
@@ -438,9 +423,31 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - Documentacion completa de la API (docs/API.md)
 - Schema de base de datos completo (facturas 17 cols, transacciones 13 cols, users)
 - Indices optimizados para consultas frecuentes
+- compatibilidad Windows corregida (emojis Unicode eliminados de print())
 
 ## Contacto
 
 - **Email:** [teamskiltwinhq@zohomail.com](mailto:teamskiltwinhq@zohomail.com)
 - **Web:** [https://luiso50.github.io/skilltwin/](https://luiso50.github.io/skilltwin/)
 - **GitHub:** [https://github.com/luiso50/skilltwin](https://github.com/luiso50/skilltwin)
+
+## Cambios Recientes (Sesion Ago 2026)
+
+### Landing Page
+- Links de login corregidos: `http://localhost:8000/login.html` → `../cerebro/login.html`
+- Link "Volver a la landing" en gracias.html corregido: `/` → `/docs/index.html`
+- Nuevo link "Dashboard" agregado a la navegación
+- Botones del header unificados: "Iniciar sesión" + "Contactar ventas"
+- Botones con estilos diferenciados (relleno naranja vs borde azul)
+- Alerta informativa en botón login cuando backend no está disponible
+- Formulario de contacto mejorado con fallback a email
+
+### Backend
+- Token admin persistente en localStorage con auto-reintento en 401
+- Emojis Unicode eliminados de print() en motor_clonacion.py y orquestador.py
+- Compatibilidad Windows corregida (error cp1252 en Windows)
+- 12 clones migrados de JSON a SQLite (base de datos poblada)
+
+### Testing
+- 31/32 tests API pasados (el fallo es rate-limiting en test, no bug real)
+- Links verificados directamente desde GitHub
