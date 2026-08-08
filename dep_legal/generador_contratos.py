@@ -8,10 +8,10 @@ def generar_contrato(id_experto, nombre, especialidad, comision=15.0):
     # Asegurar que la carpeta de contratos existe
     if not os.path.exists(CONTRATOS_DIR):
         os.makedirs(CONTRATOS_DIR)
-        
+
     nombre_archivo = f"contrato_{id_experto}.txt"
     ruta_guardado = os.path.join(CONTRATOS_DIR, nombre_archivo)
-    
+
     plantilla = f"""======================================================================
 ACUERDO DE LICENCIA DE CLON DIGITAL Y SERVICIOS - SKILLTWIN
 ======================================================================
@@ -52,7 +52,7 @@ Firmado digitalmente en conformidad:
 Representante de la Plataforma            Licenciante del Clon
 ======================================================================
 """
-    
+
     try:
         with open(ruta_guardado, "w", encoding="utf-8") as f:
             f.write(plantilla)
@@ -67,11 +67,11 @@ def main():
     print("="*50)
     print("    GENERADOR DE CONTRATOS LEGALES - SKILLTWIN")
     print("="*50)
-    
+
     nombre = input("Nombre completo del profesional: ").strip()
     id_experto = input("ID de usuario único (ej. rsanchez): ").strip().lower()
     especialidad = input("Especialidad o Habilidad a licenciar: ").strip()
-    
+
     comision_str = input("Porcentaje de comision para la plataforma (Defecto: 15%): ").strip()
     comision = 15.0
     if comision_str:
@@ -79,7 +79,7 @@ def main():
             comision = float(comision_str)
         except ValueError:
             print("[ALERTA] Entrada invalida, usando 15.0% por defecto.")
-            
+
     if nombre and id_experto and especialidad:
         generar_contrato(id_experto, nombre, especialidad, comision)
     else:

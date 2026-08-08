@@ -9,26 +9,26 @@ import urllib.request
 from datetime import datetime, timedelta
 
 
-def generar_contrato_gemini(orden_id, cliente_email, clon_id, clon_nombre, 
+def generar_contrato_gemini(orden_id, cliente_email, clon_id, clon_nombre,
                             especialidad, cantidad_horas, monto_total, comision):
     """
     Genera un contrato legal profesional usando Gemini AI.
     Retorna el texto del contrato.
     """
-    
+
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         # Si no hay API key, retornar un contrato por defecto
-        return generar_contrato_default(orden_id, cliente_email, clon_nombre, 
+        return generar_contrato_default(orden_id, cliente_email, clon_nombre,
                                         especialidad, cantidad_horas, monto_total, comision)
-    
+
     model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-    
+
     # Fecha de vencimiento (30 días después)
     fecha_inicio = datetime.now()
     fecha_fin = fecha_inicio + timedelta(days=30)
-    
+
     prompt = f"""
 Eres un abogado especializado en contratos de licenciamiento de propiedad intelectual.
 Genera un contrato profesional y legal para los siguientes datos:
@@ -58,7 +58,7 @@ Genera un contrato en formato TEXTO que incluya:
 
 El contrato debe ser profesional, legal y en español. Incluye números de artículos para referencia.
 """
-    
+
     headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -68,9 +68,9 @@ El contrato debe ser profesional, legal y en español. Incluye números de artí
             "responseMimeType": "text/plain"
         }
     }
-    
+
     try:
-        req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), 
+        req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
                                      headers=headers, method="POST")
         with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
@@ -78,19 +78,19 @@ El contrato debe ser profesional, legal y en español. Incluye números de artí
             return contrato_text
     except Exception as e:
         print(f"[GEMINI] Error generando contrato: {e}")
-        return generar_contrato_default(orden_id, cliente_email, clon_nombre, 
+        return generar_contrato_default(orden_id, cliente_email, clon_nombre,
                                         especialidad, cantidad_horas, monto_total, comision)
 
 
-def generar_contrato_default(orden_id, cliente_email, clon_nombre, 
+def generar_contrato_default(orden_id, cliente_email, clon_nombre,
                             especialidad, cantidad_horas, monto_total, comision):
     """
     Contrato por defecto si Gemini no está disponible.
     """
-    
+
     fecha_inicio = datetime.now()
     fecha_fin = fecha_inicio + timedelta(days=30)
-    
+
     contrato = f"""
 ════════════════════════════════════════════════════════════════════════════
                 CONTRATO DE LICENCIAMIENTO DE SERVICIOS PROFESIONALES
@@ -185,5 +185,5 @@ Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 
 ════════════════════════════════════════════════════════════════════════════
 """
-    
+
     return contrato

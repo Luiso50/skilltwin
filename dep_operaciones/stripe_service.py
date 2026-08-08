@@ -22,27 +22,27 @@ def create_payment_intent(amount_cents, currency="usd", metadata=None):
     Retorna (client_secret, error_message)
     """
     config = get_stripe_config()
-    
+
     if not config["secret_key"]:
         return None, "Stripe no configurado. Configura STRIPE_SECRET_KEY en variables de entorno."
-    
+
     try:
         import stripe
         stripe.api_key = config["secret_key"]
-        
+
         intent_data = {
             "amount": amount_cents,
             "currency": currency,
             "payment_method_types": ["card"],
         }
-        
+
         if metadata:
             intent_data["metadata"] = metadata
-        
+
         intent = stripe.PaymentIntent.create(**intent_data)
-        
+
         return intent.client_secret, None
-        
+
     except ImportError:
         return None, "Stripe SDK no instalado. Ejecuta: pip install stripe"
     except Exception as e:
@@ -55,16 +55,16 @@ def confirm_payment(payment_intent_id):
     Retorna (exito, datos_o_error)
     """
     config = get_stripe_config()
-    
+
     if not config["secret_key"]:
         return False, "Stripe no configurado"
-    
+
     try:
         import stripe
         stripe.api_key = config["secret_key"]
-        
+
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-        
+
         if intent.status == "succeeded":
             return True, {
                 "payment_intent_id": intent.id,
@@ -74,7 +74,7 @@ def confirm_payment(payment_intent_id):
             }
         else:
             return False, f"Pago en estado: {intent.status}"
-            
+
     except Exception as e:
         return False, f"Error confirmando pago: {str(e)}"
 
@@ -85,20 +85,20 @@ def handle_webhook(payload, sig_header):
     Retorna (evento, error_message)
     """
     config = get_stripe_config()
-    
+
     if not config["webhook_secret"]:
         return None, "Webhook secret no configurado"
-    
+
     try:
         import stripe
         stripe.api_key = config["secret_key"]
-        
+
         event = stripe.Webhook.construct_event(
             payload, sig_header, config["webhook_secret"]
         )
-        
+
         return event, None
-        
+
     except ImportError:
         return None, "Stripe SDK no instalado"
     except Exception as e:
@@ -111,20 +111,20 @@ def create_checkout_session(amount_cents, factura_id, orden_id=None, success_url
     Retorna (session_url, error_message)
     """
     config = get_stripe_config()
-    
+
     if not config["secret_key"]:
         return None, "Stripe no configurado. Configura STRIPE_SECRET_KEY en variables de entorno."
-    
+
     try:
         import stripe
         stripe.api_key = config["secret_key"]
-        
+
         base_url = os.environ.get("SKILLTWIN_PUBLIC_URL", "http://localhost:8000")
         if not success_url:
             success_url = f"{base_url}/gracias.html?session_id={{CHECKOUT_SESSION_ID}}"
         if not cancel_url:
             cancel_url = f"{base_url}/client-portal.html"
-        
+
         session_data = {
             "payment_method_types": ["card"],
             "line_items": [{
@@ -146,11 +146,11 @@ def create_checkout_session(amount_cents, factura_id, orden_id=None, success_url
                 "orden_id": orden_id or ""
             }
         }
-        
+
         session = stripe.checkout.Session.create(**session_data)
-        
+
         return session.url, None
-        
+
     except ImportError:
         return None, "Stripe SDK no instalado. Ejecuta: pip install stripe"
     except Exception as e:
@@ -163,16 +163,16 @@ def retrieve_checkout_session(session_id):
     Retorna (session_data, error_message)
     """
     config = get_stripe_config()
-    
+
     if not config["secret_key"]:
         return None, "Stripe no configurado"
-    
+
     try:
         import stripe
         stripe.api_key = config["secret_key"]
-        
+
         session = stripe.checkout.Session.retrieve(session_id)
-        
+
         return {
             "id": session.id,
             "payment_status": session.payment_status,
@@ -180,7 +180,7 @@ def retrieve_checkout_session(session_id):
             "currency": session.currency,
             "metadata": session.metadata
         }, None
-        
+
     except ImportError:
         return None, "Stripe SDK no instalado"
     except Exception as e:

@@ -4,7 +4,7 @@ import os
 import threading
 from datetime import datetime
 from contextlib import contextmanager
-from typing import Generator, Optional
+from typing import Generator
 
 DB_PATH: str = os.environ.get("SKILLTWIN_DB_PATH") or os.path.join(os.path.dirname(__file__), "skilltwin.db")
 db_lock: threading.RLock = threading.RLock()
@@ -31,7 +31,7 @@ def init_database():
     """Inicializa todas las tablas de la base de datos."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        
+
         # Tabla de clones
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clones (
@@ -42,7 +42,7 @@ def init_database():
                 fecha_creacion TEXT NOT NULL
             )
         """)
-        
+
         # Tabla de flujo de caja
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS flujo_caja (
@@ -53,7 +53,7 @@ def init_database():
                 egresos_real REAL DEFAULT 0.0
             )
         """)
-        
+
         # Tabla de cuentas por cobrar
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS cuentas_cobrar (
@@ -64,7 +64,7 @@ def init_database():
                 estado TEXT DEFAULT 'Pendiente'
             )
         """)
-        
+
         # Tabla de cuentas por pagar
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS cuentas_pagar (
@@ -75,7 +75,7 @@ def init_database():
                 estado TEXT DEFAULT 'Pendiente'
             )
         """)
-        
+
         # Tabla de órdenes
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS ordenes (
@@ -97,7 +97,7 @@ def init_database():
                 archivos_entregables TEXT DEFAULT '[]'
             )
         """)
-        
+
         # Tabla de facturas/pagos
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS facturas (
@@ -121,7 +121,7 @@ def init_database():
                 FOREIGN KEY (orden_id) REFERENCES ordenes(id)
             )
         """)
-        
+
         # Tabla de transacciones
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS transacciones (
@@ -141,7 +141,7 @@ def init_database():
                 FOREIGN KEY (factura_id) REFERENCES facturas(id)
             )
         """)
-        
+
         # Tabla de contactos
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contactos (
@@ -156,7 +156,7 @@ def init_database():
                 estado TEXT DEFAULT 'nuevo'
             )
         """)
-        
+
         # Tabla de usuarios (autenticación)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -168,7 +168,7 @@ def init_database():
                 created_at TEXT NOT NULL
             )
         """)
-        
+
         # Indices para consultas frecuentes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_email ON ordenes(cliente_email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes(estado)")
@@ -189,7 +189,7 @@ def migrar_json_a_sqlite():
     """Migra datos existentes de archivos JSON a SQLite."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        
+
         # Migrar clones
         clones_path = os.path.join(os.path.dirname(__file__), "..", "dep_desarrollo", "clones_db.json")
         if os.path.exists(clones_path):
@@ -199,42 +199,42 @@ def migrar_json_a_sqlite():
                 cursor.execute("""
                     INSERT OR IGNORE INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
                     VALUES (?, ?, ?, ?, ?)
-                """, (clon_id, clon_data["nombre"], clon_data["especialidad"], 
+                """, (clon_id, clon_data["nombre"], clon_data["especialidad"],
                       clon_data["conocimiento"], clon_data["fecha_creacion"]))
-        
+
         # Migrar finanzas
         finanzas_path = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
         if os.path.exists(finanzas_path):
             with open(finanzas_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             for mes, valores in data.get("flujo_caja", {}).items():
                 cursor.execute("""
                     INSERT OR REPLACE INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
                     VALUES (?, ?, ?, ?, ?)
                 """, (mes, valores["ingresos_plan"], valores["ingresos_real"],
                       valores["egresos_plan"], valores["egresos_real"]))
-            
+
             for cuenta in data.get("cuentas_cobrar", []):
                 cursor.execute("""
                     INSERT OR IGNORE INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
                     VALUES (?, ?, ?, ?, ?)
                 """, (cuenta["id"], cuenta["cliente"], cuenta["monto"],
                       cuenta["vencimiento"], cuenta["estado"]))
-            
+
             for cuenta in data.get("cuentas_pagar", []):
                 cursor.execute("""
                     INSERT OR IGNORE INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
                     VALUES (?, ?, ?, ?, ?)
                 """, (cuenta["id"], cuenta["proveedor"], cuenta["monto"],
                       cuenta["vencimiento"], cuenta["estado"]))
-        
+
         # Migrar órdenes
         ordenes_path = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
         if os.path.exists(ordenes_path):
             with open(ordenes_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             for orden_id, orden in data.get("ordenes", {}).items():
                 cursor.execute("""
                     INSERT OR IGNORE INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
@@ -250,13 +250,13 @@ def migrar_json_a_sqlite():
                       json.dumps(orden.get("pago", {})), json.dumps(orden.get("rating", {})),
                       json.dumps(orden.get("contrato", {})),
                       json.dumps(orden.get("archivos_entregables", []))))
-        
+
         # Migrar pagos
         pagos_path = os.path.join(os.path.dirname(__file__), "pagos_db.json")
         if os.path.exists(pagos_path):
             with open(pagos_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             for fac_id, factura in data.get("facturas", {}).items():
                 cursor.execute("""
                     INSERT OR IGNORE INTO facturas (id, orden_id, cliente_email, fecha_emision,
@@ -286,13 +286,13 @@ def migrar_json_a_sqlite():
                       trans.get("numero_referencia", ""), trans.get("codigo_autorizacion", ""),
                       json.dumps(trans.get("detalles_respuesta", {})),
                       trans.get("estado", "completada"), trans.get("fecha")))
-        
+
         # Migrar contactos
         contactos_path = os.path.join(os.path.dirname(__file__), "contactos_db.json")
         if os.path.exists(contactos_path):
             with open(contactos_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             for contacto in data.get("contactos", []):
                 cursor.execute("""
                     INSERT OR IGNORE INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
@@ -319,7 +319,7 @@ def guardar_clone(clon_id, nombre, especialidad, conocimiento):
         cursor.execute("""
             INSERT OR REPLACE INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
             VALUES (?, ?, ?, ?, ?)
-        """, (clon_id, nombre, especialidad, conocimiento, 
+        """, (clon_id, nombre, especialidad, conocimiento,
               datetime.now().strftime("%Y-%m-%d")))
 
 

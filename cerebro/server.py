@@ -224,28 +224,28 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         }
         if headers:
             response_headers.update(headers)
-        
+
         self.send_response(status)
         for key, value in response_headers.items():
             self.send_header(key, value)
         self.end_headers()
-        
+
         json_data = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.wfile.write(json_data)
-        
+
         duration = time.time() - getattr(self, '_start_time', time.time())
         _record_response_time(duration)
         with _metrics_lock:
             _metrics["requests_total"] += 1
             if status >= 400:
                 _metrics["errors_total"] += 1
-        
+
         logger.info(f"{self.path} -> {status} ({len(json_data)} bytes, {duration*1000:.1f}ms)")
-    
+
     def send_error_response(self, message, status=400):
         """Helper para enviar errores de forma consistente."""
         self.send_json_response({"error": message}, status=status)
-    
+
     def read_json_body(self):
         """Helper para leer y parsear el body JSON de un POST."""
         try:
@@ -256,7 +256,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             raise ValueError("El cuerpo de la solicitud supera el tamaño máximo permitido")
         if content_length == 0:
             return {}
-        
+
         post_data = self.rfile.read(content_length)
         return json.loads(post_data.decode('utf-8'))
 
@@ -290,10 +290,11 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             return {"role": "customer", **user_data}
         self.send_error_response("No autorizado.", 401)
         return None
-    
+
     def do_OPTIONS(self):
         """Manejar preflight requests de CORS."""
         self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', self._get_cors_origin())
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Session-ID')
         self.send_header('Access-Control-Max-Age', '86400')
@@ -337,7 +338,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         self.request_id = _generate_request_id()
         self._start_time = time.time()
-        
+
         client_ip = security.get_client_ip(self)
         if not security.check_rate_limit(client_ip, self.path):
             retry_after = security.get_rate_limit_retry_after(client_ip)
@@ -350,7 +351,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             with _metrics_lock:
                 _metrics["errors_total"] += 1
             return
-            
+
         if self.path == '/api/health':
             import platform
             with _metrics_lock:
@@ -455,7 +456,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     cliente_email = params.get('email', [None])[0]
                 else:
                     cliente_email = auth_data.get("email")
-                
+
                 ordenes = gestor_ordenes.listar_ordenes(cliente_email)
                 self.send_json_response({"ordenes": ordenes})
             except Exception as e:
@@ -472,7 +473,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     cliente_email = params.get('email', [None])[0]
                 else:
                     cliente_email = auth_data.get("email")
-                
+
                 if cliente_email:
                     notificaciones = gestor_ordenes.obtener_notificaciones_no_leidas(cliente_email)
                     self.send_json_response({"notificaciones": notificaciones})
@@ -488,7 +489,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 cliente_email = params.get('email', [None])[0]
-                
+
                 facturas = gestor_pagos.listar_facturas(cliente_email)
                 self.send_json_response({"facturas": facturas})
             except Exception as e:
@@ -504,7 +505,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     "total_ordenes": len(ordenes_data["ordenes"]),
                     "ordenes_completadas": len([o for o in ordenes_data["ordenes"].values() if o["estado"] == "completada"])
                 }
-                
+
                 self.send_json_response({
                     "pagos": stats_pagos,
                     "ordenes": stats_ordenes
@@ -541,7 +542,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 report_type = params.get('type', ['clones'])[0]
-                
+
                 if report_type == 'clones':
                     datos = motor_clonacion.cargar_datos()
                     report_data = {
@@ -568,7 +569,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     self.send_error_response("Tipo de reporte no válido. Opciones: clones, finanzas, ordenes")
                     return
-                
+
                 self.send_json_response(report_data)
             except Exception as e:
                 logger.error(f"Error en /api/export-report: {e}")
@@ -578,12 +579,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 query = params.get('q', [''])[0].lower().strip()
-                
+
                 cached = _cache.get("clones_full")
                 if cached is None:
                     cached = motor_clonacion.cargar_datos()
                     _cache.set("clones_full", cached)
-                
+
                 resultados = []
                 for clon_id, clon_data in cached["clones"].items():
                     searchable = f"{clon_id} {clon_data.get('nombre', '')} {clon_data.get('especialidad', '')} {clon_data.get('conocimiento', '')}".lower()
@@ -593,7 +594,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                             "nombre": clon_data.get("nombre", ""),
                             "especialidad": clon_data.get("especialidad", "")
                         })
-                
+
                 self.send_json_response({
                     "query": query,
                     "resultados": resultados,
@@ -610,11 +611,11 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 params = urllib.parse.parse_qs(query_params)
                 clon_id = params.get('clon_id', [None])[0]
                 session_id = params.get('session_id', [None])[0]
-                
+
                 if not clon_id:
                     self.send_error_response("ID de clon requerido")
                     return
-                
+
                 historial = motor_clonacion.obtener_historial_conversacion(clon_id, session_id)
                 self.send_json_response({
                     "historial": historial,
@@ -631,11 +632,11 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 clon_id = params.get('clon_id', [None])[0]
-                
+
                 if not clon_id:
                     self.send_error_response("ID de clon requerido")
                     return
-                
+
                 estadisticas = motor_clonacion.obtener_estadisticas_clon(clon_id)
                 self.send_json_response({
                     "estadisticas": estadisticas,
@@ -650,7 +651,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         self.request_id = _generate_request_id()
         self._start_time = time.time()
-        
+
         client_ip = security.get_client_ip(self)
         if not security.check_rate_limit(client_ip, self.path):
             retry_after = security.get_rate_limit_retry_after(client_ip)
@@ -663,14 +664,14 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             with _metrics_lock:
                 _metrics["errors_total"] += 1
             return
-        
+
         # Validar Content-Type para endpoints que esperan JSON
         content_type = self.headers.get('Content-Type', '')
         if self.path.startswith('/api/') and self.path != '/api/contacto':
             if 'application/json' not in content_type:
                 self.send_error_response("Content-Type debe ser application/json", 415)
                 return
-            
+
         if self.path == '/api/command':
             if not self.require_customer_or_admin():
                 return
@@ -696,21 +697,21 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 cantidad_horas = data.get("cantidad_horas", 0)
                 descripcion_proyecto = security.sanitize_string(data.get("descripcion_proyecto", ""), 500)
                 requiere_contrato = data.get("requiere_contrato", True)
-                
+
                 if not cliente_email or not clon_id or cantidad_horas <= 0:
                     raise ValueError("Datos incompletos o inválidos")
-                
+
                 if not security.validate_email(cliente_email):
                     raise ValueError("Formato de email inválido")
-                
+
                 if not security.validate_clon_id(clon_id):
                     raise ValueError("ID de clon inválido")
-                
+
                 orden_id, orden_data = gestor_ordenes.crear_orden(
-                    cliente_email, clon_id, cantidad_horas, 
+                    cliente_email, clon_id, cantidad_horas,
                     descripcion_proyecto, requiere_contrato
                 )
-                
+
                 self.send_json_response({
                     "success": True,
                     "orden_id": orden_id,
@@ -727,9 +728,9 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 data = self.read_json_body()
                 orden_id = data.get("orden_id", "").strip()
                 indice = data.get("indice", 0)
-                
+
                 exito = gestor_ordenes.marcar_notificacion_leida(orden_id, indice)
-                
+
                 self.send_json_response({
                     "success": exito,
                     "mensaje": "Notificación marcada como leída"
@@ -745,13 +746,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 id_clon = data.get("id_clon", "").strip()
                 pregunta = data.get("pregunta", "").strip()
                 session_id = data.get("session_id", None)
-                
+
                 if not session_id:
                     import uuid
                     session_id = str(uuid.uuid4())
-                
+
                 respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta, session_id)
-                
+
                 self.send_json_response({
                     "respuesta": respuesta_clon,
                     "session_id": session_id
@@ -766,13 +767,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 data = self.read_json_body()
                 clon_id = data.get("clon_id", "").strip()
                 session_id = data.get("session_id", None)
-                
+
                 if not clon_id:
                     self.send_error_response("ID de clon requerido")
                     return
-                
+
                 motor_clonacion.limpiar_memoria_conversacion(clon_id, session_id)
-                
+
                 self.send_json_response({
                     "success": True,
                     "mensaje": "Memoria de conversación limpiada"
@@ -789,16 +790,16 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 data = self.read_json_body()
                 factura_id = data.get("factura_id", "").strip()
                 metodo_pago = data.get("metodo_pago", "tarjeta_credito").strip()
-                
+
                 exito, resultado = gestor_pagos.procesar_pago(factura_id, metodo_pago)
-                
+
                 if exito:
                     factura = gestor_pagos.obtener_factura(factura_id)
                     if factura:
                         gestor_ordenes.actualizar_pago_orden(
                             factura["orden_id"], factura_id, metodo_pago
                         )
-                    
+
                     self.send_json_response({
                         "success": True,
                         "mensaje": "Pago procesado exitosamente",
@@ -819,12 +820,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 orden_id = security.sanitize_string(data.get("orden_id", ""), 50)
                 puntuacion = data.get("puntuacion", 0)
                 resena = security.sanitize_string(data.get("resena", ""), 500)
-                
+
                 if not security.validate_puntuacion(puntuacion):
                     raise ValueError("Puntuación inválida (debe ser 1-5)")
-                
+
                 exito, mensaje = gestor_ordenes.agregar_rating_orden(orden_id, puntuacion, resena)
-                
+
                 if exito:
                     self.send_json_response({"success": True, "mensaje": mensaje})
                 else:
@@ -851,18 +852,18 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
                 if not nombre or not email or not mensaje:
                     raise ValueError("Nombre, email y mensaje son obligatorios")
-                
+
                 if not security.validate_email(email):
                     raise ValueError("Formato de email inválido")
 
                 contacto = gestor_contactos.registrar_contacto(
                     nombre, email, telefono, empresa, interes, mensaje
                 )
-                
+
                 email_enviado, email_error = email_service.send_contact_email(
                     nombre, email, telefono, empresa, interes, mensaje
                 )
-                
+
                 if email_enviado:
                     email_service.send_confirmation_email(nombre, email)
 
@@ -871,7 +872,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     "message": "Solicitud recibida correctamente. Te responderemos en breve.",
                     "contacto": contacto
                 }
-                
+
                 if not email_enviado:
                     response_data["email_warning"] = "Email no enviado: " + (email_error or "SMTP no configurado")
 
@@ -884,7 +885,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 return
             if not self.require_csrf():
                 return
-                
+
             try:
                 data = self.read_json_body()
                 api_key = data.get("gemini_key", "").strip()
@@ -924,7 +925,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 data = self.read_json_body()
                 secret = data.get("secret", "")
-                
+
                 if security.validate_admin_secret(secret):
                     token = security.generate_admin_token()
                     self.send_json_response({
@@ -1005,12 +1006,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     "factura_id": factura_id,
                     "orden_id": factura["orden_id"],
                 }
-                
+
                 client_secret, error = stripe_service.create_payment_intent(
                     amount_cents=amount_cents,
                     metadata=metadata
                 )
-                
+
                 if error:
                     self.send_error_response(error)
                 else:
@@ -1032,7 +1033,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 public_url = os.environ.get("SKILLTWIN_PUBLIC_URL", "").rstrip("/")
                 if not public_url:
                     raise ValueError("SKILLTWIN_PUBLIC_URL debe configurarse para crear pagos")
-                
+
                 session_url, error = stripe_service.create_checkout_session(
                     amount_cents=amount_cents,
                     factura_id=factura_id,
@@ -1040,7 +1041,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     success_url=f"{public_url}/gracias.html?session_id={{CHECKOUT_SESSION_ID}}",
                     cancel_url=f"{public_url}/client-portal.html"
                 )
-                
+
                 if error:
                     self.send_error_response(error)
                 else:
@@ -1104,19 +1105,19 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             content_length = int(self.headers.get('Content-Length', 0))
             payload = self.rfile.read(content_length)
             sig_header = self.headers.get('Stripe-Signature', '')
-            
+
             try:
                 event, error = stripe_service.handle_webhook(payload, sig_header)
-                
+
                 if error:
                     self.send_error_response(error)
                     return
-                
+
                 if event['type'] == 'checkout.session.completed':
                     session = event['data']['object']
                     factura_id = session.get('metadata', {}).get('factura_id')
                     orden_id = session.get('metadata', {}).get('orden_id')
-                    
+
                     if not factura_id or not orden_id:
                         raise ValueError("El evento no contiene la factura y orden requeridas")
                     register_stripe_payment(
@@ -1125,7 +1126,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                         session.get("amount_total"),
                         session.get("id"),
                     )
-                
+
                 elif event['type'] == 'payment_intent.succeeded':
                     intent = event['data']['object']
                     factura_id = intent.get('metadata', {}).get('factura_id')
@@ -1138,7 +1139,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                         intent.get("amount"),
                         intent["id"],
                     )
-                
+
                 self.send_json_response({"received": True})
             except Exception as e:
                 logger.error(f"Error en /api/stripe/webhook: {e}")
@@ -1152,7 +1153,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
         model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-        
+
         prompt = (
             f"Eres el Cerebro Central de SkillTwin. Analiza el siguiente comando del usuario y clasifícalo en un departamento.\n\n"
             f"DEPARTAMENTOS Y COMANDOS NORMALIZADOS:\n"
@@ -1192,12 +1193,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def procesar_comando(self, comando):
         # Intentar clasificación inteligente vía IA primero
         ia_decision = self.clasificar_intencion_ia(comando)
-        
+
         if ia_decision:
             intent = ia_decision.get("intent")
             normalized_cmd = ia_decision.get("normalized_command", "")
             reasoning = ia_decision.get("reasoning", "")
-            
+
             # Si la IA decidió que es un comando ejecutable, usamos la versión normalizada
             if intent != "general":
                 # Loguear que la IA tomó la decisión
@@ -1210,26 +1211,26 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
     def ejecutar_logica_comando(self, comando, ia_tag=None):
         cmd_lower = comando.lower()
-        
+
         # 1. COMANDO DE FINANZAS
         if "finanzas" in cmd_lower or "flujo" in cmd_lower or "caja" in cmd_lower:
             datos_fin = gestor_financiero.cargar_finanzas()
-            
+
             # Formatear flujo de caja en texto
             flujo_texto = "📊 **Flujo de Caja:**\n"
             for mes, val in sorted(datos_fin["flujo_caja"].items()):
                 flujo_texto += f"- **{mes}**: Ingresos: ${val['ingresos_real']} (Plan: ${val['ingresos_plan']}) | Egresos: ${val['egresos_real']} (Plan: ${val['egresos_plan']})\n"
-            
+
             # Generar alertas
             alertas = []
             hoy = datetime.now().date()
-            
+
             for c in datos_fin["cuentas_cobrar"]:
                 if c["estado"] == "Pendiente":
                     fv = datetime.strptime(c["vencimiento"], "%Y-%m-%d").date()
                     if (fv - hoy).days < 0:
                         alertas.append(f"⚠️ **Cobro Vencido**: {c['id']} ({c['cliente']}) - ${c['monto']}")
-                        
+
             for p in datos_fin["cuentas_pagar"]:
                 if p["estado"] == "Pendiente":
                     fv = datetime.strptime(p["vencimiento"], "%Y-%m-%d").date()
@@ -1240,7 +1241,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                         alertas.append(f"⏰ **Pago Próximo ({dif} días)**: {p['id']} ({p['proveedor']}) - ${p['monto']}")
 
             alertas_texto = "🔔 **Alertas Financieras:**\n" + ("\n".join(alertas) if alertas else "Sin alertas pendientes.")
-            
+
             return {
                 "tag": ia_tag if ia_tag else "operaciones",
                 "message": f"Accediendo a la base de datos financiera del departamento...\n\n{flujo_texto}\n{alertas_texto}",
@@ -1253,10 +1254,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             parts = comando.split(None, 1)
             if len(parts) > 1:
                 nicho = parts[1]
-            
+
             reporte = agente_ventas_mercado.ejecutar_inteligencia_ventas(nicho)
             rep_v = reporte["reporte_ventas"]
-            
+
             msg = (
                 f"📢 **Informe del Agente de Ventas para '{nicho}':**\n\n"
                 f"🎯 **Análisis:** {rep_v['analisis_oportunidad']}\n\n"
@@ -1276,7 +1277,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             id_exp = "experto_gen"
             especialidad = "Consultoría"
             comision = 15.0
-            
+
             if len(parts) >= 4:
                 nombre = parts[1]
                 id_exp = parts[2]
@@ -1292,7 +1293,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     "message": "Para redactar un contrato usa el formato:\n`contrato [Nombre] [ID] [Especialidad] [Comision]`\nEjemplo: `contrato Juan jortiz Programacion_SEO 15`",
                     "console_log": "Intento de generación de contrato con parámetros insuficientes."
                 }
-                
+
             ruta = generador_contratos.generar_contrato(id_exp, nombre, especialidad, comision)
             return {
                 "tag": ia_tag if ia_tag else "legal",
@@ -1306,7 +1307,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             if len(parts) >= 3:
                 id_clon = parts[1].strip()
                 pregunta = parts[2].strip()
-                
+
                 respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta)
                 if respuesta_clon:
                     return {
@@ -1364,10 +1365,10 @@ def run_server():
     gestor_ordenes.inicializar_ordenes()
     gestor_pagos.inicializar_pagos()
     gestor_pagos.reconciliar_facturas_con_ordenes()
-    
+
     logger.info("Iniciando orquestador automático...")
     orquestador.iniciar_orquestador()
-    
+
     Handler = CerebroHandler
     ThreadingTCPServer.allow_reuse_address = True
     with ThreadingTCPServer(("", PORT), Handler) as httpd:

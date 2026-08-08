@@ -16,7 +16,7 @@ def buscar_en_internet(query):
     }
     url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
     req = urllib.request.Request(url, headers=headers)
-    
+
     try:
         with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310
             html_content = response.read().decode('utf-8')
@@ -42,7 +42,7 @@ def buscar_en_internet(query):
 def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
     """Utiliza Gemini para sintetizar los hallazgos y proponer una estrategia de ventas."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    
+
     contexto = "\n".join([f"- {d}" for d in datos_busqueda])
     prompt = (
         f"Eres el 'Agente de Inteligencia de Mercado y Ventas' de SkillTwin.\n"
@@ -59,7 +59,7 @@ def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
         f"  \"correo_ventas\": \"Contenido del correo redactado de forma persuasiva\"\n"
         f"}}"
     )
-    
+
     headers = {"Content-Type": "application/json"}
     body = {
         "contents": [{
@@ -69,12 +69,12 @@ def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
             "responseMimeType": "application/json"
         }
     }
-    
+
     try:
         req = urllib.request.Request(
-            url, 
-            data=json.dumps(body).encode("utf-8"), 
-            headers=headers, 
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers=headers,
             method="POST"
         )
         with urllib.request.urlopen(req) as response:  # nosec B310
@@ -108,11 +108,11 @@ def analizar_datos_offline(datos_busqueda, nicho):
 def ejecutar_inteligencia_ventas(nicho):
     """Orquesta la investigación de mercado, el análisis y la creación de la estrategia de venta."""
     print(f"\n[VENTAS] [Agente de Ventas] Iniciando ciclo de prospeccion para el nicho: {nicho}...")
-    
+
     # 1. Buscar información del mercado
     query = f"demand for {nicho} skills shortage 2026"
     resultados_web = buscar_en_internet(query)
-    
+
     # 2. Procesar la información (Online u Offline)
     api_key = os.environ.get("GEMINI_API_KEY")
     if api_key:
@@ -121,7 +121,7 @@ def ejecutar_inteligencia_ventas(nicho):
             reporte = analizar_datos_offline(resultados_web, nicho)
     else:
         reporte = analizar_datos_offline(resultados_web, nicho)
-        
+
     # Guardar reporte para que otros departamentos (como Finanzas u Operaciones) lo usen
     informe_final = {
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -129,12 +129,12 @@ def ejecutar_inteligencia_ventas(nicho):
         "resultados_busqueda_fuente": resultados_web,
         "reporte_ventas": reporte
     }
-    
+
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         json.dump(informe_final, f, indent=4, ensure_ascii=False)
-        
+
     print(f"\n[ARCHIVO] Reporte corporativo guardado en: {REPORT_FILE}")
-    
+
     # Mostrar resultados en pantalla
     print("\n" + "="*50)
     print("      INFORME GENERADO POR EL AGENTE DE VENTAS")
@@ -145,7 +145,7 @@ def ejecutar_inteligencia_ventas(nicho):
     print("-" * 50)
     print(reporte['correo_ventas'])
     print("-" * 50)
-    
+
     return informe_final
 
 if __name__ == "__main__":
@@ -153,5 +153,5 @@ if __name__ == "__main__":
     nicho_por_defecto = "programacion COBOL en bancos"
     if len(sys.argv) > 1:
         nicho_por_defecto = " ".join(sys.argv[1:])
-        
+
     ejecutar_inteligencia_ventas(nicho_por_defecto)

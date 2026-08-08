@@ -82,7 +82,7 @@ def cleanup_expired_tokens():
     expired = [t for t, data in _valid_tokens.items() if now > data['expires']]
     for t in expired:
         del _valid_tokens[t]
-    
+
     expired_csrf = [t for t, data in _csrf_tokens.items() if now > data['expires']]
     for t in expired_csrf:
         del _csrf_tokens[t]
@@ -126,17 +126,17 @@ def sanitize_string(value, max_length=500):
     """Sanitiza una cadena de entrada eliminando caracteres peligrosos."""
     if not isinstance(value, str):
         return ""
-    
+
     # Eliminar caracteres de control
     value = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', value)
-    
+
     # Eliminar tags HTML/Script básicos
     value = re.sub(r'<script[^>]*>.*?</script>', '', value, flags=re.DOTALL | re.IGNORECASE)
     value = re.sub(r'<[^>]+>', '', value)
-    
+
     # Limitar longitud
     value = value[:max_length]
-    
+
     return value.strip()
 
 
@@ -172,19 +172,19 @@ def check_rate_limit(ip, endpoint):
     """
     now = time.time()
     window_start = now - RATE_LIMIT_WINDOW
-    
+
     # Limpiar entradas antiguas
     _rate_limit_store[ip] = [
         (ts, ep) for ts, ep in _rate_limit_store[ip]
         if ts > window_start
     ]
-    
+
     # Contar requests en la ventana actual
     recent_count = len(_rate_limit_store[ip])
-    
+
     if recent_count >= RATE_LIMIT_MAX_REQUESTS:
         return False
-    
+
     # Registrar esta request
     _rate_limit_store[ip].append((now, endpoint))
     return True

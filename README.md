@@ -361,8 +361,10 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 ### Backend API (Render - Gratis)
 - Configurado via `render.yaml`
 - Workflow: `.github/workflows/deploy-backend.yml`
+- URL: `https://skilltwin-api.onrender.com`
 - Configura en Render: `SKILLTWIN_ADMIN_SECRET`, `SKILLTWIN_PUBLIC_URL` y, si se usan, las credenciales de Gemini, Stripe y SMTP.
-- En Render, `SKILLTWIN_TRUST_PROXY=1` ya está configurado para obtener la IP del cliente desde el proxy gestionado.
+- En Render, `SKILLTWIN_TRUST_PROXY=1` y `SKILLTWIN_HSTS=1` ya estan configurados.
+- CORS: `SKILLTWIN_CORS_ORIGINS=https://luiso50.github.io` (permite consumo desde GitHub Pages)
 
 **Secrets necesarios en GitHub:**
 - `RENDER_SERVICE_ID` - ID del servicio en Render
@@ -371,7 +373,7 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 ## Proximos Pasos
 
 ### Completados recientemente (Sesion Ago 2026)
-- [x] Correccion de links de login en landing (localhost → rutas relativas)
+- [x] Correccion de links de login en landing (localhost -> rutas relativas)
 - [x] Correccion de link "Volver a la landing" en gracias.html
 - [x] Botones de header unificados (Iniciar sesion + Contactar ventas)
 - [x] Botones con estilos diferenciados (relleno vs borde)
@@ -379,16 +381,18 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - [x] Token admin persistente en localStorage + auto-reintento en 401
 - [x] Emojis Unicode eliminados de print() (compatibilidad Windows cp1252)
 - [x] 12 clones migrados de JSON a SQLite (base de datos poblada)
-- [x] 31/32 tests API pasados
+- [x] 150/150 tests pasando
+- [x] CORS preflight fix (Access-Control-Allow-Origin en OPTIONS)
+- [x] render.yaml optimizado (HSTS, CORS origins, auto-deploy)
+- [x] .env.example actualizado con todas las variables de produccion
 
-### Pendientes
-- [ ] Crear cuenta en Render y desplegar backend
-- [ ] Actualizar links de login para apuntar a URL de Render
-- [ ] Configurar webhook de Stripe en produccion
+### Pendientes (acciones del usuario)
+- [ ] Crear cuenta en Render y crear servicio web desde GitHub
+- [ ] Configurar webhook de Stripe en dashboard de Stripe (url: /api/stripe/webhook)
+- [ ] Configurar Stripe live keys en Render (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY)
 - [ ] Integracion con OAuth2 para admin
 - [ ] Rate limiting persistente (Redis)
 - [ ] Monitoreo y logging avanzado (Grafana/Prometheus)
-- [ ] Actualizar numero de WhatsApp en landing (numero generico actual)
 
 ## Estado del Proyecto
 
@@ -409,7 +413,7 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - 12 clones digitales migrados a SQLite (base de datos poblada)
 - 150 pruebas (unitarias + integracion) cubriendo los modulos principales
 - CI/CD completo: tests, lint, Docker build
-- CORS configurado para consumo desde cualquier origen
+- CORS configurado para consumo desde GitHub Pages a Render
 - API key de Gemini gestionada via variables de entorno (no en archivos)
 - Email configurado con Zoho Mail (teamskiltwinhq@zohomail.com)
 - Cache en memoria para endpoints de clones
@@ -424,6 +428,7 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - Schema de base de datos completo (facturas 17 cols, transacciones 13 cols, users)
 - Indices optimizados para consultas frecuentes
 - compatibilidad Windows corregida (emojis Unicode eliminados de print())
+- render.yaml con configuracion completa para despliegue en Render
 
 ## Contacto
 
@@ -434,12 +439,11 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 ## Cambios Recientes (Sesion Ago 2026)
 
 ### Landing Page
-- Links de login corregidos: `http://localhost:8000/login.html` → `../cerebro/login.html`
-- Link "Volver a la landing" en gracias.html corregido: `/` → `/docs/index.html`
-- Nuevo link "Dashboard" agregado a la navegación
-- Botones del header unificados: "Iniciar sesión" + "Contactar ventas"
+- Links de login corregidos: `http://localhost:8000/login.html` -> Render URL
+- Link "Volver a la landing" en gracias.html corregido
+- Botones del header unificados: "Iniciar sesion" + "Contactar ventas"
 - Botones con estilos diferenciados (relleno naranja vs borde azul)
-- Alerta informativa en botón login cuando backend no está disponible
+- Alerta informativa en boton login cuando backend no esta disponible
 - Formulario de contacto mejorado con fallback a email
 
 ### Backend
@@ -447,7 +451,9 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - Emojis Unicode eliminados de print() en motor_clonacion.py y orquestador.py
 - Compatibilidad Windows corregida (error cp1252 en Windows)
 - 12 clones migrados de JSON a SQLite (base de datos poblada)
+- CORS preflight fix: Access-Control-Allow-Origin en respuestas OPTIONS
+- render.yaml optimizado con HSTS, CORS origins y auto-deploy
 
 ### Testing
-- 31/32 tests API pasados (el fallo es rate-limiting en test, no bug real)
-- Links verificados directamente desde GitHub
+- 150/150 tests pasando (rate limiting edge case resuelto)
+- Lint corregido: 344 issues de whitespace eliminados automaticamente

@@ -27,7 +27,7 @@ if USE_SQLITE:
 
 class ConversacionMemoria:
     """Sistema de memoria de conversación para clones."""
-    
+
     def __init__(self, clone_id, session_id=None):
         self.clone_id = clone_id
         self.session_id = session_id or str(uuid.uuid4())
@@ -35,12 +35,12 @@ class ConversacionMemoria:
         self.contexto = {}
         self.memorias_exito = []
         self._cargar_memoria()
-    
+
     def _ruta_memoria(self):
         """Retorna la ruta del archivo de memoria para este clon y sesión."""
         os.makedirs(MEMORY_DIR, exist_ok=True)
         return os.path.join(MEMORY_DIR, f"{self.clone_id}_{self.session_id}.json")
-    
+
     def _cargar_memoria(self):
         """Carga la memoria desde disco si existe."""
         ruta = self._ruta_memoria()
@@ -53,7 +53,7 @@ class ConversacionMemoria:
                     self.memorias_exito = datos.get("memorias_exito", [])
             except Exception:
                 pass
-    
+
     def _guardar_memoria(self):
         """Guarda la memoria en disco."""
         ruta = self._ruta_memoria()
@@ -70,7 +70,7 @@ class ConversacionMemoria:
                 json.dump(datos, f, indent=2, ensure_ascii=False)
         except Exception:
             pass
-    
+
     def agregar_interaccion(self, pregunta, respuesta, exitosa=True, feedback=None):
         """Agrega una interacción al historial."""
         interaccion = {
@@ -81,10 +81,10 @@ class ConversacionMemoria:
         }
         if feedback:
             interaccion["feedback"] = feedback
-        
+
         self.historial.append(interaccion)
         self.historial = self.historial[-50:]
-        
+
         # Si fue exitosa, guardar como memoria de éxito
         if exitosa:
             self.memorias_exito.append({
@@ -94,42 +94,42 @@ class ConversacionMemoria:
                 "timestamp": datetime.now().isoformat()
             })
             self.memorias_exito = self.memorias_exito[-20:]
-        
+
         self._actualizar_contexto(pregunta, respuesta)
         self._guardar_memoria()
-    
+
     def _actualizar_contexto(self, pregunta, respuesta):
         """Actualiza el contexto basado en la interacción."""
         # Detectar temas recurrentes
         palabras_pregunta = set(pregunta.lower().split())
-        
+
         # Actualizar contador de temas
         if "temas" not in self.contexto:
             self.contexto["temas"] = {}
-        
+
         for palabra in palabras_pregunta:
             if len(palabra) > 3:  # Ignorar palabras cortas
                 self.contexto["temas"][palabra] = self.contexto["temas"].get(palabra, 0) + 1
-        
+
         # Guardar última pregunta para referencia
         self.contexto["ultima_pregunta"] = pregunta
         self.contexto["ultima_respuesta"] = respuesta
         self.contexto["total_interacciones"] = len(self.historial)
-    
+
     def obtener_contexto_para_prompt(self):
         """Retorna contexto formateado para incluir en el prompt."""
         if not self.historial:
             return ""
-        
+
         contexto_parts = []
-        
+
         # Agregar resumen de conversación reciente
         if len(self.historial) > 0:
             contexto_parts.append("CONTEXTO DE CONVERSACIÓN RECIENTE:")
             for interaccion in self.historial[-3:]:  # Últimas 3 interacciones
                 contexto_parts.append(f"- Pregunta: {interaccion['pregunta']}")
                 contexto_parts.append(f"  Respuesta: {interaccion['respuesta'][:100]}...")
-        
+
         # Agregar temas de interés
         if self.contexto.get("temas"):
             temas_ordenados = sorted(
@@ -140,27 +140,27 @@ class ConversacionMemoria:
             contexto_parts.append("\nTEMAS DE MAYOR INTERÉS:")
             for tema, count in temas_ordenados:
                 contexto_parts.append(f"- {tema} ({count} menciones)")
-        
+
         return "\n".join(contexto_parts)
-    
+
     def buscar_memorias_similares(self, pregunta, limite=3):
         """Busca memorias de éxito similares a la pregunta actual."""
         if not self.memorias_exito:
             return []
-        
+
         palabras_pregunta = set(pregunta.lower().split())
         coincidencias = []
-        
+
         for memoria in self.memorias_exito:
             palabras_memoria = set(memoria["pregunta"].lower().split())
             similitud = len(palabras_pregunta.intersection(palabras_memoria))
             if similitud > 0:
                 coincidencias.append((similitud, memoria))
-        
+
         # Ordenar por similitud y retornar las mejores
         coincidencias.sort(key=lambda x: x[0], reverse=True)
         return [memoria for _, memoria in coincidencias[:limite]]
-    
+
     def limpiar_memoria(self):
         """Limpia la memoria de la sesión actual."""
         self.historial = []
@@ -171,18 +171,18 @@ class ConversacionMemoria:
 
 class ConocimientoEstructurado:
     """Sistema de conocimiento estructurado para clones."""
-    
+
     def __init__(self, conocimiento_texto):
         self.texto_original = conocimiento_texto
         self.categorias = {}
         self.conceptos_clave = []
         self._parsear_conocimiento()
-    
+
     def _parsear_conocimiento(self):
         """Parsea el conocimiento de texto plano a estructura categorizada."""
         # Dividir por oraciones
         oraciones = self.texto_original.split(". ")
-        
+
         # Categorías predefinidas
         categorias_detectadas = {
             "definiciones": [],
@@ -191,7 +191,7 @@ class ConocimientoEstructurado:
             "procesos": [],
             "consejos": []
         }
-        
+
         # Palabras clave para categorización
         keywords = {
             "definiciones": ["es", "significa", "define", "concepto", "tipo"],
@@ -200,67 +200,67 @@ class ConocimientoEstructurado:
             "procesos": ["paso", "fase", "proceso", "pipeline", "flujo"],
             "consejos": ["consejo", "tip", "truco", "importante", "clave"]
         }
-        
+
         for oracion in oraciones:
             oracion_lower = oracion.lower()
             categorizada = False
-            
+
             for categoria, palbrasclave in keywords.items():
                 if any(palabra in oracion_lower for palabra in palbrasclave):
                     categorias_detectadas[categoria].append(oracion.strip())
                     categorizada = True
                     break
-            
+
             if not categorizada:
                 # Por defecto, ir a consejos
                 categorias_detectadas["consejos"].append(oracion.strip())
-        
+
         self.categorias = {k: v for k, v in categorias_detectadas.items() if v}
-        
+
         # Extraer conceptos clave (palabras importantes)
         palabras_importantes = defaultdict(int)
         stopwords = {"el", "la", "los", "las", "un", "una", "de", "del", "al", "en", "con", "por", "para", "se", "que", "es", "y", "o", "a"}
-        
+
         for oracion in oraciones:
             palabras = oracion.lower().split()
             for palabra in palabras:
                 palabra_limpia = ''.join(c for c in palabra if c.isalnum())
                 if len(palabra_limpia) > 4 and palabra_limpia not in stopwords:
                     palabras_importantes[palabra_limpia] += 1
-        
+
         # Tomar las 10 palabras más frecuentes
         self.conceptos_clave = sorted(
             palabras_importantes.items(),
             key=lambda x: x[1],
             reverse=True
         )[:10]
-    
+
     def obtener_resumen_estructurado(self):
         """Retorna un resumen estructurado del conocimiento."""
         partes = []
-        
+
         if self.categorias.get("definiciones"):
             partes.append("DEFINICIONES CLAVE:")
             for def_ in self.categorias["definiciones"][:3]:
                 partes.append(f"- {def_}")
-        
+
         if self.categorias.get("mejores_practicas"):
             partes.append("\nMEJORES PRÁCTICAS:")
             for practica in self.categorias["mejores_practicas"][:3]:
                 partes.append(f"- {practica}")
-        
+
         if self.conceptos_clave:
             partes.append("\nCONCEPTOS PRINCIPALES:")
             for concepto, _ in self.conceptos_clave[:5]:
                 partes.append(f"- {concepto}")
-        
+
         return "\n".join(partes) if partes else self.texto_original[:200] + "..."
-    
+
     def buscar_informacion_relevante(self, pregunta):
         """Busca información relevante para una pregunta específica."""
         palabras_pregunta = set(pregunta.lower().split())
         relevantes = []
-        
+
         # Buscar en todas las categorías
         for categoria, oraciones in self.categorias.items():
             for oracion in oraciones:
@@ -268,10 +268,10 @@ class ConocimientoEstructurado:
                 coincidencias = len(palabras_pregunta.intersection(palabras_oracion))
                 if coincidencias > 0:
                     relevantes.append((coincidencias, oracion, categoria))
-        
+
         # Ordenar por relevancia
         relevantes.sort(key=lambda x: x[0], reverse=True)
-        
+
         return [
             {"texto": texto, "categoria": cat, "relevancia": rel}
             for rel, texto, cat in relevantes[:5]
@@ -282,7 +282,7 @@ def inicializar_db():
     """Crea el archivo JSON de base de datos si no existe (solo modo JSON)."""
     if USE_SQLITE:
         return
-        
+
     with db_lock:
         if not os.path.exists(DB_FILE):
             datos_iniciales = {
@@ -314,7 +314,7 @@ def cargar_datos():
     if USE_SQLITE:
         clones = db_cargar_clones()
         return {"clones": clones}
-    
+
     with db_lock:
         inicializar_db()
         with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -332,7 +332,7 @@ def guardar_datos(datos):
                 clon_data["conocimiento"]
             )
         return
-    
+
     with db_lock:
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(datos, f, indent=4, ensure_ascii=False)
@@ -348,13 +348,13 @@ def crear_clon(id_clon, nombre, especialidad, conocimiento):
         db_guardar_clone(id_clon, nombre, especialidad, conocimiento)
         print(f"\n[OK] Clon digital '{nombre}' ({especialidad}) creado con exito!")
         return True
-    
+
     datos = cargar_datos()
-    
+
     if id_clon in datos["clones"]:
         print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")
         return False
-        
+
     datos["clones"][id_clon] = {
         "nombre": nombre,
         "especialidad": especialidad,
@@ -374,32 +374,32 @@ def consultar_clon_offline(clon, pregunta, session_id=None):
     especialidad = clon["especialidad"]
     nombre = clon["nombre"]
     clon_id = None
-    
+
     # Obtener el ID del clon si está en los datos
     datos = cargar_datos()
     for cid, cdata in datos["clones"].items():
         if cdata["nombre"] == nombre:
             clon_id = cid
             break
-    
+
     if not clon_id:
         clon_id = nombre.lower().replace(" ", "_")
-    
+
     # Crear o cargar memoria de conversación
     memoria = ConversacionMemoria(clon_id, session_id)
-    
+
     # Analizar conocimiento estructurado
     conocimiento_estructurado = ConocimientoEstructurado(conocimiento)
-    
+
     # Buscar información relevante
     info_relevante = conocimiento_estructurado.buscar_informacion_relevante(pregunta)
-    
+
     # Buscar memorias de éxito similares
     memorias_similares = memoria.buscar_memorias_similares(pregunta)
-    
+
     # Construir respuesta
     partes_respuesta = []
-    
+
     # Saludo con contexto de sesión
     if memoria.contexto.get("total_interacciones", 0) == 0:
         partes_respuesta.append(f"Hola, soy el clon digital de {nombre}, especialista en {especialidad}.")
@@ -407,38 +407,38 @@ def consultar_clon_offline(clon, pregunta, session_id=None):
     else:
         total = memoria.contexto.get("total_interacciones", 0)
         partes_respuesta.append(f"Continuando nuestra conversación (interacción #{total + 1}):")
-    
+
     # Agregar contexto de conversación reciente
     contexto_conversacion = memoria.obtener_contexto_para_prompt()
     if contexto_conversacion:
         partes_respuesta.append("\n" + contexto_conversacion)
-    
+
     # Agregar información relevante encontrada
     if info_relevante:
         partes_respuesta.append("\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:")
         for info in info_relevante[:2]:
             partes_respuesta.append(f"- [{info['categoria'].upper()}] {info['texto']}")
-    
+
     # Agregar memorias de éxito similares
     if memorias_similares:
         partes_respuesta.append("\nRESPUESTAS ANTERIORES QUE FUNCIONARON BIEN:")
         for memoria_sim in memorias_similares[:1]:
             partes_respuesta.append(f"- Pregunta similar: {memoria_sim['pregunta']}")
             partes_respuesta.append(f"  Mi respuesta: {memoria_sim['respuesta'][:150]}...")
-    
+
     # Si no se encontró información específica, usar conocimiento general
     if not info_relevante:
         partes_respuesta.append("\nMi conocimiento general sobre " + especialidad + ":")
         partes_respuesta.append(conocimiento[:200] + "...")
-    
+
     # Pie de página
     partes_respuesta.append("\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)")
-    
+
     respuesta_completa = "\n".join(partes_respuesta)
-    
+
     # Guardar interacción en memoria
     memoria.agregar_interaccion(pregunta, respuesta_completa, exitosa=True)
-    
+
     return respuesta_completa
 
 
@@ -446,11 +446,11 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
     """Consulta al clon con contexto de memoria y conocimiento estructurado."""
     model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-    
+
     nombre = clon["nombre"]
     especialidad = clon["especialidad"]
     conocimiento = clon["conocimiento"]
-    
+
     # Obtener el ID del clon
     clon_id = None
     datos = cargar_datos()
@@ -458,23 +458,23 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
         if cdata["nombre"] == nombre:
             clon_id = cid
             break
-    
+
     if not clon_id:
         clon_id = nombre.lower().replace(" ", "_")
-    
+
     # Crear o cargar memoria de conversación
     memoria = ConversacionMemoria(clon_id, session_id)
-    
+
     # Analizar conocimiento estructurado
     conocimiento_estructurado = ConocimientoEstructurado(conocimiento)
     resumen_estructurado = conocimiento_estructurado.obtener_resumen_estructurado()
-    
+
     # Obtener contexto de conversación
     contexto_conversacion = memoria.obtener_contexto_para_prompt()
-    
+
     # Buscar memorias de éxito similares
     memorias_similares = memoria.buscar_memorias_similares(pregunta)
-    
+
     # Construir prompt mejorado
     prompt_parts = [
         f"Eres el clon digital de {nombre}, experto en {especialidad}.",
@@ -483,16 +483,16 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
         "\nTu conocimiento completo es:",
         f"\"\"\"\n{conocimiento}\n\"\"\""
     ]
-    
+
     if contexto_conversacion:
         prompt_parts.append(f"\n{contexto_conversacion}")
-    
+
     if memorias_similares:
         prompt_parts.append("\nMEMORIAS DE RESPUESTAS EXITOSAS ANTERIORES:")
         for memoria_sim in memorias_similares[:2]:
             prompt_parts.append(f"- Pregunta: {memoria_sim['pregunta']}")
             prompt_parts.append(f"  Respuesta exitosa: {memoria_sim['respuesta'][:200]}")
-    
+
     prompt_parts.extend([
         "\nInstrucción: Responde a la pregunta del usuario utilizando tu conocimiento.",
         "Si es relevante, referencia interacciones anteriores de esta conversación.",
@@ -500,9 +500,9 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
         f"\nPregunta del usuario: {pregunta}",
         "\nRespuesta del clon:"
     ])
-    
+
     prompt = "\n".join(prompt_parts)
-    
+
     headers = {
         "Content-Type": "application/json",
         "x-goog-api-key": api_key
@@ -512,21 +512,21 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
             "parts": [{"text": prompt}]
         }]
     }
-    
+
     try:
         req = urllib.request.Request(
-            url, 
-            data=json.dumps(body).encode("utf-8"), 
-            headers=headers, 
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers=headers,
             method="POST"
         )
         with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
             respuesta = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            
+
             # Guardar interacción exitosa en memoria
             memoria.agregar_interaccion(pregunta, respuesta, exitosa=True)
-            
+
             return respuesta
     except Exception as e:
         error_msg = f"Error al conectar con la API de Gemini: {e}\nCausa: Asegúrate de que tu GEMINI_API_KEY sea correcta."
@@ -540,10 +540,10 @@ def consultar_clon(id_clon, pregunta, session_id=None):
     if id_clon not in datos["clones"]:
         print(f"\n[ERROR] El clon '{id_clon}' no existe.")
         return None
-        
+
     clon = datos["clones"][id_clon]
     api_key = os.environ.get("GEMINI_API_KEY")
-    
+
     if api_key:
         return consultar_clon_online(clon, pregunta, api_key, session_id)
     else:
@@ -565,14 +565,14 @@ def limpiar_memoria_conversacion(id_clon, session_id=None):
 def obtener_estadisticas_clon(id_clon):
     """Obtiene estadísticas de uso de un clon."""
     memoria = ConversacionMemoria(id_clon)
-    
+
     stats = {
         "total_interacciones": len(memoria.historial),
         "memorias_exito": len(memoria.memorias_exito),
         "temas_mas_frecuentes": [],
         "ultima_interaccion": None
     }
-    
+
     if memoria.contexto.get("temas"):
         temas_ordenados = sorted(
             memoria.contexto["temas"].items(),
@@ -580,10 +580,10 @@ def obtener_estadisticas_clon(id_clon):
             reverse=True
         )[:5]
         stats["temas_mas_frecuentes"] = [{"tema": t, "frecuencia": f} for t, f in temas_ordenados]
-    
+
     if memoria.historial:
         stats["ultima_interaccion"] = memoria.historial[-1].get("timestamp")
-    
+
     return stats
 
 
@@ -600,15 +600,15 @@ def menu():
         print("5. Ver estadísticas de un clon")
         print("6. Limpiar memoria de conversación")
         print("7. Salir")
-        
+
         opcion = input("\nSelecciona una opción (1-7): ").strip()
-        
+
         if opcion == "1":
             datos = cargar_datos()
             print("\n--- CLONES REGISTRADOS EN LA PLATAFORMA ---")
             for cid, info in datos["clones"].items():
                 print(f"- ID: {cid} | Nombre: {info['nombre']} | Especialidad: {info['especialidad']}")
-                
+
         elif opcion == "2":
             print("\n--- REGISTRAR NUEVA HABILIDAD ---")
             id_clon = input("ID único del clon (ej. juan_seo): ").strip().lower()
@@ -616,19 +616,19 @@ def menu():
             especialidad = input("Especialidad del clon: ").strip()
             print("Escribe o pega la base de conocimiento (máx. 1000 palabras):")
             conocimiento = input("> ").strip()
-            
+
             if id_clon and nombre and especialidad and conocimiento:
                 crear_clon(id_clon, nombre, especialidad, conocimiento)
             else:
                 print("\n[AVISO] Todos los campos son obligatorios.")
-                
+
         elif opcion == "3":
             datos = cargar_datos()
             print("\n--- SELECCIONA UN CLON PARA CONSULTAR ---")
             clones_disponibles = list(datos["clones"].keys())
             for idx, cid in enumerate(clones_disponibles, 1):
                 print(f"{idx}. {cid} ({datos['clones'][cid]['especialidad']})")
-                
+
             sel = input("\nSelecciona el número del clon: ").strip()
             try:
                 clon_idx = int(sel) - 1
@@ -636,7 +636,7 @@ def menu():
                     id_clon = clones_disponibles[clon_idx]
                     session_id = str(uuid.uuid4())
                     print(f"\nNueva sesión iniciada: {session_id[:8]}...")
-                    
+
                     while True:
                         pregunta = input(f"\nPregunta para el clon de {id_clon} (o 'salir' para terminar sesión): ").strip()
                         if pregunta.lower() in ['salir', 'exit', 'quit']:
@@ -649,21 +649,21 @@ def menu():
                     print("\n[AVISO] Seleccion invalida.")
             except ValueError:
                 print("\n[AVISO] Debe ingresar un numero.")
-                
+
         elif opcion == "4":
             datos = cargar_datos()
             print("\n--- VER HISTORIAL DE CONVERSACIÓN ---")
             clones_disponibles = list(datos["clones"].keys())
             for idx, cid in enumerate(clones_disponibles, 1):
                 print(f"{idx}. {cid}")
-            
+
             sel = input("\nSelecciona el número del clon: ").strip()
             try:
                 clon_idx = int(sel) - 1
                 if 0 <= clon_idx < len(clones_disponibles):
                     id_clon = clones_disponibles[clon_idx]
                     historial = obtener_historial_conversacion(id_clon)
-                    
+
                     if not historial:
                         print(f"\nNo hay historial de conversación para {id_clon}.")
                     else:
@@ -674,42 +674,42 @@ def menu():
                             print(f"   R: {interaccion['respuesta'][:100]}...")
             except ValueError:
                 print("\n[AVISO] Debe ingresar un numero.")
-        
+
         elif opcion == "5":
             datos = cargar_datos()
             print("\n--- VER ESTADÍSTICAS DE UN CLON ---")
             clones_disponibles = list(datos["clones"].keys())
             for idx, cid in enumerate(clones_disponibles, 1):
                 print(f"{idx}. {cid}")
-            
+
             sel = input("\nSelecciona el número del clon: ").strip()
             try:
                 clon_idx = int(sel) - 1
                 if 0 <= clon_idx < len(clones_disponibles):
                     id_clon = clones_disponibles[clon_idx]
                     stats = obtener_estadisticas_clon(id_clon)
-                    
+
                     print(f"\n--- ESTADÍSTICAS DE {id_clon} ---")
                     print(f"Total de interacciones: {stats['total_interacciones']}")
                     print(f"Memorias de éxito: {stats['memorias_exito']}")
-                    
+
                     if stats['temas_mas_frecuentes']:
                         print("\nTemas más frecuentes:")
                         for tema in stats['temas_mas_frecuentes']:
                             print(f"  - {tema['tema']}: {tema['frecuencia']} veces")
-                    
+
                     if stats['ultima_interaccion']:
                         print(f"\nÚltima interacción: {stats['ultima_interaccion']}")
             except ValueError:
                 print("\n[AVISO] Debe ingresar un numero.")
-        
+
         elif opcion == "6":
             datos = cargar_datos()
             print("\n--- LIMPIAR MEMORIA DE CONVERSACIÓN ---")
             clones_disponibles = list(datos["clones"].keys())
             for idx, cid in enumerate(clones_disponibles, 1):
                 print(f"{idx}. {cid}")
-            
+
             sel = input("\nSelecciona el número del clon: ").strip()
             try:
                 clon_idx = int(sel) - 1
@@ -719,7 +719,7 @@ def menu():
                     print(f"\n✅ Memoria de conversación limpiada para {id_clon}.")
             except ValueError:
                 print("\n[AVISO] Debe ingresar un numero.")
-                
+
         elif opcion == "7":
             print("\n¡Gracias por usar SkillTwin! Cerrando motor de desarrollo...")
             break
