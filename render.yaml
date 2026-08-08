@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: cd cerebro && python server.py
+    startCommand: python -c "from dep_operaciones.database import init_database, migrar_json_a_sqlite; init_database(); migrar_json_a_sqlite()" && cd cerebro && python server.py
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
