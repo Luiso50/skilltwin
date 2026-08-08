@@ -789,6 +789,8 @@
           </div>
         </div>
 
+        <div id="notifications-container" class="notifications" style="margin-top: 20px;"></div>
+
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.9rem;">
           <p><strong>💡 Tip:</strong> Las órdenes se procesan automáticamente a través de nuestros departamentos.</p>
           <p style="margin-top: 8px; color: var(--text-secondary);">El sistema te enviará notificaciones en cada etapa.</p>
@@ -1023,7 +1025,9 @@
       if (!email) return;
 
       try {
-        const res = await fetch(`${API_BASE}/ordenes?email=${encodeURIComponent(email)}`);
+        const res = await fetch(`${API_BASE}/ordenes`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
         const data = await res.json();
         renderOrdenes(data.ordenes || []);
         loadNotificaciones(email);
@@ -1226,7 +1230,9 @@
       if (!email) return;
 
       try {
-        const res = await fetch(`${API_BASE}/notificaciones?email=${encodeURIComponent(email)}`);
+        const res = await fetch(`${API_BASE}/notificaciones`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
         const data = await res.json();
         renderNotificaciones(data.notificaciones || []);
       } catch (err) {

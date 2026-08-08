@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN chown -R skilltwin:skilltwin /app
+RUN chmod +x docker-entrypoint.sh && chown -R skilltwin:skilltwin /app
 
 # Switch to non-root user
 USER skilltwin
@@ -23,6 +23,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 EXPOSE 8000
 
-WORKDIR /app/cerebro
-
-CMD ["python", "server.py"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
