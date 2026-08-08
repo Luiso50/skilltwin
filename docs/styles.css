@@ -115,6 +115,20 @@ select {
   color: var(--text);
 }
 
+.site-nav .nav-login {
+  background: var(--primary);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.site-nav .nav-login:hover {
+  background: #ff9a45;
+  color: #fff;
+}
+
 .hero {
   padding: 4rem 0 3rem;
 }
