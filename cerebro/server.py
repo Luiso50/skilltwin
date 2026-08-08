@@ -9,6 +9,7 @@ import urllib.request
 import logging
 import time
 import uuid
+import threading
 from datetime import datetime
 
 
@@ -18,6 +19,7 @@ _metrics = {
     "start_time": time.time(),
     "response_times": []
 }
+_metrics_lock = threading.Lock()
 
 
 def load_dotenv():
@@ -45,9 +47,10 @@ def _generate_request_id():
 
 
 def _record_response_time(duration):
-    _metrics["response_times"].append(duration)
-    if len(_metrics["response_times"]) > 1000:
-        _metrics["response_times"] = _metrics["response_times"][-500:]
+    with _metrics_lock:
+        _metrics["response_times"].append(duration)
+        if len(_metrics["response_times"]) > 1000:
+            _metrics["response_times"] = _metrics["response_times"][-500:]
 
 
 def _get_uptime():
@@ -55,7 +58,8 @@ def _get_uptime():
 
 
 def _get_avg_response_time():
-    times = _metrics["response_times"]
+    with _metrics_lock:
+        times = list(_metrics["response_times"])
     return round(sum(times) / len(times) * 1000, 2) if times else 0
 
 
@@ -231,9 +235,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         
         duration = time.time() - getattr(self, '_start_time', time.time())
         _record_response_time(duration)
-        _metrics["requests_total"] += 1
-        if status >= 400:
-            _metrics["errors_total"] += 1
+        with _metrics_lock:
+            _metrics["requests_total"] += 1
+            if status >= 400:
+                _metrics["errors_total"] += 1
         
         logger.info(f"{self.path} -> {status} ({len(json_data)} bytes, {duration*1000:.1f}ms)")
     
@@ -272,6 +277,18 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         if user_data:
             return user_data
         self.send_error_response("Sesión inválida. Inicia sesión para continuar.", 401)
+        return None
+
+    def require_customer_or_admin(self):
+        """Require admin token or customer session. Retorna dict con 'role' y datos."""
+        auth_header = self.headers.get('Authorization', '')
+        token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
+        if security.validate_admin_token(token):
+            return {"role": "admin"}
+        user_data = security.get_session_user(token)
+        if user_data:
+            return {"role": "customer", **user_data}
+        self.send_error_response("No autorizado.", 401)
         return None
     
     def do_OPTIONS(self):
@@ -330,17 +347,21 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('X-Request-ID', self.request_id)
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
-            _metrics["errors_total"] += 1
+            with _metrics_lock:
+                _metrics["errors_total"] += 1
             return
             
         if self.path == '/api/health':
             import platform
+            with _metrics_lock:
+                req_total = _metrics["requests_total"]
+                err_total = _metrics["errors_total"]
             self.send_json_response({
                 "status": "ok",
                 "service": "skilltwin",
                 "uptime_seconds": _get_uptime(),
-                "requests_total": _metrics["requests_total"],
-                "errors_total": _metrics["errors_total"],
+                "requests_total": req_total,
+                "errors_total": err_total,
                 "avg_response_ms": _get_avg_response_time(),
                 "python_version": platform.python_version(),
                 "database": "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json"
@@ -424,12 +445,16 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/clones-list: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/ordenes'):
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             try:
-                query_params = urllib.parse.urlparse(self.path).query
-                params = urllib.parse.parse_qs(query_params)
-                cliente_email = params.get('email', [None])[0]
+                if auth_data["role"] == "admin":
+                    query_params = urllib.parse.urlparse(self.path).query
+                    params = urllib.parse.parse_qs(query_params)
+                    cliente_email = params.get('email', [None])[0]
+                else:
+                    cliente_email = auth_data.get("email")
                 
                 ordenes = gestor_ordenes.listar_ordenes(cliente_email)
                 self.send_json_response({"ordenes": ordenes})
@@ -437,12 +462,16 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/ordenes: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/notificaciones'):
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             try:
-                query_params = urllib.parse.urlparse(self.path).query
-                params = urllib.parse.parse_qs(query_params)
-                cliente_email = params.get('email', [None])[0]
+                if auth_data["role"] == "admin":
+                    query_params = urllib.parse.urlparse(self.path).query
+                    params = urllib.parse.parse_qs(query_params)
+                    cliente_email = params.get('email', [None])[0]
+                else:
+                    cliente_email = auth_data.get("email")
                 
                 if cliente_email:
                     notificaciones = gestor_ordenes.obtener_notificaciones_no_leidas(cliente_email)
@@ -631,7 +660,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('X-Request-ID', self.request_id)
             self.end_headers()
             self.wfile.write(json.dumps({"error": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."}).encode('utf-8'))
-            _metrics["errors_total"] += 1
+            with _metrics_lock:
+                _metrics["errors_total"] += 1
             return
         
         # Validar Content-Type para endpoints que esperan JSON
@@ -642,7 +672,9 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
         if self.path == '/api/command':
-            if not self.require_admin():
+            if not self.require_customer_or_admin():
+                return
+            if not self.require_csrf():
                 return
             try:
                 data = self.read_json_body()
@@ -654,6 +686,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/crear-orden':
             if not self.require_admin():
+                return
+            if not self.require_csrf():
                 return
             try:
                 data = self.read_json_body()
@@ -749,6 +783,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/procesar-pago':
             if not self.require_admin():
                 return
+            if not self.require_csrf():
+                return
             try:
                 data = self.read_json_body()
                 factura_id = data.get("factura_id", "").strip()
@@ -776,6 +812,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/agregar-rating':
             if not self.require_admin():
                 return
+            if not self.require_csrf():
+                return
             try:
                 data = self.read_json_body()
                 orden_id = security.sanitize_string(data.get("orden_id", ""), 50)
@@ -800,6 +838,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 session_id = self.headers.get('X-Session-ID', '')
                 if csrf_token and not security.validate_csrf_token(csrf_token, session_id):
                     logger.warning(f"CSRF token inválido desde {security.get_client_ip(self)}")
+                    self.send_error_response("CSRF token inválido", 403)
+                    return
 
                 data = self.read_json_body()
                 nombre = security.sanitize_string(data.get("nombre", ""), 100)
@@ -841,6 +881,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/settings':
             if not self.require_admin():
+                return
+            if not self.require_csrf():
                 return
                 
             try:

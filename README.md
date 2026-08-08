@@ -8,8 +8,8 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 
 - **Estructura:** Arquitectura modular completamente establecida
 - **Backend:** Servidor Python HTTP con 25+ endpoints (server.py)
-- **Frontend:** Dashboard, panel admin, portal de clientes, landing page
-- **Auth:** Registro/login de usuarios con hash de passwords (bcrypt)
+- **Frontend:** Dashboard, panel admin, portal de clientes, landing page, login
+- **Auth:** Registro/login de usuarios con hash de passwords (bcrypt), token-based auth
 - **Tests:** 150 pruebas (unitarias + integracion) cubriendo los modulos principales
 - **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de produccion.
 
@@ -17,6 +17,7 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 
 - landing publica lista para GitHub Pages
 - dashboard local con servidor Python
+- sistema de login/logout con token-based auth y redireccion automatica
 - motor de clonacion de habilidades y consultas a clones
 - capa legal para contratos y politicas
 - operaciones para ordenes, pagos, ratings y alertas
@@ -49,7 +50,7 @@ skilltwin/
 
 ## Stack Tecnico
 
-- **Backend:** Python (`http.server`, SQLite y threading)
+- **Backend:** Python (`http.server`, SQLite, threading, security module)
 - **Frontend:** HTML, CSS, JavaScript (Chart.js)
 - **Integracion IA:** Gemini API (opcional, funciona offline)
 - **DevOps:** Docker, scripts PowerShell/Bash
@@ -105,6 +106,7 @@ Migracion automatica desde JSON: `python -c "from dep_operaciones.database impor
 ## Funcionalidades Clave
 
 - 12 clones de IA en 10 industrias (COBOL, Finanzas, Ciberseguridad, UX, Data Science, Legal, Ventas, Salud, Cloud/DevOps, IP/Patentes, RRHH, Manufactura)
+- Sistema de login/logout con token-based auth y redireccion automatica
 - Enrutamiento inteligente de comandos via Gemini AI
 - Orquestacion automatizada de ordenes (Legal -> Desarrollo -> Operaciones -> Entrega)
 - Dashboards financieros con flujo de caja, cuentas por cobrar y pagar
@@ -196,9 +198,10 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 - Rate limiting configurable (default: 30 req/min por IP, con `Retry-After` header)
 - CORS configurable via `SKILLTWIN_CORS_ORIGINS` (default: `*`)
 - Sanitizacion de inputs (proteccion XSS)
-- Proteccion CSRF para formularios (logging de intentos invalidos)
+- Proteccion CSRF activada en endpoints POST sensibles (command, crear-orden, procesar-pago, agregar-rating, settings)
 - Autenticacion administrativa obligatoria y tokens con expiracion
 - Autenticacion de clientes con session tokens (register/login/me)
+- Autenticacion dual para clientes: endpoints de ordenes/notificaciones aceptan admin o customer tokens
 - Hash de passwords con bcrypt (no texto plano)
 - Autorizacion para datos financieros, ordenes, facturas, reportes y pagos
 - Autenticacion requerida en `/api/stripe/confirm-session`
@@ -212,6 +215,7 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 - Cache en memoria con TTL para endpoints de clones
 - Logging estructurado con request IDs para trazabilidad
 - Health endpoint con metricas de uptime, errores y tiempo de respuesta
+- Thread safety en metricas del servidor (threading.Lock)
 
 ## CI/CD
 
@@ -241,15 +245,17 @@ Archivos de workflow:
 
 1. Entra en `/cerebro/`.
 2. Ejecuta `python server.py`.
-3. Abre `http://localhost:8000`.
-4. Configura `SKILLTWIN_ADMIN_SECRET` en `.env` antes de iniciar el servidor (obligatorio, no acepta valores triviales).
-5. Si tienes acceso a Gemini, configura `GEMINI_API_KEY` en `.env`.
+3. Abre `http://localhost:8000/login.html`.
+4. Inicia sesion con tu cuenta de cliente o crea una nueva.
+5. Configura `SKILLTWIN_ADMIN_SECRET` en `.env` antes de iniciar el servidor (obligatorio, no acepta valores triviales).
+6. Si tienes acceso a Gemini, configura `GEMINI_API_KEY` en `.env`.
 
 El servidor guarda configuracion local (comision, modelo) en `server_settings.json`. La API key de Gemini se gestiona exclusivamente via variables de entorno por seguridad.
 
 ## Entradas principales
 
-- Dashboard: `http://localhost:8000`
+- Login: `http://localhost:8000/login.html`
+- Dashboard: `http://localhost:8000` (requiere login)
 - Portal de clientes: `http://localhost:8000/client-portal.html`
 - Panel admin: `http://localhost:8000/admin-dashboard.html`
 
@@ -288,6 +294,8 @@ GitHub Pages solo cubre la parte estatica. Para ejecutar el backend Python en la
 1. Construye la imagen: `docker build -t skilltwin .`
 2. Ejecuta el contenedor: `docker run --rm -e SKILLTWIN_ADMIN_SECRET="<secreto-seguro>" -p 8000:8000 skilltwin`
 3. Abre `http://localhost:8000`
+
+El entrypoint ejecuta automaticamente la migracion SQLite si `SKILLTWIN_USE_SQLITE=1`.
 
 ### Opcion con Docker Compose (recomendado para produccion)
 
@@ -385,6 +393,16 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - [x] Schema DB expandido (facturas 17 cols, transacciones 13 cols)
 - [x] Auth en /api/stripe/confirm-session
 - [x] Guardar cuentas_cobrar/pagar en SQLite
+- [x] Login/logout con token-based auth y redireccion automatica
+- [x] CSRF activado en endpoints POST sensibles
+- [x] Thread safety en metricas del servidor
+- [x] Docker entrypoint funcional (migracion SQLite + start server)
+- [x] Portal de clientes con autenticacion de customer tokens
+- [x] Proteccion XSS en chat bubbles (escapeHtml)
+- [x] Formulario de registro en login.html (crear cuenta para clientes nuevos)
+- [x] Chat del Cerebro Central habilitado para usuarios customer (no solo admin)
+- [x] Correccion de token CSRF (se renueva en cada request, sin cache)
+- [x] Correccion de variable duplicada headerTitle en app.js
 - [ ] Crear cuenta en Render y configurar secrets
 - [ ] Configurar webhook de Stripe en produccion
 - [ ] Integracion con OAuth2 para admin
@@ -396,8 +414,11 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - repositorio publicado y preparado para GitHub Pages
 - landing publica con branding, logo y formulario de contacto
 - dashboard local funcional con rutas operativas
-- portal publico para solicitudes comerciales; el acceso a ordenes y pagos requiere cuentas de cliente
+- portal publico para solicitudes comerciales con autenticacion de clientes
 - autenticacion de usuarios completa (register/login/me) con bcrypt
+- formulario de registro integrado en login.html para clientes nuevos
+- login/logout con token-based auth y redireccion automatica a login
+- chat del Cerebro Central funcional para usuarios customer y admin
 - integracion Stripe Checkout con importes validados en servidor (requiere API keys)
 - webhook de Stripe con validacion de firma
 - despliegue automatizado configurado (requiere cuenta en Render)
@@ -410,6 +431,10 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - Logging estructurado con request IDs
 - Health endpoint con metricas de uptime y errores
 - Rate limiting configurable con Retry-After header
+- CSRF activado en endpoints POST sensibles
+- Thread safety en metricas del servidor (threading.Lock)
+- Docker entrypoint funcional con migracion SQLite automatica
+- Proteccion XSS en chat bubbles (escapeHtml)
 - Documentacion completa de la API (docs/API.md)
 - Schema de base de datos completo (facturas 17 cols, transacciones 13 cols, users)
 - Indices optimizados para consultas frecuentes

@@ -219,9 +219,103 @@
       </form>
 
       <a href="#" id="forgot-link" class="forgot-password">¿Olvidaste tu contraseña?</a>
+      
+      <div style="text-align:center; margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--panel-border);">
+        <span style="color:var(--text-secondary); font-size:0.85rem;">¿No tienes cuenta? </span>
+        <a href="#" id="register-link" style="color:var(--color-cerebro); font-size:0.85rem; text-decoration:none; font-weight:500;">Crear cuenta</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Registro -->
+  <div id="register-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:20px; padding:2.5rem; width:100%; max-width:420px; margin:1.5rem;">
+      <h2 style="color:var(--text-primary); margin-bottom:1.5rem; text-align:center;">Crear Cuenta</h2>
+      <form id="register-form" novalidate>
+        <div class="form-group">
+          <label for="reg-name">Nombre</label>
+          <input type="text" id="reg-name" class="form-input" placeholder="Tu nombre" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Correo electrónico</label>
+          <input type="email" id="reg-email" class="form-input" placeholder="tu@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Contraseña</label>
+          <input type="password" id="reg-password" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8">
+        </div>
+        <div id="reg-error" style="display:none; color:var(--color-marketing); font-size:0.8rem; margin-bottom:1rem;"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Registrar</button>
+          <button type="button" id="cancel-register" class="btn btn-secondary">Cancelar</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script src="login.js"></script>
+  <script>
+    // Registro
+    const registerLink = document.getElementById('register-link');
+    const registerModal = document.getElementById('register-modal');
+    const cancelRegister = document.getElementById('cancel-register');
+    const registerForm = document.getElementById('register-form');
+    const regError = document.getElementById('reg-error');
+
+    registerLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      registerModal.style.display = 'flex';
+    });
+
+    cancelRegister.addEventListener('click', () => {
+      registerModal.style.display = 'none';
+      registerForm.reset();
+      regError.style.display = 'none';
+    });
+
+    registerModal.addEventListener('click', (e) => {
+      if (e.target === registerModal) {
+        registerModal.style.display = 'none';
+        registerForm.reset();
+        regError.style.display = 'none';
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      if (!name || !email || !password) {
+        regError.textContent = 'Todos los campos son obligatorios';
+        regError.style.display = 'block';
+        return;
+      }
+      if (password.length < 8) {
+        regError.textContent = 'La contraseña debe tener al menos 8 caracteres';
+        regError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre: name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al registrar');
+        
+        // Registro exitoso - login automático
+        localStorage.setItem('skilltwin_token', data.token);
+        localStorage.setItem('skilltwin_user', JSON.stringify(data.user));
+        window.location.href = 'home.html';
+      } catch (err) {
+        regError.textContent = err.message;
+        regError.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 </html>

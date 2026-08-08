@@ -48,6 +48,16 @@ window.fetch = async (resource, options = {}) => {
   const headers = new Headers(options.headers || {});
   headers.set("Authorization", `Bearer ${token}`);
   headers.set("Content-Type", "application/json");
+
+  // Inyectar CSRF token para requests POST/PUT/DELETE
+  const method = (options.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
+    const csrf = await getCsrfToken();
+    if (csrf.token) {
+      headers.set("X-CSRF-Token", csrf.token);
+      headers.set("X-Session-ID", csrf.sessionId);
+    }
+  }
   
   return nativeFetch(resource, { ...options, headers });
 };
@@ -77,6 +87,30 @@ window.logout = function() {
   localStorage.removeItem("skilltwin_user");
   window.location.href = "login.html";
 };
+
+// ======================================================================
+// CSRF TOKEN MANAGEMENT
+// ======================================================================
+
+let _csrfToken = null;
+let _csrfSessionId = null;
+
+async function getCsrfToken() {
+  try {
+    const res = await nativeFetch("/api/csrf-token");
+    const data = await res.json();
+    _csrfToken = data.token;
+    _csrfSessionId = data.session_id;
+    return { token: _csrfToken, sessionId: _csrfSessionId };
+  } catch {
+    return { token: null, sessionId: null };
+  }
+}
+
+function resetCsrfToken() {
+  _csrfToken = null;
+  _csrfSessionId = null;
+}
 
 // Toast notifications
 function showToast(message, type = 'info') {
@@ -203,12 +237,19 @@ document.addEventListener("DOMContentLoaded", () => {
     consoleLogs.scrollTop = consoleLogs.scrollHeight;
   }
 
+  // Helper: Escape HTML to prevent XSS
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
   // Helper: Append Chat Bubble
   function addChatBubble(sender, text) {
     if (!chatBox) return;
     const bubble = document.createElement("div");
     bubble.className = `chat-bubble ${sender === 'user' ? 'user-msg' : 'cerebro-msg'}`;
-    bubble.innerHTML = text.replace(/\n/g, "<br>");
+    bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
     chatBox.appendChild(bubble);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
@@ -273,9 +314,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (error) {
       console.error("Error al enviar comando:", error);
-      addChatBubble("cerebro", "❌ Error de Conexión: No se pudo contactar con el Cerebro Central. Asegúrate de tener corriendo `server.py`.");
-      addLog("cerebro", `ERROR: ${error.message}`);
-      showToast("Error de conexión con el servidor", "error");
+      if (error.message && error.message.includes("Sesión expirada")) {
+        addChatBubble("cerebro", "Tu sesión ha expirado. Redirigiendo al login...");
+        setTimeout(() => { window.location.href = "login.html"; }, 1500);
+      } else if (error.message && error.message.includes("status: 401")) {
+        addChatBubble("cerebro", "Sesión no válida. Redirigiendo al login...");
+        localStorage.removeItem("skilltwin_token");
+        localStorage.removeItem("skilltwin_user");
+        setTimeout(() => { window.location.href = "login.html"; }, 1500);
+      } else {
+        addChatBubble("cerebro", "❌ Error de Conexión: No se pudo contactar con el Cerebro Central. Asegúrate de tener corriendo `server.py`.");
+        addLog("cerebro", `ERROR: ${error.message}`);
+        showToast("Error de conexión con el servidor", "error");
+      }
     } finally {
       cerebroActivity.textContent = "Estado: Escuchando órdenes...";
     }
@@ -710,7 +761,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Botón Diagnóstico Marketing
   const btnTestMarketing = document.getElementById("btn-test-marketing");
-  const marketNichoInput = document.getElementById("market-nicho-input");
   if (btnTestMarketing) {
     btnTestMarketing.addEventListener("click", () => {
       const nicho = marketNichoInput ? marketNichoInput.value.trim() : "";
@@ -859,9 +909,9 @@ document.addEventListener("DOMContentLoaded", () => {
   searchWrapper.appendChild(searchInput);
   searchWrapper.appendChild(searchResults);
   
-  const headerTitle = document.querySelector(".top-bar .page-title");
-  if (headerTitle) {
-    headerTitle.parentNode.insertBefore(searchWrapper, headerTitle.nextSibling);
+  const pageTitleEl = document.querySelector(".top-bar .page-title");
+  if (pageTitleEl) {
+    pageTitleEl.parentNode.insertBefore(searchWrapper, pageTitleEl.nextSibling);
   }
   
   async function searchClones(query) {
