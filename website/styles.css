@@ -121,11 +121,24 @@ select {
   padding: 0.5rem 1rem;
   border-radius: 999px;
   font-weight: 600;
-  margin-left: auto;
 }
 
 .site-nav .nav-login:hover {
   background: #ff9a45;
+  color: #fff;
+}
+
+.site-nav .nav-contact {
+  background: transparent;
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  border: 1px solid var(--primary);
+}
+
+.site-nav .nav-contact:hover {
+  background: var(--primary);
   color: #fff;
 }
 
