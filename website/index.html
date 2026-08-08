@@ -24,7 +24,8 @@
         <a href="#pricing">Planes</a>
         <a href="#departments">Departamentos</a>
         <a href="#contact">Contacto</a>
-        <a class="nav-login" href="http://localhost:8000/login.html">Iniciar sesión</a>
+        <a class="nav-login" href="../cerebro/login.html">Iniciar sesión</a>
+        <a class="nav-login" href="../cerebro/index.html">Dashboard</a>
       </nav>
     </div>
   </header>
@@ -37,7 +38,7 @@
           <h2>Transforma conocimiento experto en un activo digital operable, vendible y gobernado.</h2>
           <p>SkillTwin empaqueta experiencia profesional en gemelos digitales listos para demo, operación y monetización, con una capa unificada de orquestación, cumplimiento legal y visibilidad financiera.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="http://localhost:8000/login.html">Iniciar sesión</a>
+            <a class="button button-primary" href="../cerebro/login.html">Iniciar sesión</a>
             <a class="button button-secondary" href="#contact">Contactar ventas</a>
           </div>
           <div class="hero-metrics" aria-label="Indicadores principales">
@@ -280,7 +281,7 @@
         <h3>Presenta SkillTwin como una startup operativa, no como una simple demo.</h3>
         <p>La base pública, el dashboard local y el flujo comercial ya están conectados para enseñar el proyecto con una narrativa más sólida ante clientes, socios o inversores.</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="http://localhost:8000/login.html">Iniciar sesión</a>
+          <a class="button button-primary" href="../cerebro/login.html">Iniciar sesión</a>
           <a class="button button-secondary" href="#contact">Contactar ventas</a>
         </div>
       </div>
@@ -328,13 +329,15 @@
           contactForm.reset();
           window.location.href = 'gracias.html';
         } catch (error) {
-          const subject = encodeURIComponent(`Solicitud de ${payload.nombre || 'cliente'} - SkillTwin`);
-          const body = encodeURIComponent(`Nombre: ${payload.nombre || ''}\nEmail: ${payload.email || ''}\nTeléfono: ${payload.telefono || ''}\nEmpresa: ${payload.empresa || ''}\nInterés: ${payload.interes || ''}\n\nMensaje:\n${payload.mensaje || ''}`);
-          window.location.href = `mailto:teamskiltwinhq@zohomail.com?subject=${subject}&body=${body}`;
           if (contactStatus) {
-            contactStatus.textContent = 'Se ha abierto tu cliente de correo para completar el contacto.';
+            contactStatus.textContent = 'Servidor no disponible. Abriendo cliente de correo...';
             contactStatus.className = 'form-status success';
           }
+          setTimeout(() => {
+            const subject = encodeURIComponent(`Solicitud de ${payload.nombre || 'cliente'} - SkillTwin`);
+            const body = encodeURIComponent(`Nombre: ${payload.nombre || ''}\nEmail: ${payload.email || ''}\nTeléfono: ${payload.telefono || ''}\nEmpresa: ${payload.empresa || ''}\nInterés: ${payload.interes || ''}\n\nMensaje:\n${payload.mensaje || ''}`);
+            window.location.href = `mailto:teamskiltwinhq@zohomail.com?subject=${subject}&body=${body}`;
+          }, 1500);
         }
       });
     }

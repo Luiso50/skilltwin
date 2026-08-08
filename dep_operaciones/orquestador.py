@@ -124,7 +124,7 @@ class OrquestadorAutonomo:
                 orden_id, "legal", "error",
                 f"Error al generar contrato: {str(e)}"
             )
-            print(f"[LEGAL] ❌ Error: {e}")
+            print(f"[LEGAL] [ERROR] {e}")
     
     def _procesar_etapa_desarrollo(self, orden_id, orden):
         """Procesa la etapa de desarrollo."""
@@ -165,7 +165,7 @@ class OrquestadorAutonomo:
                 orden_id, "desarrollo", "error",
                 f"Error en preparación del clon: {str(e)}"
             )
-            print(f"[DESARROLLO] ❌ Error: {e}")
+            print(f"[DESARROLLO] [ERROR] {e}")
     
     def _procesar_etapa_operaciones(self, orden_id, orden):
         """Procesa la etapa de operaciones (facturación y pagos)."""
@@ -227,7 +227,7 @@ class OrquestadorAutonomo:
                 orden_id, "operaciones", "error",
                 f"Error en facturación: {str(e)}"
             )
-            print(f"[OPERACIONES] ❌ Error: {e}")
+            print(f"[OPERACIONES] [ERROR] {e}")
     
     def _procesar_etapa_entrega(self, orden_id, orden):
         """Procesa la etapa final de entrega."""
@@ -254,7 +254,7 @@ class OrquestadorAutonomo:
                 orden_id, "entrega", "error",
                 f"Error en entrega: {str(e)}"
             )
-            print(f"[ENTREGA] ❌ Error: {e}")
+            print(f"[ENTREGA] [ERROR] {e}")
 
 
 # Instancia global del orquestador

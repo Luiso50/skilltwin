@@ -343,16 +343,16 @@ def crear_clon(id_clon, nombre, especialidad, conocimiento):
     if USE_SQLITE:
         existing = db_obtener_clone(id_clon)
         if existing:
-            print(f"\n⚠️ El identificador '{id_clon}' ya existe. Intenta con otro.")
+            print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")
             return False
         db_guardar_clone(id_clon, nombre, especialidad, conocimiento)
-        print(f"\n✅ ¡Clon digital '{nombre}' ({especialidad}) creado con éxito!")
+        print(f"\n[OK] Clon digital '{nombre}' ({especialidad}) creado con exito!")
         return True
     
     datos = cargar_datos()
     
     if id_clon in datos["clones"]:
-        print(f"\n⚠️ El identificador '{id_clon}' ya existe. Intenta con otro.")
+        print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")
         return False
         
     datos["clones"][id_clon] = {
@@ -538,7 +538,7 @@ def consultar_clon(id_clon, pregunta, session_id=None):
     """Orquesta la consulta decidiendo si usa el modo online u offline."""
     datos = cargar_datos()
     if id_clon not in datos["clones"]:
-        print(f"\n❌ El clon '{id_clon}' no existe.")
+        print(f"\n[ERROR] El clon '{id_clon}' no existe.")
         return None
         
     clon = datos["clones"][id_clon]
@@ -620,7 +620,7 @@ def menu():
             if id_clon and nombre and especialidad and conocimiento:
                 crear_clon(id_clon, nombre, especialidad, conocimiento)
             else:
-                print("\n⚠️ Todos los campos son obligatorios.")
+                print("\n[AVISO] Todos los campos son obligatorios.")
                 
         elif opcion == "3":
             datos = cargar_datos()
@@ -646,9 +646,9 @@ def menu():
                             respuesta = consultar_clon(id_clon, pregunta, session_id)
                             print(f"\nRespuesta:\n{respuesta}")
                 else:
-                    print("\n⚠️ Selección inválida.")
+                    print("\n[AVISO] Seleccion invalida.")
             except ValueError:
-                print("\n⚠️ Debe ingresar un número.")
+                print("\n[AVISO] Debe ingresar un numero.")
                 
         elif opcion == "4":
             datos = cargar_datos()
@@ -673,7 +673,7 @@ def menu():
                             print(f"   P: {interaccion['pregunta']}")
                             print(f"   R: {interaccion['respuesta'][:100]}...")
             except ValueError:
-                print("\n⚠️ Debe ingresar un número.")
+                print("\n[AVISO] Debe ingresar un numero.")
         
         elif opcion == "5":
             datos = cargar_datos()
@@ -701,7 +701,7 @@ def menu():
                     if stats['ultima_interaccion']:
                         print(f"\nÚltima interacción: {stats['ultima_interaccion']}")
             except ValueError:
-                print("\n⚠️ Debe ingresar un número.")
+                print("\n[AVISO] Debe ingresar un numero.")
         
         elif opcion == "6":
             datos = cargar_datos()
@@ -718,13 +718,13 @@ def menu():
                     limpiar_memoria_conversacion(id_clon)
                     print(f"\n✅ Memoria de conversación limpiada para {id_clon}.")
             except ValueError:
-                print("\n⚠️ Debe ingresar un número.")
+                print("\n[AVISO] Debe ingresar un numero.")
                 
         elif opcion == "7":
             print("\n¡Gracias por usar SkillTwin! Cerrando motor de desarrollo...")
             break
         else:
-            print("\n⚠️ Opción no válida. Inténtalo de nuevo.")
+            print("\n[AVISO] Opcion no valida. Intentalo de nuevo.")
 
 
 if __name__ == "__main__":

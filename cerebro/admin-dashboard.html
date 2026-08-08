@@ -529,6 +529,13 @@
     async function getAdminToken() {
       if (adminToken) return adminToken;
 
+      // Intentar recuperar token persistido
+      const stored = localStorage.getItem('skilltwin_admin_token');
+      if (stored) {
+        adminToken = stored;
+        return adminToken;
+      }
+
       const secret = window.prompt('Introduce el secreto de administrador para acceder al panel:');
       if (!secret) throw new Error('Se requiere autenticación de administrador.');
 
@@ -541,6 +548,7 @@
       if (!response.ok || !data.token) throw new Error(data.error || 'No fue posible autenticar al administrador.');
 
       adminToken = data.token;
+      localStorage.setItem('skilltwin_admin_token', adminToken);
       return adminToken;
     }
 
@@ -553,7 +561,19 @@
       const token = await getAdminToken();
       const headers = new Headers(options.headers || {});
       headers.set('Authorization', `Bearer ${token}`);
-      return nativeFetch(resource, { ...options, headers });
+      const res = await nativeFetch(resource, { ...options, headers });
+
+      // Si el token expiró, limpiar y re-autenticar
+      if (res.status === 401) {
+        adminToken = null;
+        localStorage.removeItem('skilltwin_admin_token');
+        const newToken = await getAdminToken();
+        const retryHeaders = new Headers(options.headers || {});
+        retryHeaders.set('Authorization', `Bearer ${newToken}`);
+        return nativeFetch(resource, { ...options, headers: retryHeaders });
+      }
+
+      return res;
     };
 
     // Cargar datos del dashboard
