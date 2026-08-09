@@ -2,8 +2,6 @@ import os
 import sys
 import tempfile
 import unittest
-import json
-from datetime import datetime, timedelta
 
 # Forzar modo JSON para tests
 os.environ["SKILLTWIN_USE_SQLITE"] = "0"
@@ -11,7 +9,7 @@ os.environ["SKILLTWIN_USE_SQLITE"] = "0"
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 
-from dep_operaciones import gestor_financiero
+from dep_operaciones import gestor_financiero # noqa: E402
 
 
 class GestorFinancieroTests(unittest.TestCase):

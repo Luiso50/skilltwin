@@ -46,7 +46,7 @@ def create_payment_intent(amount_cents, currency="usd", metadata=None):
     except ImportError:
         return None, "Stripe SDK no instalado. Ejecuta: pip install stripe"
     except Exception as e:
-        return None, f"Error creando PaymentIntent: {str(e)}"
+        return None, f"Error creando PaymentIntent: {e!s}"
 
 
 def confirm_payment(payment_intent_id):
@@ -76,7 +76,7 @@ def confirm_payment(payment_intent_id):
             return False, f"Pago en estado: {intent.status}"
 
     except Exception as e:
-        return False, f"Error confirmando pago: {str(e)}"
+        return False, f"Error confirmando pago: {e!s}"
 
 
 def handle_webhook(payload, sig_header):
@@ -102,7 +102,7 @@ def handle_webhook(payload, sig_header):
     except ImportError:
         return None, "Stripe SDK no instalado"
     except Exception as e:
-        return None, f"Error verificando webhook: {str(e)}"
+        return None, f"Error verificando webhook: {e!s}"
 
 
 def create_checkout_session(amount_cents, factura_id, orden_id=None, success_url=None, cancel_url=None):
@@ -154,7 +154,7 @@ def create_checkout_session(amount_cents, factura_id, orden_id=None, success_url
     except ImportError:
         return None, "Stripe SDK no instalado. Ejecuta: pip install stripe"
     except Exception as e:
-        return None, f"Error creando sesión de Checkout: {str(e)}"
+        return None, f"Error creando sesión de Checkout: {e!s}"
 
 
 def retrieve_checkout_session(session_id):
@@ -184,7 +184,7 @@ def retrieve_checkout_session(session_id):
     except ImportError:
         return None, "Stripe SDK no instalado"
     except Exception as e:
-        return None, f"Error obteniendo sesión: {str(e)}"
+        return None, f"Error obteniendo sesión: {e!s}"
 
 
 def get_publishable_key():

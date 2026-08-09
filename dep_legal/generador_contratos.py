@@ -23,27 +23,27 @@ Con fecha de hoy, {datetime.now().strftime('%Y-%m-%d')}, las partes acuerdan:
    - De otra parte, D/Dña. {nombre}, especialista en {especialidad} (en adelante, el "Licenciante").
 
 2. OBJETO DEL ACUERDO:
-   El Licenciante concede una licencia no exclusiva y revocable a la Plataforma 
-   para procesar su base de conocimiento provista y generar un "Gemelo Digital" 
+   El Licenciante concede una licencia no exclusiva y revocable a la Plataforma
+   para procesar su base de conocimiento provista y generar un "Gemelo Digital"
    (Clon de IA) capaz de responder preguntas en su nombre a usuarios de la red.
 
 3. COMISIONES Y FACTURACION:
-   - La Plataforma cobrara una tarifa a los clientes finales por cada consulta 
+   - La Plataforma cobrara una tarifa a los clientes finales por cada consulta
      realizada al Clon de IA.
-   - De los ingresos generados por el Clon de IA, la Plataforma retendra un 
+   - De los ingresos generados por el Clon de IA, la Plataforma retendra un
      {comision}% en concepto de comision por servicio, mantenimiento de servidores
      y procesamiento de APIs.
    - El {100 - comision}% restante sera transferido al Licenciante de forma mensual.
 
 4. PROTECCION DE DATOS Y PRIVACIDAD:
-   - La Plataforma se compromete a no compartir, transferir ni utilizar la base 
+   - La Plataforma se compromete a no compartir, transferir ni utilizar la base
      de conocimiento del Licenciante para entrenar otros modelos de IA externos.
-   - El Licenciante puede solicitar la baja total del servicio y la eliminacion 
-     completa de sus datos y de su Clon de IA en cualquier momento con un 
+   - El Licenciante puede solicitar la baja total del servicio y la eliminacion
+     completa de sus datos y de su Clon de IA en cualquier momento con un
      preaviso de 48 horas.
 
 5. RESPONSABILIDAD:
-   La Plataforma no sera responsable de las opiniones o respuestas generadas 
+   La Plataforma no sera responsable de las opiniones o respuestas generadas
    por el Clon de IA, las cuales tienen caracter estrictamente consultivo e informal.
 
 Firmado digitalmente en conformidad:

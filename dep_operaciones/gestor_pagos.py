@@ -2,11 +2,11 @@
 Sistema de Pagos para SkillTwin.
 """
 
-import os
 import json
-from datetime import datetime, timedelta
-import uuid
+import os
 import threading
+import uuid
+from datetime import datetime, timedelta
 
 USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
@@ -16,10 +16,9 @@ db_lock = threading.RLock()
 if USE_SQLITE:
     try:
         from dep_operaciones.database import cargar_facturas as db_cargar_facturas
+        from dep_operaciones.database import get_connection, init_database
         from dep_operaciones.database import guardar_factura as db_guardar_factura
         from dep_operaciones.database import obtener_factura as db_obtener_factura
-        from dep_operaciones.database import get_connection
-        from dep_operaciones.database import init_database
         init_database()
     except ImportError:
         USE_SQLITE = False
@@ -171,9 +170,8 @@ def guardar_pagos(datos):
                      trans.get("estado", "completada"),
                      trans.get("fecha_transaccion", datetime.now().isoformat())))
         return
-    with db_lock:
-        with open(DB_PAGOS, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock, open(DB_PAGOS, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=4, ensure_ascii=False)
 
 
 def crear_factura(orden_id, cliente_email, monto_total, comision, cantidad_horas, tarifa_hora, descripcion_proyecto):

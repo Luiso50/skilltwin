@@ -1,11 +1,11 @@
-import os
 import json
-import urllib.request
-import urllib.parse
-from datetime import datetime
+import os
 import threading
+import urllib.parse
+import urllib.request
 import uuid
 from collections import defaultdict
+from datetime import datetime
 
 # Soporte para JSON (legacy) y SQLite (nuevo)
 USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
@@ -18,8 +18,8 @@ if USE_SQLITE:
     try:
         from dep_operaciones.database import cargar_clones as db_cargar_clones
         from dep_operaciones.database import guardar_clone as db_guardar_clone
-        from dep_operaciones.database import obtener_clone as db_obtener_clone
         from dep_operaciones.database import init_database
+        from dep_operaciones.database import obtener_clone as db_obtener_clone
         init_database()
     except ImportError:
         USE_SQLITE = False
@@ -333,9 +333,8 @@ def guardar_datos(datos):
             )
         return
 
-    with db_lock:
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock, open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=4, ensure_ascii=False)
 
 
 def crear_clon(id_clon, nombre, especialidad, conocimiento):

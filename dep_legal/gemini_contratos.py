@@ -3,8 +3,8 @@ Módulo para generar contratos automáticos usando Gemini AI.
 Se integra con el orquestador de órdenes.
 """
 
-import os
 import json
+import os
 import urllib.request
 from datetime import datetime, timedelta
 
@@ -110,11 +110,11 @@ PARTES:
 ARTÍCULO 1: OBJETO DEL CONTRATO
 ────────────────────────────────────────────────────────────────────────────
 
-El Licenciante se compromete a proporcionar servicios profesionales de asesoría 
-y consultoría en el área de {especialidad} por un total de {cantidad_horas} horas 
+El Licenciante se compromete a proporcionar servicios profesionales de asesoría
+y consultoría en el área de {especialidad} por un total de {cantidad_horas} horas
 de trabajo.
 
-Los servicios se prestarán de conformidad con los más altos estándares de la 
+Los servicios se prestarán de conformidad con los más altos estándares de la
 industria y de acuerdo con la ley aplicable.
 
 ────────────────────────────────────────────────────────────────────────────
@@ -133,38 +133,38 @@ El pago debe realizarse según las indicaciones de SkillTwin.
 ARTÍCULO 3: PLAZO
 ────────────────────────────────────────────────────────────────────────────
 
-Este contrato es válido desde {fecha_inicio.strftime('%d de %B de %Y')} hasta 
+Este contrato es válido desde {fecha_inicio.strftime('%d de %B de %Y')} hasta
 {fecha_fin.strftime('%d de %B de %Y')}.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 4: CONFIDENCIALIDAD
 ────────────────────────────────────────────────────────────────────────────
 
-Ambas partes se comprometen a mantener en confidencialidad toda la información 
-compartida durante la prestación de servicios, excepto cuando lo autorice la ley 
+Ambas partes se comprometen a mantener en confidencialidad toda la información
+compartida durante la prestación de servicios, excepto cuando lo autorice la ley
 o sea necesario para cumplir obligaciones legales.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 5: LIMITACIÓN DE RESPONSABILIDAD
 ────────────────────────────────────────────────────────────────────────────
 
-SkillTwin actúa como plataforma intermediaria. Ni SkillTwin ni el Licenciante 
-serán responsables por daños indirectos, incidentales o consecuentes que puedan 
+SkillTwin actúa como plataforma intermediaria. Ni SkillTwin ni el Licenciante
+serán responsables por daños indirectos, incidentales o consecuentes que puedan
 derivarse del uso de los servicios.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 6: TERMINACIÓN
 ────────────────────────────────────────────────────────────────────────────
 
-Este contrato puede ser terminado por cualquiera de las partes con notificación 
-escrita con 48 horas de anticipación. En caso de terminación anticipada, se 
+Este contrato puede ser terminado por cualquiera de las partes con notificación
+escrita con 48 horas de anticipación. En caso de terminación anticipada, se
 facturarán solo las horas trabajadas.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 7: LEY APLICABLE
 ────────────────────────────────────────────────────────────────────────────
 
-Este contrato se rige por las leyes del país donde SkillTwin está constituida y 
+Este contrato se rige por las leyes del país donde SkillTwin está constituida y
 por los términos de servicio de la plataforma SkillTwin.
 
 ════════════════════════════════════════════════════════════════════════════

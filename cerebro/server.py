@@ -1,17 +1,16 @@
 import http.server
-import socketserver
 import json
+import logging
 import os
 import secrets
+import socketserver
 import sys
+import threading
+import time
 import urllib.parse
 import urllib.request
-import logging
-import time
 import uuid
-import threading
 from datetime import datetime
-
 
 _metrics = {
     "requests_total": 0,
@@ -34,9 +33,7 @@ def load_dotenv():
                 continue
             key, _, value = line.partition('=')
             key, value = key.strip(), value.strip()
-            if value.startswith('"') and value.endswith('"'):
-                value = value[1:-1]
-            elif value.startswith("'") and value.endswith("'"):
+            if value.startswith('"') and value.endswith('"') or value.startswith("'") and value.endswith("'"):
                 value = value[1:-1]
             if key and key not in os.environ:
                 os.environ[key] = value
@@ -77,11 +74,20 @@ sys.path.append(RAIZ_DIR)
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-from dep_desarrollo import motor_clonacion
-from dep_marketing import agente_ventas_mercado
-from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security, database
-from dep_operaciones import email_service, stripe_service
-from dep_legal import generador_contratos
+from dep_desarrollo import motor_clonacion # noqa: E402
+from dep_legal import generador_contratos # noqa: E402
+from dep_marketing import agente_ventas_mercado # noqa: E402
+from dep_operaciones import ( # noqa: E402
+    database,
+    email_service,
+    gestor_contactos,
+    gestor_financiero,
+    gestor_ordenes,
+    gestor_pagos,
+    orquestador,
+    security,
+    stripe_service,
+)
 
 
 class _Cache:
@@ -898,7 +904,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 if api_key:
                     os.environ["GEMINI_API_KEY"] = api_key
                     mensaje_parts.append("GEMINI_API_KEY actualizada para esta sesión. Reinicia el servidor para aplicar cambios.")
-                elif "GEMINI_API_KEY" in os.environ and os.environ["GEMINI_API_KEY"]:
+                elif os.environ.get("GEMINI_API_KEY"):
                     mensaje_parts.append("GEMINI_API_KEY permanece sin cambios.")
 
                 if commission is not None:

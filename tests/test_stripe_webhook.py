@@ -1,11 +1,11 @@
-import unittest
 import os
 import sys
+import unittest
 
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, RAIZ_DIR)
 
-from dep_operaciones import stripe_service
+from dep_operaciones import stripe_service # noqa: E402
 
 
 class StripeServiceTests(unittest.TestCase):

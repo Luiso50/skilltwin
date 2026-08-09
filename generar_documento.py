@@ -1,8 +1,8 @@
-from docx import Document
-from docx.shared import Pt, Inches, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.style import WD_STYLE_TYPE
 import os
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt, RGBColor
 
 doc = Document()
 
@@ -126,11 +126,11 @@ doc.add_paragraph()
 doc.add_heading('Planes y Precios', level=1)
 
 planes = [
-    ('Demo Estratégica — $149 USD', 
+    ('Demo Estratégica — $149 USD',
      'Sesión guiada de producto, revisión de arquitectura y recomendaciones de siguiente paso.'),
-    ('Piloto Corporativo — $790 USD', 
+    ('Piloto Corporativo — $790 USD',
      'Configuración de un caso de uso, personalización básica de branding y soporte en implementación inicial.'),
-    ('Licencia de Concepto — A medida', 
+    ('Licencia de Concepto — A medida',
      'Adaptación por sector, integración con operación existente y roadmap técnico y comercial.'),
 ]
 

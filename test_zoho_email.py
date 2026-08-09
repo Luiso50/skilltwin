@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Test Zoho SMTP email sending."""
 
-import smtplib
 import os
-from email.mime.text import MIMEText
+import smtplib
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,9 +29,9 @@ def test_zoho_email():
 
     body = """
     This is a test email from SkillTwin platform.
-    
+
     If you received this, Zoho SMTP is working correctly!
-    
+
     Timestamp: 2026-08-02
     """
     msg.attach(MIMEText(body, "plain"))

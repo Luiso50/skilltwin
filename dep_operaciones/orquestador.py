@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import json
 import threading
 import time
 
@@ -8,9 +8,10 @@ import time
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(RAIZ_DIR)
 
-from dep_operaciones import gestor_ordenes, gestor_pagos
-from dep_legal import gemini_contratos
-from dep_desarrollo import motor_clonacion
+from dep_desarrollo import motor_clonacion # noqa: E402
+from dep_legal import gemini_contratos # noqa: E402
+from dep_operaciones import gestor_ordenes, gestor_pagos # noqa: E402
+
 
 class OrquestadorAutonomo:
     """
@@ -122,7 +123,7 @@ class OrquestadorAutonomo:
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "legal", "error",
-                f"Error al generar contrato: {str(e)}"
+                f"Error al generar contrato: {e!s}"
             )
             print(f"[LEGAL] [ERROR] {e}")
 
@@ -163,7 +164,7 @@ class OrquestadorAutonomo:
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "desarrollo", "error",
-                f"Error en preparación del clon: {str(e)}"
+                f"Error en preparación del clon: {e!s}"
             )
             print(f"[DESARROLLO] [ERROR] {e}")
 
@@ -225,7 +226,7 @@ class OrquestadorAutonomo:
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "operaciones", "error",
-                f"Error en facturación: {str(e)}"
+                f"Error en facturación: {e!s}"
             )
             print(f"[OPERACIONES] [ERROR] {e}")
 
@@ -252,7 +253,7 @@ class OrquestadorAutonomo:
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "entrega", "error",
-                f"Error en entrega: {str(e)}"
+                f"Error en entrega: {e!s}"
             )
             print(f"[ENTREGA] [ERROR] {e}")
 

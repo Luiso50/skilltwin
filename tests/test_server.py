@@ -1,12 +1,9 @@
+import json
 import os
 import sys
 import tempfile
 import unittest
-import json
-from http.server import HTTPServer
-from unittest.mock import patch, MagicMock
-import threading
-import time
+from unittest.mock import patch
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
@@ -24,7 +21,6 @@ class ServerConfigTests(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_cargar_ajustes_archivo_no_existe(self):
-        import importlib
         import server
         server.SETTINGS_FILE = self.settings_path
         ajustes = server.cargar_ajustes()
@@ -33,7 +29,6 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn('model', ajustes)
 
     def test_cargar_ajustes_archivo_existe(self):
-        import importlib
         import server
         config_test = {'commission': 20.0, 'model': 'gemini-test'}
         with open(self.settings_path, 'w', encoding='utf-8') as f:
@@ -45,7 +40,6 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(ajustes['commission'], 20.0)
 
     def test_guardar_ajustes(self):
-        import importlib
         import server
         server.SETTINGS_FILE = self.settings_path
         nuevos_ajustes = {'commission': 25.0, 'model': 'nuevo_modelo'}
@@ -93,7 +87,12 @@ class ServerEndpointTests(unittest.TestCase):
         self.contactos_db = os.path.join(self.tmpdir.name, 'contactos_db.json')
 
         from dep_desarrollo import motor_clonacion
-        from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos
+        from dep_operaciones import (
+            gestor_contactos,
+            gestor_financiero,
+            gestor_ordenes,
+            gestor_pagos,
+        )
 
         motor_clonacion.DB_FILE = self.orig_db
         motor_clonacion.inicializar_db()
@@ -115,8 +114,13 @@ class ServerEndpointTests(unittest.TestCase):
 
     def test_modulos_importan_correctamente(self):
         from dep_desarrollo import motor_clonacion
-        from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos
         from dep_legal import generador_contratos
+        from dep_operaciones import (
+            gestor_contactos,
+            gestor_financiero,
+            gestor_ordenes,
+            gestor_pagos,
+        )
 
         self.assertTrue(hasattr(motor_clonacion, 'cargar_datos'))
         self.assertTrue(hasattr(gestor_financiero, 'cargar_finanzas'))
