@@ -115,6 +115,25 @@ select {
   color: var(--text);
 }
 
+.site-nav .nav-demo {
+  background: #10b981;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  animation: pulse-demo 2s infinite;
+}
+
+@keyframes pulse-demo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+
+.site-nav .nav-demo:hover {
+  background: #059669;
+  color: #fff;
+}
+
 .site-nav .nav-login {
   background: var(--primary);
   color: #fff;
