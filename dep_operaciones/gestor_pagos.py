@@ -8,21 +8,25 @@ from datetime import datetime, timedelta
 import uuid
 import threading
 
-USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
-
 DB_PAGOS = os.path.join(os.path.dirname(__file__), "pagos_db.json")
 db_lock = threading.RLock()
 
-if USE_SQLITE:
-    try:
-        from dep_operaciones.database import cargar_facturas as db_cargar_facturas
-        from dep_operaciones.database import guardar_factura as db_guardar_factura
-        from dep_operaciones.database import obtener_factura as db_obtener_factura
-        from dep_operaciones.database import get_connection
-        from dep_operaciones.database import init_database
-        init_database()
-    except ImportError:
-        USE_SQLITE = False
+
+def _use_sqlite():
+    return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
+
+def _get_sqlite_backend():
+    from dep_operaciones.database import (
+        cargar_facturas as db_cargar_facturas,
+        guardar_factura as db_guardar_factura,
+        obtener_factura as db_obtener_factura,
+        get_connection,
+        init_database,
+    )
+
+    init_database()
+    return db_cargar_facturas, db_guardar_factura, db_obtener_factura, get_connection
 
 
 def _build_reconciled_factura(orden, orden_id):
@@ -127,7 +131,7 @@ def _compute_stats(datos):
 
 
 def inicializar_pagos():
-    if USE_SQLITE:
+    if _use_sqlite():
         return
     with db_lock:
         if not os.path.exists(DB_PAGOS):
@@ -136,7 +140,8 @@ def inicializar_pagos():
 
 
 def cargar_pagos():
-    if USE_SQLITE:
+    if _use_sqlite():
+        db_cargar_facturas, _db_guardar_factura, _db_obtener_factura, get_connection = _get_sqlite_backend()
         facturas_dict = db_cargar_facturas()
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -151,7 +156,8 @@ def cargar_pagos():
 
 
 def guardar_pagos(datos):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, db_guardar_factura, _db_obtener_factura, get_connection = _get_sqlite_backend()
         for fac_id, factura in datos.get("facturas", {}).items():
             db_guardar_factura(factura)
         with get_connection() as conn:
@@ -187,7 +193,8 @@ def crear_factura(orden_id, cliente_email, monto_total, comision, cantidad_horas
         "metodo_pago_seleccionado": None, "referencia_transaccion": None,
         "notas": f"Factura por servicios de consultoría. Proyecto: {descripcion_proyecto}"
     }
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, db_guardar_factura, _db_obtener_factura, _db_get_connection = _get_sqlite_backend()
         db_guardar_factura(nueva_factura)
     else:
         datos = cargar_pagos()
@@ -208,7 +215,8 @@ def reconciliar_facturas_con_ordenes():
 
 
 def procesar_pago(factura_id, metodo_pago, numero_referencia=""):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, db_guardar_factura, db_obtener_factura, get_connection = _get_sqlite_backend()
         factura = db_obtener_factura(factura_id)
         if not factura:
             return False, "Factura no encontrada"
@@ -242,13 +250,15 @@ def procesar_pago(factura_id, metodo_pago, numero_referencia=""):
 
 
 def obtener_factura(factura_id):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, _db_guardar_factura, db_obtener_factura, _db_get_connection = _get_sqlite_backend()
         return db_obtener_factura(factura_id)
     return cargar_pagos()["facturas"].get(factura_id)
 
 
 def listar_facturas(cliente_email=None):
-    if USE_SQLITE:
+    if _use_sqlite():
+        db_cargar_facturas, _db_guardar_factura, _db_obtener_factura, _db_get_connection = _get_sqlite_backend()
         facturas = list(db_cargar_facturas().values())
     else:
         facturas = list(cargar_pagos()["facturas"].values())
@@ -258,7 +268,8 @@ def listar_facturas(cliente_email=None):
 
 
 def obtener_transaccion(transaccion_id):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, _db_guardar_factura, _db_obtener_factura, get_connection = _get_sqlite_backend()
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM transacciones WHERE id = ?", (transaccion_id,))
@@ -268,7 +279,8 @@ def obtener_transaccion(transaccion_id):
 
 
 def listar_transacciones(cliente_email=None):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, _db_guardar_factura, _db_obtener_factura, get_connection = _get_sqlite_backend()
         with get_connection() as conn:
             cursor = conn.cursor()
             if cliente_email:
@@ -283,7 +295,8 @@ def listar_transacciones(cliente_email=None):
 
 
 def obtener_estadisticas_pagos():
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_facturas, _db_guardar_factura, _db_obtener_factura, get_connection = _get_sqlite_backend()
         with get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as total FROM facturas")

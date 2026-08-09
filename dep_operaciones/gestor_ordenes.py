@@ -4,20 +4,24 @@ import uuid
 from datetime import datetime
 import threading
 
-USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
-
 DB_ORDENES = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
 db_lock = threading.RLock()
 
-if USE_SQLITE:
-    try:
-        from dep_operaciones.database import cargar_ordenes as db_cargar_ordenes
-        from dep_operaciones.database import guardar_orden as db_guardar_orden
-        from dep_operaciones.database import obtener_orden as db_obtener_orden
-        from dep_operaciones.database import init_database
-        init_database()
-    except ImportError:
-        USE_SQLITE = False
+
+def _use_sqlite():
+    return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
+
+def _get_sqlite_backend():
+    from dep_operaciones.database import (
+        cargar_ordenes as db_cargar_ordenes,
+        guardar_orden as db_guardar_orden,
+        obtener_orden as db_obtener_orden,
+        init_database,
+    )
+
+    init_database()
+    return db_cargar_ordenes, db_guardar_orden, db_obtener_orden
 
 
 def _asegurar_esquema_orden(orden):
@@ -161,7 +165,7 @@ def _apply_contrato_update(orden, texto_contrato, por_gemini=False):
 
 
 def inicializar_ordenes():
-    if USE_SQLITE:
+    if _use_sqlite():
         return
     with db_lock:
         if not os.path.exists(DB_ORDENES):
@@ -170,7 +174,8 @@ def inicializar_ordenes():
 
 
 def cargar_ordenes():
-    if USE_SQLITE:
+    if _use_sqlite():
+        db_cargar_ordenes, _db_guardar_orden, _db_obtener_orden = _get_sqlite_backend()
         ordenes_dict = db_cargar_ordenes()
         return {"ordenes": ordenes_dict, "contador_ordenes": len(ordenes_dict)}
     with db_lock:
@@ -186,7 +191,8 @@ def cargar_ordenes():
 
 
 def guardar_ordenes(datos):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, _db_obtener_orden = _get_sqlite_backend()
         for orden_id, orden in datos.get("ordenes", {}).items():
             db_guardar_orden(orden)
         return
@@ -220,7 +226,8 @@ def crear_orden(cliente_email, clon_id, cantidad_horas, descripcion_proyecto, re
         "rating": {"puntuacion": None, "resena": "", "fecha_rating": None, "cliente_satisfecho": None},
         "contrato": {"texto_contrato": None, "generado_por_gemini": False, "firma_cliente": False, "fecha_firma": None}
     }
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, _db_obtener_orden = _get_sqlite_backend()
         db_guardar_orden(nueva_orden)
     else:
         datos = cargar_ordenes()
@@ -231,14 +238,16 @@ def crear_orden(cliente_email, clon_id, cantidad_horas, descripcion_proyecto, re
 
 
 def obtener_orden(orden_id):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, _db_guardar_orden, db_obtener_orden = _get_sqlite_backend()
         return db_obtener_orden(orden_id)
     datos = cargar_ordenes()
     return datos["ordenes"].get(orden_id)
 
 
 def listar_ordenes(cliente_email=None):
-    if USE_SQLITE:
+    if _use_sqlite():
+        db_cargar_ordenes, _db_guardar_orden, _db_obtener_orden = _get_sqlite_backend()
         ordenes = list(db_cargar_ordenes().values())
     else:
         ordenes = list(cargar_ordenes()["ordenes"].values())
@@ -248,7 +257,8 @@ def listar_ordenes(cliente_email=None):
 
 
 def actualizar_etapa_orden(orden_id, nombre_etapa, nuevo_estado, detalles=""):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, db_obtener_orden = _get_sqlite_backend()
         orden = db_obtener_orden(orden_id)
         if not orden:
             return False, "Orden no encontrada"
@@ -267,7 +277,8 @@ def actualizar_etapa_orden(orden_id, nombre_etapa, nuevo_estado, detalles=""):
 
 
 def marcar_notificacion_leida(orden_id, indice_notificacion):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, db_obtener_orden = _get_sqlite_backend()
         orden = db_obtener_orden(orden_id)
         if not orden:
             return False
@@ -299,7 +310,8 @@ def obtener_notificaciones_no_leidas(cliente_email):
 
 
 def agregar_rating_orden(orden_id, puntuacion, resena=""):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, db_obtener_orden = _get_sqlite_backend()
         orden = db_obtener_orden(orden_id)
         if not orden:
             return False, "Orden no encontrada"
@@ -327,7 +339,8 @@ def obtener_rating_experto(clon_id):
 
 
 def actualizar_pago_orden(orden_id, factura_id, metodo_pago):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, db_obtener_orden = _get_sqlite_backend()
         orden = db_obtener_orden(orden_id)
         if not orden:
             return False
@@ -344,7 +357,8 @@ def actualizar_pago_orden(orden_id, factura_id, metodo_pago):
 
 
 def actualizar_contrato_orden(orden_id, texto_contrato, por_gemini=False):
-    if USE_SQLITE:
+    if _use_sqlite():
+        _db_cargar_ordenes, db_guardar_orden, db_obtener_orden = _get_sqlite_backend()
         orden = db_obtener_orden(orden_id)
         if not orden:
             return False

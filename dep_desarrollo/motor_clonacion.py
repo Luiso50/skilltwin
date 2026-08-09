@@ -12,21 +12,21 @@ def _use_sqlite():
     return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
 
-USE_SQLITE = _use_sqlite()
-
 DB_FILE = os.path.join(os.path.dirname(__file__), "clones_db.json")
 MEMORY_DIR = os.path.join(os.path.dirname(__file__), "memories")
 db_lock = threading.RLock()
 
-if _use_sqlite():
-    try:
-        from dep_operaciones.database import cargar_clones as db_cargar_clones
-        from dep_operaciones.database import guardar_clone as db_guardar_clone
-        from dep_operaciones.database import obtener_clone as db_obtener_clone
-        from dep_operaciones.database import init_database
-        init_database()
-    except ImportError:
-        USE_SQLITE = False
+
+def _get_sqlite_backend():
+    from dep_operaciones.database import (
+        cargar_clones as db_cargar_clones,
+        guardar_clone as db_guardar_clone,
+        obtener_clone as db_obtener_clone,
+        init_database,
+    )
+
+    init_database()
+    return db_cargar_clones, db_guardar_clone, db_obtener_clone
 
 
 class ConversacionMemoria:
@@ -317,6 +317,7 @@ def inicializar_db():
 def cargar_datos():
     """Carga todos los datos de clones."""
     if _use_sqlite():
+        db_cargar_clones, _db_guardar_clone, _db_obtener_clone = _get_sqlite_backend()
         clones = db_cargar_clones()
         return {"clones": clones}
 
@@ -329,6 +330,7 @@ def cargar_datos():
 def guardar_datos(datos):
     """Guarda todos los datos de clones."""
     if _use_sqlite():
+        _db_cargar_clones, db_guardar_clone, _db_obtener_clone = _get_sqlite_backend()
         for clon_id, clon_data in datos.get("clones", {}).items():
             db_guardar_clone(
                 clon_id,
@@ -346,6 +348,7 @@ def guardar_datos(datos):
 def crear_clon(id_clon, nombre, especialidad, conocimiento):
     """Registra y entrena a un nuevo clon digital."""
     if _use_sqlite():
+        _db_cargar_clones, db_guardar_clone, db_obtener_clone = _get_sqlite_backend()
         existing = db_obtener_clone(id_clon)
         if existing:
             print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")

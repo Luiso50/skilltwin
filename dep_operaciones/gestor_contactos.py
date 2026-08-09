@@ -7,19 +7,19 @@ def _use_sqlite():
     return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
 
-USE_SQLITE = _use_sqlite()
-
 DB_CONTACTOS = os.environ.get("SKILLTWIN_CONTACTOS_DB") or os.path.join(os.path.dirname(__file__), "contactos_db.json")
 db_lock = threading.RLock()
 
-if _use_sqlite():
-    try:
-        from dep_operaciones.database import cargar_contactos as db_cargar_contactos
-        from dep_operaciones.database import guardar_contacto as db_guardar_contacto
-        from dep_operaciones.database import init_database
-        init_database()
-    except ImportError:
-        USE_SQLITE = False
+
+def _get_sqlite_backend():
+    from dep_operaciones.database import (
+        cargar_contactos as db_cargar_contactos,
+        guardar_contacto as db_guardar_contacto,
+        init_database,
+    )
+
+    init_database()
+    return db_cargar_contactos, db_guardar_contacto
 
 
 def _build_contacto(nombre, email, telefono, empresa, interes, mensaje, contacto_id=None):
@@ -50,6 +50,7 @@ def inicializar_contactos():
 
 def cargar_contactos():
     if _use_sqlite():
+        db_cargar_contactos, _db_guardar_contacto = _get_sqlite_backend()
         return {"contactos": db_cargar_contactos()}
     with db_lock:
         inicializar_contactos()
@@ -67,6 +68,7 @@ def guardar_contactos(datos):
 
 def registrar_contacto(nombre, email, telefono, empresa, interes, mensaje):
     if _use_sqlite():
+        _db_cargar_contactos, db_guardar_contacto = _get_sqlite_backend()
         contacto_id = db_guardar_contacto(nombre.strip(), email.strip(), (telefono or "").strip(), (empresa or "").strip(), (interes or "").strip(), mensaje.strip())
         return _build_contacto(nombre, email, telefono, empresa, interes, mensaje, f"CT-{contacto_id}")
 

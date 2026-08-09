@@ -7,22 +7,22 @@ def _use_sqlite():
     return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
 
-USE_SQLITE = _use_sqlite()
-
 DB_FINANZAS = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
 db_lock = threading.RLock()
 
-if _use_sqlite():
-    try:
-        from dep_operaciones.database import cargar_flujo_caja as db_cargar_flujo_caja
-        from dep_operaciones.database import guardar_flujo_caja as db_guardar_flujo_caja
-        from dep_operaciones.database import cargar_cuentas_cobrar as db_cargar_cuentas_cobrar
-        from dep_operaciones.database import cargar_cuentas_pagar as db_cargar_cuentas_pagar
-        from dep_operaciones.database import get_connection
-        from dep_operaciones.database import init_database
-        init_database()
-    except ImportError:
-        USE_SQLITE = False
+
+def _get_sqlite_backend():
+    from dep_operaciones.database import (
+        cargar_flujo_caja as db_cargar_flujo_caja,
+        cargar_cuentas_cobrar as db_cargar_cuentas_cobrar,
+        cargar_cuentas_pagar as db_cargar_cuentas_pagar,
+        guardar_flujo_caja as db_guardar_flujo_caja,
+        get_connection,
+        init_database,
+    )
+
+    init_database()
+    return db_cargar_flujo_caja, db_guardar_flujo_caja, db_cargar_cuentas_cobrar, db_cargar_cuentas_pagar, get_connection
 
 
 def _build_seed_data():
@@ -47,6 +47,13 @@ def _build_seed_data():
 
 
 def _seed_sqlite():
+    (
+        db_cargar_flujo_caja,
+        db_guardar_flujo_caja,
+        db_cargar_cuentas_cobrar,
+        db_cargar_cuentas_pagar,
+        get_connection,
+    ) = _get_sqlite_backend()
     flujo = db_cargar_flujo_caja()
     if flujo:
         return
@@ -74,6 +81,13 @@ def inicializar_finanzas():
 
 def cargar_finanzas():
     if _use_sqlite():
+        (
+            db_cargar_flujo_caja,
+            _db_guardar_flujo_caja,
+            db_cargar_cuentas_cobrar,
+            db_cargar_cuentas_pagar,
+            _get_connection,
+        ) = _get_sqlite_backend()
         return {"flujo_caja": db_cargar_flujo_caja(), "cuentas_cobrar": db_cargar_cuentas_cobrar(), "cuentas_pagar": db_cargar_cuentas_pagar()}
     with db_lock:
         inicializar_finanzas()
@@ -83,6 +97,13 @@ def cargar_finanzas():
 
 def guardar_finanzas(datos):
     if _use_sqlite():
+        (
+            _db_cargar_flujo_caja,
+            db_guardar_flujo_caja,
+            _db_cargar_cuentas_cobrar,
+            _db_cargar_cuentas_pagar,
+            get_connection,
+        ) = _get_sqlite_backend()
         for mes, valores in datos.get("flujo_caja", {}).items():
             db_guardar_flujo_caja(mes, valores["ingresos_plan"], valores["ingresos_real"],
                                   valores["egresos_plan"], valores["egresos_real"])
