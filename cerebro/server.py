@@ -1155,20 +1155,27 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
 
         prompt = (
-            f"Eres el Cerebro Central de SkillTwin. Analiza el siguiente comando del usuario y clasifícalo en un departamento.\n\n"
-            f"DEPARTAMENTOS Y COMANDOS NORMALIZADOS:\n"
-            f"1. operaciones -> Comando: 'finanzas' (Cualquier consulta sobre dinero, caja, flujo, pagos).\n"
-            f"2. marketing -> Comando: 'marketing [nicho]' (Cualquier búsqueda de mercado, nicho o ventas. Extrae el nicho).\n"
-            f"3. legal -> Comando: 'contrato [Nombre] [ID] [Especialidad] [Comision]' (Redacción de acuerdos. Intenta extraer los datos o usa valores genéricos).\n"
-            f"4. desarrollo -> Comando: 'preguntar [ID_Clon] [pregunta]' (Consultas a gemelos digitales. Extrae el ID y la pregunta).\n"
-            f"5. general -> Comando: 'general' (Saludos, ayuda o temas no relacionados).\n\n"
-            f"USUARIO: \"{comando}\"\n\n"
-            f"Responde estrictamente en formato JSON con esta estructura:\n"
-            f"{{\n"
-            f"  \"intent\": \"nombre_del_departamento\",\n"
-            f"  \"normalized_command\": \"comando_exacto\",\n"
-            f"  \"reasoning\": \"explicacion_breve\"\n"
-            f"}}"
+            "Eres el router inteligente de SkillTwin. Analiza el mensaje del usuario y clasifícalo.\n\n"
+            "CAPACIDADES:\n"
+            "1. operaciones -> Consultas sobre dinero, pagos, facturas, flujo de caja, finanzas\n"
+            "2. marketing -> Investigación de mercado, nichos, ventas, clientes, competencia\n"
+            "3. legal -> Contratos, acuerdos, licencias, términos legales\n"
+            "4. desarrollo -> Preguntas sobre clones digitales, consultas a expertos, conocimiento\n"
+            "5. general -> Saludos, preguntas sobre SkillTwin, ayuda, temas no categorizados\n\n"
+            "REGLAS:\n"
+            "- Si el usuario saluda o pregunta qué puedes hacer -> general\n"
+            "- Si menciona dinero/pagos/facturas -> operaciones\n"
+            "- Si menciona mercado/nicho/ventas/clientes -> marketing\n"
+            "- Si menciona contrato/acuerdo/legal -> legal\n"
+            "- Si quiere preguntar a un experto o clone -> desarrollo\n"
+            "- Para todo lo demás -> general\n\n"
+            f"MENSAJE: \"{comando}\"\n\n"
+            "Responde SOLO con JSON:\n"
+            "{\n"
+            "  \"intent\": \"departamento\",\n"
+            "  \"normalized_command\": \"comando_normalizado\",\n"
+            "  \"reasoning\": \"razon_breve\"\n"
+            "}"
         )
 
         headers = {
@@ -1190,6 +1197,50 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             print(f"Error en clasificación IA: {e}")
             return None
 
+    def generar_respuesta_ia(self, comando):
+        """Genera una respuesta inteligente usando Gemini para preguntas generales."""
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return None
+
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+
+        prompt = (
+            "Eres el Cerebro Central de SkillTwin, una plataforma que convierte conocimiento experto en gemelos digitales (clones de IA) monetizables.\n\n"
+            "Tus capacidades principales son:\n"
+            "1. **Finanzas**: Consultar flujo de caja, cuentas por cobrar/pagar, alertas financieras\n"
+            "2. **Marketing**: Investigacion de nichos de mercado y generacion de correos de ventas\n"
+            "3. **Legal**: Generar contratos de licencia para expertos\n"
+            "4. **Desarrollo**: Consultar a 12 clones digitales expertos en diferentes industrias\n\n"
+            "Clones disponibles: COBOL, Finanzas, Ciberseguridad, UX/UI, Data Science, Legal, Ventas, Telemedicina, Cloud/DevOps, Patentes, RRHH, Manufactura\n\n"
+            "Responde de forma conversacional, util y amigable. Si el usuario pregunta sobre algo que no esta en tu alcance, "
+            "explica que eres un asistente especializado en SkillTwin y sugiere los comandos disponibles.\n\n"
+            f"USUARIO: \"{comando}\"\n\n"
+            "Responde en español de forma concisa y natural."
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        }
+        body = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 500
+            }
+        }
+
+        try:
+            req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
+                res_data = json.loads(response.read().decode("utf-8"))
+                return res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception as e:
+            print(f"Error generando respuesta IA: {e}")
+            return None
+
     def procesar_comando(self, comando):
         # Intentar clasificación inteligente vía IA primero
         ia_decision = self.clasificar_intencion_ia(comando)
@@ -1205,6 +1256,15 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 print(f"[IA ROUTER] Intención: {intent} | Razón: {reasoning} | Comando: {normalized_cmd}")
                 # Ejecutamos la lógica usando el comando normalizado por la IA
                 return self.ejecutar_logica_comando(normalized_cmd, ia_tag=intent)
+
+            # Si es intención general, intentar generar respuesta inteligente
+            respuesta_ia = self.generar_respuesta_ia(comando)
+            if respuesta_ia:
+                return {
+                    "tag": "cerebro",
+                    "message": respuesta_ia,
+                    "console_log": "Respuesta generada por IA para consulta general."
+                }
 
         # Fallback: Ruteo tradicional basado en palabras clave
         return self.ejecutar_logica_comando(comando)
@@ -1331,8 +1391,18 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     "console_log": "Intento de consulta a clon sin parámetros."
                 }
 
-        # 5. MENSAJE POR DEFECTO
+        # 5. MENSAJE POR DEFECTO - Intentar respuesta IA, si no hay API key mostrar ayuda
         else:
+            # Intentar generar respuesta inteligente con IA
+            respuesta_ia = self.generar_respuesta_ia(comando)
+            if respuesta_ia:
+                return {
+                    "tag": ia_tag if ia_tag else "cerebro",
+                    "message": respuesta_ia,
+                    "console_log": "Respuesta generada por IA para comando no reconocido."
+                }
+
+            # Fallback: mostrar ayuda estática
             return {
                 "tag": ia_tag if ia_tag else "cerebro",
                 "message": (
@@ -1341,7 +1411,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     f"1. 📊 **`finanzas`**: Muestra el flujo de caja y alertas reales del negocio.\n"
                     f"2. 📢 **`marketing [nicho]`**: Realiza un estudio de mercado web real y redacta un correo persuasivo.\n"
                     f"3. ⚖️ **`contrato [Nombre] [ID] [Especialidad] [Comisión]`**: Redacta y firma un contrato de licencia.\n"
-                    f"4. 💬 **`preguntar [ID_Clon] [pregunta]`**: Lanza una consulta al motor de clonación de un experto."
+                    f"4. 💬 **`preguntar [ID_Clon] [pregunta]`**: Lanza una consulta al motor de clonación de un experto.\n\n"
+                    f"O simplemente **pregúntame lo que quieras** y responderé de forma inteligente."
                 ),
                 "console_log": "Comando genérico procesado por el Cerebro Central."
             }

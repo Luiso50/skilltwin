@@ -9,7 +9,7 @@ El proyecto combina una landing publica, un dashboard local en Python y una arqu
 - **Estructura:** Arquitectura modular completamente establecida
 - **Backend:** Servidor Python HTTP con 25+ endpoints (server.py)
 - **Frontend:** Dashboard, panel admin, portal de clientes, landing page, login
-- **Auth:** Registro/login de usuarios con hash de passwords (bcrypt), token-based auth
+- **Auth:** Registro/login de usuarios con hash de passwords (PBKDF2-SHA256), token-based auth
 - **Tests:** 150 pruebas (unitarias + integracion) cubriendo los modulos principales
 - **Estado:** Prototipo para pilotos. Requiere configurar secretos, persistencia y cuentas de cliente antes de produccion.
 
@@ -202,7 +202,7 @@ Documentacion completa de endpoints: [docs/API.md](docs/API.md)
 - Autenticacion administrativa obligatoria y tokens con expiracion
 - Autenticacion de clientes con session tokens (register/login/me)
 - Autenticacion dual para clientes: endpoints de ordenes/notificaciones aceptan admin o customer tokens
-- Hash de passwords con bcrypt (no texto plano)
+- Hash de passwords con PBKDF2-SHA256 (no texto plano)
 - Autorizacion para datos financieros, ordenes, facturas, reportes y pagos
 - Autenticacion requerida en `/api/stripe/confirm-session`
 - Validacion de importe, factura y orden en pagos Stripe
@@ -402,7 +402,7 @@ pagos ni notificaciones hasta que existan cuentas de cliente con autorización p
 - alerta informativa en boton login cuando backend no esta disponible
 - dashboard local funcional con rutas operativas
 - portal publico para solicitudes comerciales con autenticacion de clientes
-- autenticacion de usuarios completa (register/login/me) con bcrypt
+- autenticacion de usuarios completa (register/login/me) con PBKDF2-SHA256
 - formulario de registro integrado en login.html para clientes nuevos
 - login/logout con token-based auth y redireccion automatica a login
 - token admin persistente en localStorage con auto-reintento en 401
