@@ -1,42 +1,102 @@
-import sqlite3
 import json
 import os
+import re
 import threading
-from datetime import datetime
 from contextlib import contextmanager
-from typing import Generator
+from datetime import datetime
+
+# ── Selección de driver ─────────────────────────────────────────────────────
+_DATABASE_URL = os.environ.get("DATABASE_URL")
+_USE_POSTGRES = bool(_DATABASE_URL)
+
+if _USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+else:
+    import sqlite3
 
 _DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "skilltwin.db")
+DB_PATH = _DEFAULT_DB_PATH  # Puede ser sobreescrito por tests o en tiempo de ejecución
+db_lock = threading.RLock()
 
 
-def _resolve_db_path() -> str:
-    env_path = os.environ.get("SKILLTWIN_DB_PATH")
-    if env_path:
-        return env_path
+# ── Adaptadores de cursor y conexión ────────────────────────────────────────
+class _Cursor:
+    """Cursor unificado: traduce ? → %s para PostgreSQL y filas a dict."""
 
-    current_path = globals().get("DB_PATH")
-    if isinstance(current_path, str) and current_path:
-        current_dir = os.path.dirname(current_path)
-        if not current_dir or os.path.exists(current_dir):
-            return current_path
+    def __init__(self, raw, pg):
+        self._c = raw
+        self._pg = pg
 
-    return _DEFAULT_DB_PATH
+    def execute(self, sql, params=None):
+        if self._pg:
+            sql = sql.replace("?", "%s")
+        if params is not None:
+            self._c.execute(sql, params)
+        else:
+            self._c.execute(sql)
+        return self
+
+    def execute_ddl(self, sql):
+        """Ejecuta DDL adaptando AUTOINCREMENT → SERIAL para PostgreSQL."""
+        if self._pg:
+            sql = re.sub(r'\bINTEGER PRIMARY KEY AUTOINCREMENT\b', 'SERIAL PRIMARY KEY', sql, flags=re.I)
+        self.execute(sql)
+
+    def execute_returning_id(self, sql, params=None):
+        """INSERT que retorna el ID auto-generado (compatible con ambas bases)."""
+        if self._pg:
+            sql = sql.replace("?", "%s").rstrip().rstrip(";") + " RETURNING id"
+            if params is not None:
+                self._c.execute(sql, params)
+            else:
+                self._c.execute(sql)
+            row = self._c.fetchone()
+            return dict(row)["id"] if row else None
+        self.execute(sql, params)
+        return self._c.lastrowid
+
+    def fetchone(self):
+        row = self._c.fetchone()
+        return dict(row) if row else None
+
+    def fetchall(self):
+        return [dict(r) for r in self._c.fetchall()]
+
+    @property
+    def lastrowid(self):
+        return self._c.lastrowid
 
 
-DB_PATH: str = _resolve_db_path()
-db_lock: threading.RLock = threading.RLock()
+class _Conn:
+    """Conexión unificada para sqlite3 y psycopg2."""
+
+    def __init__(self, raw, pg):
+        self._c = raw
+        self._pg = pg
+
+    def cursor(self):
+        return _Cursor(self._c.cursor(), self._pg)
+
+    def commit(self):
+        self._c.commit()
+
+    def rollback(self):
+        self._c.rollback()
+
+    def close(self):
+        self._c.close()
+
+    def _pragma(self, sql):
+        if not self._pg:
+            self._c.execute(sql)
 
 
 @contextmanager
-def get_connection() -> Generator[sqlite3.Connection, None, None]:
-    with db_lock:
-        path = _resolve_db_path()
-        globals()["DB_PATH"] = path
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        conn = sqlite3.connect(path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
+def get_connection():
+    if _USE_POSTGRES:
+        raw = psycopg2.connect(_DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = _Conn(raw, pg=True)
         try:
             yield conn
             conn.commit()
@@ -45,6 +105,26 @@ def get_connection() -> Generator[sqlite3.Connection, None, None]:
             raise
         finally:
             conn.close()
+    else:
+        with db_lock:
+            # DB_PATH puede ser sobreescrito por tests; env var tiene prioridad en producción
+            path = os.environ.get("SKILLTWIN_DB_PATH") or globals().get("DB_PATH") or _DEFAULT_DB_PATH
+            d = os.path.dirname(path)
+            if d:
+                os.makedirs(d, exist_ok=True)
+            raw = sqlite3.connect(path)
+            raw.row_factory = sqlite3.Row
+            conn = _Conn(raw, pg=False)
+            conn._pragma("PRAGMA journal_mode=WAL")
+            conn._pragma("PRAGMA foreign_keys=ON")
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
 
 
 def init_database():
@@ -104,7 +184,7 @@ def init_database():
                 clon_id TEXT NOT NULL,
                 cantidad_horas INTEGER NOT NULL,
                 descripcion_proyecto TEXT,
-                requiere_contrato BOOLEAN DEFAULT 1,
+                requiere_contrato SMALLINT DEFAULT 1,
                 fecha_creacion TEXT NOT NULL,
                 estado TEXT DEFAULT 'pendiente',
                 etapas TEXT DEFAULT '{}',
@@ -163,7 +243,7 @@ def init_database():
         """)
 
         # Tabla de contactos
-        cursor.execute("""
+        cursor.execute_ddl("""
             CREATE TABLE IF NOT EXISTS contactos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombre TEXT NOT NULL,
@@ -178,7 +258,7 @@ def init_database():
         """)
 
         # Tabla de usuarios (autenticación)
-        cursor.execute("""
+        cursor.execute_ddl("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
@@ -229,8 +309,9 @@ def migrar_json_a_sqlite():
                 data = json.load(f)
             for clon_id, clon_data in data.get("clones", {}).items():
                 cursor.execute("""
-                    INSERT OR IGNORE INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
+                    INSERT INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
                 """, (clon_id, clon_data["nombre"], clon_data["especialidad"],
                       clon_data["conocimiento"], clon_data["fecha_creacion"]))
 
@@ -242,22 +323,27 @@ def migrar_json_a_sqlite():
 
             for mes, valores in data.get("flujo_caja", {}).items():
                 cursor.execute("""
-                    INSERT OR REPLACE INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
+                    INSERT INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (mes) DO UPDATE SET
+                        ingresos_plan=EXCLUDED.ingresos_plan, ingresos_real=EXCLUDED.ingresos_real,
+                        egresos_plan=EXCLUDED.egresos_plan, egresos_real=EXCLUDED.egresos_real
                 """, (mes, valores["ingresos_plan"], valores["ingresos_real"],
                       valores["egresos_plan"], valores["egresos_real"]))
 
             for cuenta in data.get("cuentas_cobrar", []):
                 cursor.execute("""
-                    INSERT OR IGNORE INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
+                    INSERT INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
                 """, (cuenta["id"], cuenta["cliente"], cuenta["monto"],
                       cuenta["vencimiento"], cuenta["estado"]))
 
             for cuenta in data.get("cuentas_pagar", []):
                 cursor.execute("""
-                    INSERT OR IGNORE INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
+                    INSERT INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
                 """, (cuenta["id"], cuenta["proveedor"], cuenta["monto"],
                       cuenta["vencimiento"], cuenta["estado"]))
 
@@ -269,10 +355,11 @@ def migrar_json_a_sqlite():
 
             for orden_id, orden in data.get("ordenes", {}).items():
                 cursor.execute("""
-                    INSERT OR IGNORE INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
+                    INSERT INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
                         descripcion_proyecto, requiere_contrato, fecha_creacion, estado, etapas,
                         notificaciones, monto_total, comision, pago, rating, contrato, archivos_entregables)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
                 """, (orden["id"], orden["cliente_email"], orden["clon_id"],
                       orden["cantidad_horas"], orden.get("descripcion_proyecto", ""),
                       orden.get("requiere_contrato", True), orden["fecha_creacion"],
@@ -291,11 +378,12 @@ def migrar_json_a_sqlite():
 
             for fac_id, factura in data.get("facturas", {}).items():
                 cursor.execute("""
-                    INSERT OR IGNORE INTO facturas (id, orden_id, cliente_email, fecha_emision,
+                    INSERT INTO facturas (id, orden_id, cliente_email, fecha_emision,
                         fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
                         moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
                         detalles, notas, fecha_creacion, fecha_pago)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
                 """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email", ""),
                       factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
                       factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", factura.get("comision", 0.0)),
@@ -308,10 +396,11 @@ def migrar_json_a_sqlite():
 
             for trans_id, trans in data.get("transacciones", {}).items():
                 cursor.execute("""
-                    INSERT OR IGNORE INTO transacciones (id, factura_id, orden_id, cliente_email,
+                    INSERT INTO transacciones (id, factura_id, orden_id, cliente_email,
                         tipo, monto, moneda, metodo_pago, numero_referencia, codigo_autorizacion,
                         detalles_respuesta, estado, fecha)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
                 """, (trans["id"], trans.get("factura_id"), trans.get("orden_id"),
                       trans.get("cliente_email", ""), trans.get("tipo", "pago"),
                       trans["monto"], trans.get("moneda", "USD"), trans.get("metodo_pago"),
@@ -327,8 +416,9 @@ def migrar_json_a_sqlite():
 
             for contacto in data.get("contactos", []):
                 cursor.execute("""
-                    INSERT OR IGNORE INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
+                    INSERT INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT DO NOTHING
                 """, (contacto["nombre"], contacto["email"], contacto.get("telefono", ""),
                       contacto.get("empresa", ""), contacto.get("interes", ""),
                       contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
@@ -349,8 +439,11 @@ def guardar_clone(clon_id, nombre, especialidad, conocimiento):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
+            INSERT INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
             VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                nombre=EXCLUDED.nombre, especialidad=EXCLUDED.especialidad,
+                conocimiento=EXCLUDED.conocimiento, fecha_creacion=EXCLUDED.fecha_creacion
         """, (clon_id, nombre, especialidad, conocimiento,
               datetime.now().strftime("%Y-%m-%d")))
 
@@ -379,8 +472,11 @@ def guardar_flujo_caja(mes, ingresos_plan, ingresos_real, egresos_plan, egresos_
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
+            INSERT INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
             VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (mes) DO UPDATE SET
+                ingresos_plan=EXCLUDED.ingresos_plan, ingresos_real=EXCLUDED.ingresos_real,
+                egresos_plan=EXCLUDED.egresos_plan, egresos_real=EXCLUDED.egresos_real
         """, (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real))
 
 
@@ -444,10 +540,18 @@ def guardar_orden(orden):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
+            INSERT INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
                 descripcion_proyecto, requiere_contrato, fecha_creacion, estado, etapas,
                 notificaciones, monto_total, comision, pago, rating, contrato, archivos_entregables)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                cliente_email=EXCLUDED.cliente_email, clon_id=EXCLUDED.clon_id,
+                cantidad_horas=EXCLUDED.cantidad_horas, descripcion_proyecto=EXCLUDED.descripcion_proyecto,
+                requiere_contrato=EXCLUDED.requiere_contrato, fecha_creacion=EXCLUDED.fecha_creacion,
+                estado=EXCLUDED.estado, etapas=EXCLUDED.etapas, notificaciones=EXCLUDED.notificaciones,
+                monto_total=EXCLUDED.monto_total, comision=EXCLUDED.comision, pago=EXCLUDED.pago,
+                rating=EXCLUDED.rating, contrato=EXCLUDED.contrato,
+                archivos_entregables=EXCLUDED.archivos_entregables
         """, (orden["id"], orden["cliente_email"], orden["clon_id"],
               orden["cantidad_horas"], orden.get("descripcion_proyecto", ""),
               orden.get("requiere_contrato", True), orden["fecha_creacion"],
@@ -491,11 +595,19 @@ def guardar_factura(factura):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO facturas (id, orden_id, cliente_email, fecha_emision,
+            INSERT INTO facturas (id, orden_id, cliente_email, fecha_emision,
                 fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
                 moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
                 detalles, notas, fecha_creacion, fecha_pago)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                orden_id=EXCLUDED.orden_id, cliente_email=EXCLUDED.cliente_email,
+                fecha_emision=EXCLUDED.fecha_emision, fecha_vencimiento=EXCLUDED.fecha_vencimiento,
+                monto_subtotal=EXCLUDED.monto_subtotal, comision_plataforma=EXCLUDED.comision_plataforma,
+                monto_total=EXCLUDED.monto_total, moneda=EXCLUDED.moneda, estado=EXCLUDED.estado,
+                metodo_pago=EXCLUDED.metodo_pago, metodo_pago_seleccionado=EXCLUDED.metodo_pago_seleccionado,
+                referencia_transaccion=EXCLUDED.referencia_transaccion, detalles=EXCLUDED.detalles,
+                notas=EXCLUDED.notas, fecha_creacion=EXCLUDED.fecha_creacion, fecha_pago=EXCLUDED.fecha_pago
         """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email"),
               factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
               factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", 0.0),
@@ -530,12 +642,11 @@ def guardar_contacto(nombre, email, telefono, empresa, interes, mensaje):
     """Guarda un nuevo contacto."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        return cursor.execute_returning_id("""
             INSERT INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'nuevo')
         """, (nombre, email, telefono, empresa, interes, mensaje,
               datetime.now().isoformat()))
-        return cursor.lastrowid
 
 
 # Funciones de acceso a datos para usuarios
@@ -544,12 +655,11 @@ def crear_usuario(email, password_hash, nombre, role="customer"):
     with get_connection() as conn:
         cursor = conn.cursor()
         try:
-            cursor.execute("""
+            return cursor.execute_returning_id("""
                 INSERT INTO users (email, password_hash, nombre, role, created_at)
                 VALUES (?, ?, ?, ?, ?)
             """, (email.lower().strip(), password_hash, nombre, role,
                   datetime.now().isoformat()))
-            return cursor.lastrowid
         except Exception:
             return None
 
@@ -577,8 +687,11 @@ def guardar_session(token, user_id, email, expires_at):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO sessions (token, user_id, email, created_at, expires_at)
+            INSERT INTO sessions (token, user_id, email, created_at, expires_at)
             VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (token) DO UPDATE SET
+                user_id=EXCLUDED.user_id, email=EXCLUDED.email,
+                created_at=EXCLUDED.created_at, expires_at=EXCLUDED.expires_at
         """, (token, user_id, email, datetime.now().isoformat(), expires_at))
 
 
