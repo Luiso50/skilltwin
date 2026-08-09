@@ -189,6 +189,18 @@ def init_database():
             )
         """)
 
+        # Tabla de sesiones de usuario (persistencia entre reinicios)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                email TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+
         # Indices para consultas frecuentes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_email ON ordenes(cliente_email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes(estado)")
@@ -558,3 +570,39 @@ def obtener_usuario_por_id(user_id):
         cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
+
+
+def guardar_session(token, user_id, email, expires_at):
+    """Persiste un token de sesión en la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO sessions (token, user_id, email, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (token, user_id, email, datetime.now().isoformat(), expires_at))
+
+
+def obtener_session(token):
+    """Recupera una sesión activa por token. Retorna None si expiró o no existe."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM sessions WHERE token = ? AND expires_at > ?",
+            (token, datetime.now().isoformat())
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def eliminar_session(token):
+    """Elimina un token de sesión."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE token = ?", (token,))
+
+
+def limpiar_sessions_expiradas():
+    """Elimina todas las sesiones expiradas de la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE expires_at <= ?", (datetime.now().isoformat(),))

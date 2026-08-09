@@ -7,11 +7,18 @@ services:
     startCommand: python -c "from dep_operaciones.database import init_database, migrar_json_a_sqlite; init_database(); migrar_json_a_sqlite()" && cd cerebro && python server.py
     healthCheckPath: /api/health
     autoDeploy: true
+    # Disco persistente para que la base de datos sobreviva entre deploys
+    disk:
+      name: skilltwin-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"
       - key: SKILLTWIN_USE_SQLITE
         value: "1"
+      - key: SKILLTWIN_DB_PATH
+        value: "/data/skilltwin.db"
       - key: SKILLTWIN_TRUST_PROXY
         value: "1"
       - key: SKILLTWIN_HSTS

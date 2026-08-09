@@ -77,7 +77,7 @@ def validate_csrf_token(token, session_id):
 
 
 def cleanup_expired_tokens():
-    """Limpia tokens expirados (llamar periódicamente)."""
+    """Limpia tokens expirados de memoria y base de datos."""
     now = datetime.now()
     expired = [t for t, data in _valid_tokens.items() if now > data['expires']]
     for t in expired:
@@ -87,39 +87,60 @@ def cleanup_expired_tokens():
     for t in expired_csrf:
         del _csrf_tokens[t]
 
+    try:
+        from dep_operaciones import database
+        database.limpiar_sessions_expiradas()
+    except Exception:
+        pass
+
 
 def create_session_token(user_id=None, email=None):
-    """Crea un token de sesión temporal con datos del usuario."""
+    """Crea un token de sesión y lo persiste en la base de datos."""
     token = secrets.token_urlsafe(32)
+    expires = datetime.now() + timedelta(hours=24)
     _valid_tokens[token] = {
         'created': datetime.now(),
-        'expires': datetime.now() + timedelta(hours=24),
+        'expires': expires,
         'user_id': user_id,
         'email': email
     }
+    try:
+        from dep_operaciones import database
+        database.guardar_session(token, user_id, email, expires.isoformat())
+    except Exception:
+        pass  # En memoria es suficiente si la DB no está disponible
     return token
 
 
 def get_session_user(token):
-    """Obtiene los datos del usuario de un token de sesión."""
-    if not token or token not in _valid_tokens:
+    """Obtiene los datos del usuario de un token de sesión (memoria o DB)."""
+    if not token:
         return None
-    session = _valid_tokens[token]
-    if datetime.now() > session['expires']:
-        del _valid_tokens[token]
-        return None
-    return {"user_id": session.get("user_id"), "email": session.get("email")}
+    session = _valid_tokens.get(token)
+    if session:
+        if datetime.now() > session['expires']:
+            del _valid_tokens[token]
+        else:
+            return {"user_id": session.get("user_id"), "email": session.get("email")}
+    try:
+        from dep_operaciones import database
+        db_session = database.obtener_session(token)
+        if db_session:
+            _valid_tokens[token] = {
+                'created': datetime.fromisoformat(db_session['created_at']),
+                'expires': datetime.fromisoformat(db_session['expires_at']),
+                'user_id': db_session['user_id'],
+                'email': db_session['email']
+            }
+            return {"user_id": db_session['user_id'], "email": db_session['email']}
+    except Exception:
+        pass
+    return None
 
 
 def validate_session_token(token):
     """Valida si un token de sesión es válido."""
-    if not token or token not in _valid_tokens:
-        return False
-    session = _valid_tokens[token]
-    if datetime.now() > session['expires']:
-        del _valid_tokens[token]
-        return False
-    return True
+    return get_session_user(token) is not None
 
 
 def sanitize_string(value, max_length=500):
