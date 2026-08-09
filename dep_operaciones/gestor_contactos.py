@@ -3,12 +3,16 @@ import os
 from datetime import datetime
 import threading
 
-USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+def _use_sqlite():
+    return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
+
+USE_SQLITE = _use_sqlite()
 
 DB_CONTACTOS = os.environ.get("SKILLTWIN_CONTACTOS_DB") or os.path.join(os.path.dirname(__file__), "contactos_db.json")
 db_lock = threading.RLock()
 
-if USE_SQLITE:
+if _use_sqlite():
     try:
         from dep_operaciones.database import cargar_contactos as db_cargar_contactos
         from dep_operaciones.database import guardar_contacto as db_guardar_contacto
@@ -35,16 +39,17 @@ def _build_contacto(nombre, email, telefono, empresa, interes, mensaje, contacto
 
 
 def inicializar_contactos():
-    if USE_SQLITE:
+    if _use_sqlite():
         return
     with db_lock:
         if not os.path.exists(DB_CONTACTOS):
+            os.makedirs(os.path.dirname(DB_CONTACTOS), exist_ok=True)
             with open(DB_CONTACTOS, "w", encoding="utf-8") as f:
                 json.dump({"contactos": []}, f, indent=4, ensure_ascii=False)
 
 
 def cargar_contactos():
-    if USE_SQLITE:
+    if _use_sqlite():
         return {"contactos": db_cargar_contactos()}
     with db_lock:
         inicializar_contactos()
@@ -53,7 +58,7 @@ def cargar_contactos():
 
 
 def guardar_contactos(datos):
-    if USE_SQLITE:
+    if _use_sqlite():
         return
     with db_lock:
         with open(DB_CONTACTOS, "w", encoding="utf-8") as f:
@@ -61,7 +66,7 @@ def guardar_contactos(datos):
 
 
 def registrar_contacto(nombre, email, telefono, empresa, interes, mensaje):
-    if USE_SQLITE:
+    if _use_sqlite():
         contacto_id = db_guardar_contacto(nombre.strip(), email.strip(), (telefono or "").strip(), (empresa or "").strip(), (interes or "").strip(), mensaje.strip())
         return _build_contacto(nombre, email, telefono, empresa, interes, mensaje, f"CT-{contacto_id}")
 

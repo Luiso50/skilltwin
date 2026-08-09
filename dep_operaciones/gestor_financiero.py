@@ -3,12 +3,16 @@ import json
 from datetime import datetime, timedelta
 import threading
 
-USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+def _use_sqlite():
+    return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
+
+USE_SQLITE = _use_sqlite()
 
 DB_FINANZAS = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
 db_lock = threading.RLock()
 
-if USE_SQLITE:
+if _use_sqlite():
     try:
         from dep_operaciones.database import cargar_flujo_caja as db_cargar_flujo_caja
         from dep_operaciones.database import guardar_flujo_caja as db_guardar_flujo_caja
@@ -58,17 +62,18 @@ def _seed_sqlite():
 
 
 def inicializar_finanzas():
-    if USE_SQLITE:
+    if _use_sqlite():
         _seed_sqlite()
         return
     with db_lock:
         if not os.path.exists(DB_FINANZAS):
+            os.makedirs(os.path.dirname(DB_FINANZAS), exist_ok=True)
             with open(DB_FINANZAS, "w", encoding="utf-8") as f:
                 json.dump(_build_seed_data(), f, indent=4, ensure_ascii=False)
 
 
 def cargar_finanzas():
-    if USE_SQLITE:
+    if _use_sqlite():
         return {"flujo_caja": db_cargar_flujo_caja(), "cuentas_cobrar": db_cargar_cuentas_cobrar(), "cuentas_pagar": db_cargar_cuentas_pagar()}
     with db_lock:
         inicializar_finanzas()
@@ -77,7 +82,7 @@ def cargar_finanzas():
 
 
 def guardar_finanzas(datos):
-    if USE_SQLITE:
+    if _use_sqlite():
         for mes, valores in datos.get("flujo_caja", {}).items():
             db_guardar_flujo_caja(mes, valores["ingresos_plan"], valores["ingresos_real"],
                                   valores["egresos_plan"], valores["egresos_real"])
