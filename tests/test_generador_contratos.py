@@ -6,7 +6,7 @@ import unittest
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 
-from dep_legal import generador_contratos
+from dep_legal import generador_contratos  # noqa: E402
 
 
 class GeneradorContratosTests(unittest.TestCase):

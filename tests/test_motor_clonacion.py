@@ -2,7 +2,6 @@ import os
 import sys
 import tempfile
 import unittest
-import json
 from unittest.mock import patch
 from io import StringIO
 
@@ -12,7 +11,7 @@ os.environ["SKILLTWIN_USE_SQLITE"] = "0"
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 
-from dep_desarrollo import motor_clonacion
+from dep_desarrollo import motor_clonacion  # noqa: E402
 
 
 class MotorClonacionTests(unittest.TestCase):

@@ -7,7 +7,7 @@ import json
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 
-from dep_operaciones import database
+from dep_operaciones import database  # noqa: E402
 
 
 class DatabaseTests(unittest.TestCase):
@@ -26,13 +26,13 @@ class DatabaseTests(unittest.TestCase):
     def test_clones_crud(self):
         # Create
         database.guardar_clone('test_clon', 'Test User', 'Testing', 'Test knowledge')
-        
+
         # Read
         clon = database.obtener_clone('test_clon')
         self.assertIsNotNone(clon)
         self.assertEqual(clon['nombre'], 'Test User')
         self.assertEqual(clon['especialidad'], 'Testing')
-        
+
         # Read all
         clones = database.cargar_clones()
         self.assertIn('test_clon', clones)
@@ -41,14 +41,14 @@ class DatabaseTests(unittest.TestCase):
     def test_clones_duplicados(self):
         database.guardar_clone('test_clon', 'Test User', 'Testing', 'Knowledge 1')
         database.guardar_clone('test_clon', 'Test User 2', 'Testing 2', 'Knowledge 2')
-        
+
         clones = database.cargar_clones()
         self.assertEqual(len(clones), 1)
         self.assertEqual(clones['test_clon']['conocimiento'], 'Knowledge 2')
 
     def test_flujo_caja_crud(self):
         database.guardar_flujo_caja('2026-07', 3500.0, 1200.0, 1200.0, 950.0)
-        
+
         flujo = database.cargar_flujo_caja()
         self.assertIn('2026-07', flujo)
         self.assertEqual(flujo['2026-07']['ingresos_plan'], 3500.0)
@@ -61,7 +61,7 @@ class DatabaseTests(unittest.TestCase):
                 INSERT INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
                 VALUES ('FAC-001', 'Test Client', 500.0, '2026-08-01', 'Pendiente')
             """)
-        
+
         cuentas = database.cargar_cuentas_cobrar()
         self.assertEqual(len(cuentas), 1)
         self.assertEqual(cuentas[0]['cliente'], 'Test Client')
@@ -74,7 +74,7 @@ class DatabaseTests(unittest.TestCase):
                 INSERT INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
                 VALUES ('PROV-001', 'Test Provider', 300.0, '2026-08-01', 'Pendiente')
             """)
-        
+
         cuentas = database.cargar_cuentas_pagar()
         self.assertEqual(len(cuentas), 1)
         self.assertEqual(cuentas[0]['proveedor'], 'Test Provider')
@@ -98,9 +98,9 @@ class DatabaseTests(unittest.TestCase):
             'contrato': {},
             'archivos_entregables': []
         }
-        
+
         database.guardar_orden(orden)
-        
+
         loaded = database.obtener_orden('ORD-001')
         self.assertIsNotNone(loaded)
         self.assertEqual(loaded['cliente_email'], 'test@example.com')
@@ -117,7 +117,7 @@ class DatabaseTests(unittest.TestCase):
                 'fecha_creacion': '2026-07-19T10:00:00',
                 'estado': 'pendiente'
             })
-        
+
         ordenes = database.cargar_ordenes()
         self.assertEqual(len(ordenes), 3)
 
@@ -131,7 +131,7 @@ class DatabaseTests(unittest.TestCase):
             'fecha_creacion': '2026-07-19T10:00:00',
             'estado': 'pendiente'
         })
-        
+
         factura = {
             'id': 'FAC-001',
             'orden_id': 'ORD-001',
@@ -142,9 +142,9 @@ class DatabaseTests(unittest.TestCase):
             'estado': 'pendiente',
             'fecha_creacion': '2026-07-19T10:00:00'
         }
-        
+
         database.guardar_factura(factura)
-        
+
         loaded = database.obtener_factura('FAC-001')
         self.assertIsNotNone(loaded)
         self.assertEqual(loaded['monto_total'], 500.0)
@@ -159,16 +159,16 @@ class DatabaseTests(unittest.TestCase):
                 'estado': 'pendiente',
                 'fecha_creacion': '2026-07-19T10:00:00'
             })
-        
+
         facturas = database.cargar_facturas()
         self.assertEqual(len(facturas), 3)
 
     def test_contactos_crud(self):
-        contacto_id = database.guardar_contacto(
+        database.guardar_contacto(
             'Test User', 'test@example.com', '+1234567890',
             'Test Corp', 'Demo', 'Quiero una demo'
         )
-        
+
         contactos = database.cargar_contactos()
         self.assertEqual(len(contactos), 1)
         self.assertEqual(contactos[0]['nombre'], 'Test User')
@@ -186,11 +186,11 @@ class DatabaseTests(unittest.TestCase):
                 }
             }
         }
-        
+
         # Write to the actual clones location
         clones_path = os.path.join(ROOT_DIR, "dep_desarrollo", "clones_db.json")
         backup_path = clones_path + ".backup"
-        
+
         try:
             # Backup original
             if os.path.exists(clones_path):
@@ -198,14 +198,14 @@ class DatabaseTests(unittest.TestCase):
                     original = f.read()
                 with open(backup_path, "w", encoding="utf-8") as f:
                     f.write(original)
-            
+
             # Write test data
             with open(clones_path, "w", encoding="utf-8") as f:
                 json.dump(clones_data, f, ensure_ascii=False)
-            
+
             # Run migration
             database.migrar_json_a_sqlite()
-            
+
             # Verify
             clones = database.cargar_clones()
             self.assertIn('migrated_clon', clones)
