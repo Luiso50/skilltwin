@@ -149,12 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
   form.addEventListener("submit", handleSubmit);
   clearBtn.addEventListener("click", clearForm);
 
-  // Link "Olvidé mi contraseña" - Placeholder
-  forgotLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    alert("Funcionalidad no implementada aún.\nContacta al administrador para restablecer tu contraseña.");
-  });
-
   // Auto-focus en email al cargar
   emailInput.focus();
 });

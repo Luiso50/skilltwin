@@ -9,7 +9,9 @@ from typing import Optional, Dict, List, Tuple, Any
 
 _admin_token: Optional[str] = None
 _token_created_at: Optional[datetime] = None
-ADMIN_TOKEN_LIFETIME: timedelta = timedelta(hours=1)
+_previous_admin_token: Optional[str] = None
+_ADMIN_TOKEN_LIFETIME: timedelta = timedelta(hours=1)
+_ADMIN_TOKEN_GRACE_PERIOD: timedelta = timedelta(minutes=5)
 
 _rate_limit_store: Dict[str, List[Tuple[float, str]]] = defaultdict(list)
 RATE_LIMIT_WINDOW: int = int(os.environ.get("SKILLTWIN_RATE_LIMIT_WINDOW", "60"))
@@ -31,8 +33,11 @@ def generate_admin_token() -> str:
 
 
 def get_admin_token() -> str:
+    global _admin_token, _token_created_at, _previous_admin_token
     if (_admin_token is None or _token_created_at is None or
-            datetime.now() > _token_created_at + ADMIN_TOKEN_LIFETIME):
+            datetime.now() > _token_created_at + _ADMIN_TOKEN_LIFETIME):
+        # Keep previous token valid for grace period
+        _previous_admin_token = _admin_token
         generate_admin_token()
     return _admin_token
 
@@ -40,7 +45,18 @@ def get_admin_token() -> str:
 def validate_admin_token(token: Optional[str]) -> bool:
     if not token:
         return False
-    return secrets.compare_digest(token, get_admin_token())
+    # Save current state before potential regeneration
+    prev_token = _previous_admin_token
+    prev_created = _token_created_at
+    # Check current token (may trigger regeneration)
+    if secrets.compare_digest(token, get_admin_token()):
+        return True
+    # Check previous token during grace period
+    if (prev_token is not None and prev_created is not None and
+            datetime.now() <= prev_created + _ADMIN_TOKEN_GRACE_PERIOD):
+        if secrets.compare_digest(token, prev_token):
+            return True
+    return False
 
 
 def validate_admin_secret(secret):

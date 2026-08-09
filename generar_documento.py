@@ -44,7 +44,7 @@ doc.add_heading('Valores', level=1)
 valores = [
     ('Innovación', 'Aplicamos IA de vanguardia para convertir conocimiento en activos digitales.'),
     ('Transparencia', 'Cada operación es auditable, desde contratos hasta flujos financieros.'),
-    ('Cumplimiento Legal', 'Diseñamos我们的平台 con privacidad, ética y licenciamiento justo.'),
+    ('Cumplimiento Legal', 'Diseñamos nuestra plataforma con privacidad, ética y licenciamiento justo.'),
     ('Orientación al Cliente', 'El éxito de nuestros usuarios es el centro de nuestras decisiones.'),
 ]
 for titulo, desc in valores:

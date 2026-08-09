@@ -41,7 +41,7 @@ def buscar_en_internet(query):
 
 def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
     """Utiliza Gemini para sintetizar los hallazgos y proponer una estrategia de ventas."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     contexto = "\n".join([f"- {d}" for d in datos_busqueda])
     prompt = (
@@ -60,7 +60,7 @@ def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
         f"}}"
     )
 
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     body = {
         "contents": [{
             "parts": [{"text": prompt}]

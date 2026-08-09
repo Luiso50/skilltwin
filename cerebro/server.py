@@ -2,6 +2,7 @@ import http.server
 import socketserver
 import json
 import os
+import platform
 import secrets
 import sys
 import urllib.parse
@@ -22,6 +23,9 @@ _metrics = {
 }
 _metrics_lock = threading.Lock()
 
+# Demo rate limiting (module-level to persist across requests)
+_demo_counters = {}
+
 # Server-Sent Events (SSE) system for real-time collaboration
 _sse_clients = []  # List of (client_id, queue)
 _sse_lock = threading.Lock()
@@ -40,6 +44,26 @@ def broadcast_sse_event(event_type, data):
         # Remove dead clients
         for client in dead_clients:
             _sse_clients.remove(client)
+
+
+def _periodic_cleanup():
+    """Periodic cleanup of expired tokens and dead SSE clients."""
+    try:
+        security.cleanup_expired_tokens()
+    except Exception:
+        pass
+    # Clean dead SSE clients
+    with _sse_lock:
+        dead = []
+        for client_id, q in _sse_clients:
+            try:
+                q.put_nowait("")  # Test if queue is alive
+            except Exception:
+                dead.append((client_id, q))
+        for client in dead:
+            _sse_clients.remove(client)
+    # Schedule next cleanup in 5 minutes
+    threading.Timer(300, _periodic_cleanup).start()
 
 
 def register_sse_client(client_id, queue):
@@ -243,7 +267,11 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             if origin and origin in allowed:
                 return origin
             return allowed[0] if allowed else ""
-        return "*"
+        # Default to public URL instead of wildcard
+        public_url = os.environ.get("SKILLTWIN_PUBLIC_URL", "https://skilltwin-api.onrender.com")
+        if origin and origin == public_url:
+            return origin
+        return public_url
 
     def log_message(self, format, *args):
         logger.info(format % args)
@@ -385,7 +413,6 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if self.path == '/api/health':
-            import platform
             with _metrics_lock:
                 req_total = _metrics["requests_total"]
                 err_total = _metrics["errors_total"]
@@ -815,7 +842,6 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 session_id = data.get("session_id", None)
 
                 if not session_id:
-                    import uuid
                     session_id = str(uuid.uuid4())
 
                 respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta, session_id)
@@ -862,15 +888,11 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 client_ip = security.get_client_ip(self)
                 demo_key = f"demo_{client_ip}"
                 
-                # Get or create demo counter
-                if not hasattr(self, '_demo_counters'):
-                    self._demo_counters = {}
-                
                 today = datetime.now().strftime("%Y-%m-%d")
-                if demo_key not in self._demo_counters or self._demo_counters[demo_key]["date"] != today:
-                    self._demo_counters[demo_key] = {"date": today, "count": 0}
+                if demo_key not in _demo_counters or _demo_counters[demo_key]["date"] != today:
+                    _demo_counters[demo_key] = {"date": today, "count": 0}
                 
-                if self._demo_counters[demo_key]["count"] >= 3:
+                if _demo_counters[demo_key]["count"] >= 3:
                     self.send_error_response("Has alcanzado el límite de 3 preguntas diarias. Regístrate para acceso ilimitado.", 429)
                     return
 
@@ -885,8 +907,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 respuesta = motor_clonacion.consultar_clon(clon_id, pregunta, session_id)
 
                 # Increment counter
-                self._demo_counters[demo_key]["count"] += 1
-                remaining = 3 - self._demo_counters[demo_key]["count"]
+                _demo_counters[demo_key]["count"] += 1
+                remaining = 3 - _demo_counters[demo_key]["count"]
 
                 self.send_json_response({
                     "success": True,
@@ -1661,6 +1683,9 @@ def run_server():
 
     logger.info("Iniciando orquestador automático...")
     orquestador.iniciar_orquestador()
+
+    logger.info("Iniciando limpieza periódica de tokens...")
+    _periodic_cleanup()
 
     Handler = CerebroHandler
     ThreadingTCPServer.allow_reuse_address = True

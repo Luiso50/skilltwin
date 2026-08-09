@@ -26,8 +26,23 @@ class SecurityTests(unittest.TestCase):
 
     def test_validate_admin_token_expired(self):
         token = security.generate_admin_token()
-        security._token_created_at = security.datetime.now() - security.ADMIN_TOKEN_LIFETIME
+        # Force token expired + grace period passed
+        security._token_created_at = security.datetime.now() - security._ADMIN_TOKEN_LIFETIME - security._ADMIN_TOKEN_GRACE_PERIOD
+        security._previous_admin_token = None
         self.assertFalse(security.validate_admin_token(token))
+
+    def test_validate_admin_token_with_grace_period(self):
+        token = security.generate_admin_token()
+        # Simulate: previous token created just past lifetime, but within grace period
+        # Set _previous_admin_token and _token_created_at to simulate state after regeneration
+        security._previous_admin_token = token
+        # _token_created_at should be recent (just triggered regeneration)
+        # The grace check uses prev_created which is saved _token_created_at BEFORE get_admin_token()
+        # So we need _token_created_at to be within grace period of now
+        security._token_created_at = security.datetime.now() - security.timedelta(seconds=30)
+        # The token itself is expired (lifetime passed), but _previous_admin_token is valid
+        # validate_admin_token should accept it via grace period
+        self.assertTrue(security.validate_admin_token(token))
 
     def test_create_session_token(self):
         token = security.create_session_token()

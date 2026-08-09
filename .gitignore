@@ -36,3 +36,9 @@ Thumbs.db
 # IDE files
 .vscode/settings.json
 .idea/
+
+# Test output files
+test_stripe_url.txt
+test_orden_id.txt
+test_factura_id.txt
+test_token.txt

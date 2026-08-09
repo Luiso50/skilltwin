@@ -33,8 +33,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   font-family: var(--font-body);
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
   display: flex;
   background-image:
     radial-gradient(circle at top left, rgba(112, 225, 245, 0.12), transparent 24%),
@@ -963,7 +962,7 @@ body {
 }
 
 .historial-content {
-  background: var(--bg-primary);
+  background: var(--bg-color);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
   padding: 2rem;

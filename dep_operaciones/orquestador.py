@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import logging
 import threading
 import time
 
@@ -8,9 +9,11 @@ import time
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(RAIZ_DIR)
 
-from dep_operaciones import gestor_ordenes, gestor_pagos  # noqa: E402
+from dep_operaciones import gestor_ordenes, gestor_pagos, email_service  # noqa: E402
 from dep_legal import gemini_contratos  # noqa: E402
 from dep_desarrollo import motor_clonacion  # noqa: E402
+
+logger = logging.getLogger("orquestador")
 
 # Import SSE broadcasting from cerebro server
 def _broadcast_event(event_type, data):
@@ -37,14 +40,14 @@ class OrquestadorAutonomo:
         if self.thread is None or not self.thread.is_alive():
             self.thread = threading.Thread(target=self._loop_procesamiento, daemon=True)
             self.thread.start()
-            print("[ORQUESTADOR] Automatización iniciada")
+            logger.info("[ORQUESTADOR] Automatización iniciada")
 
     def detener(self):
         """Detiene el procesamiento automático."""
         self.activo = False
         if self.thread:
             self.thread.join(timeout=5)
-        print("[ORQUESTADOR] Automatización detenida")
+        logger.info("[ORQUESTADOR] Automatización detenida")
 
     def _loop_procesamiento(self):
         """Loop principal que procesa órdenes continuamente."""
@@ -53,7 +56,7 @@ class OrquestadorAutonomo:
                 self._procesar_ordenes_pendientes()
                 time.sleep(self.intervalo_chequeo)
             except Exception as e:
-                print(f"[ORQUESTADOR] Error en loop: {e}")
+                logger.info(f"[ORQUESTADOR] Error en loop: {e}")
                 time.sleep(self.intervalo_chequeo)
 
     def _procesar_ordenes_pendientes(self):
@@ -71,7 +74,7 @@ class OrquestadorAutonomo:
 
     def _procesar_orden(self, orden_id):
         """Ejecuta el flujo completo de la orden a través de todos los departamentos."""
-        print(f"\n[ORQUESTADOR] 🚀 Procesando orden: {orden_id}")
+        logger.info(f"\n[ORQUESTADOR] 🚀 Procesando orden: {orden_id}")
 
         orden = gestor_ordenes.obtener_orden(orden_id)
         if not orden:
@@ -86,6 +89,18 @@ class OrquestadorAutonomo:
 
         # ===== ETAPA 1: LEGAL =====
         self._procesar_etapa_legal(orden_id, orden)
+
+        # Check if legal stage succeeded before continuing
+        orden = gestor_ordenes.obtener_orden(orden_id)
+        legal_estado = orden.get("etapas", {}).get("legal", {}).get("estado", "")
+        if legal_estado == "error":
+            logger.info(f"[ORQUESTADOR] Legal stage failed for {orden_id}, stopping pipeline")
+            _broadcast_event("order_completed", {
+                "orden_id": orden_id,
+                "clon_id": orden.get("clon_id"),
+                "error": "Legal stage failed"
+            })
+            return
 
         # ===== ETAPA 2: DESARROLLO =====
         self._procesar_etapa_desarrollo(orden_id, orden)
@@ -104,7 +119,7 @@ class OrquestadorAutonomo:
 
     def _procesar_etapa_legal(self, orden_id, orden):
         """Procesa la etapa legal de la orden."""
-        print(f"[LEGAL] Procesando contrato para {orden_id}...")
+        logger.info(f"[LEGAL] Procesando contrato para {orden_id}...")
 
         # Broadcast: Legal stage started
         _broadcast_event("stage_update", {
@@ -124,8 +139,8 @@ class OrquestadorAutonomo:
             datos = motor_clonacion.cargar_datos()
             clon = datos["clones"][orden["clon_id"]]
 
-            # Generar contrato usando Gemini o plantilla
-            contrato_text = gemini_contratos.generar_contrato_gemini(
+            # Generar contrato usando Gemini o plantilla (ahora retorna ruta .docx)
+            ruta_contrato = gemini_contratos.generar_contrato_gemini(
                 orden_id,
                 orden["cliente_email"],
                 orden["clon_id"],
@@ -136,14 +151,28 @@ class OrquestadorAutonomo:
                 0   # Comisión se calcula en operaciones
             )
 
-            # Guardar contrato en la orden
+            # Guardar ruta del contrato en la orden
             gestor_ordenes.actualizar_contrato_orden(
-                orden_id, contrato_text, por_gemini=True
+                orden_id, ruta_contrato, por_gemini=True
             )
+
+            # Enviar contrato por email al cliente
+            nombre_cliente = orden.get("cliente_nombre", orden["cliente_email"].split("@")[0])
+            exito_email, error_email = email_service.send_contract_email(
+                cliente_email=orden["cliente_email"],
+                cliente_nombre=nombre_cliente,
+                ruta_contrato=ruta_contrato,
+                orden_id=orden_id
+            )
+
+            if exito_email:
+                mensaje_legal = "Contrato generado y enviado por email al cliente."
+            else:
+                mensaje_legal = f"Contrato generado. Error al enviar email: {error_email}"
 
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "legal", "completada",
-                "Contrato generado y validado con IA. Contrato guardado en sistema."
+                mensaje_legal
             )
 
             # Broadcast: Legal stage completed
@@ -154,7 +183,7 @@ class OrquestadorAutonomo:
                 "message": "Contrato generado exitosamente"
             })
 
-            print(f"[LEGAL] ✅ Contrato generado para {orden_id}")
+            logger.info(f"[LEGAL] ✅ Contrato generado para {orden_id}")
 
             time.sleep(1)
 
@@ -172,11 +201,11 @@ class OrquestadorAutonomo:
                 "message": f"Error: {str(e)}"
             })
 
-            print(f"[LEGAL] [ERROR] {e}")
+            logger.info(f"[LEGAL] [ERROR] {e}")
 
     def _procesar_etapa_desarrollo(self, orden_id, orden):
         """Procesa la etapa de desarrollo."""
-        print(f"[DESARROLLO] Preparando clon para {orden_id}...")
+        logger.info(f"[DESARROLLO] Preparando clon para {orden_id}...")
 
         # Broadcast: Development stage started
         _broadcast_event("stage_update", {
@@ -214,7 +243,7 @@ class OrquestadorAutonomo:
                     "department": "desarrollo",
                     "progress": progreso
                 })
-                print(f"[DESARROLLO] {progreso}% - Preparando ambiente...")
+                logger.info(f"[DESARROLLO] {progreso}% - Preparando ambiente...")
 
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "desarrollo", "completada",
@@ -229,7 +258,7 @@ class OrquestadorAutonomo:
                 "message": "Clon preparado y listo"
             })
 
-            print(f"[DESARROLLO] ✅ Clon preparado para {orden_id}")
+            logger.info(f"[DESARROLLO] ✅ Clon preparado para {orden_id}")
 
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
@@ -245,11 +274,11 @@ class OrquestadorAutonomo:
                 "message": f"Error: {str(e)}"
             })
 
-            print(f"[DESARROLLO] [ERROR] {e}")
+            logger.info(f"[DESARROLLO] [ERROR] {e}")
 
     def _procesar_etapa_operaciones(self, orden_id, orden):
         """Procesa la etapa de operaciones (facturación y pagos)."""
-        print(f"[OPERACIONES] Procesando facturación para {orden_id}...")
+        logger.info(f"[OPERACIONES] Procesando facturación para {orden_id}...")
 
         # Broadcast: Operations stage started
         _broadcast_event("stage_update", {
@@ -265,17 +294,16 @@ class OrquestadorAutonomo:
         )
 
         try:
-            # Cargar configuración de comisión
+            # Cargar configuración de comisión y tarifa
             settings_path = os.path.join(os.path.dirname(__file__), '..', 'cerebro', 'server_settings.json')
             comision_pct = 15.0
+            tarifa_hora = 50.0
 
             if os.path.exists(settings_path):
                 with open(settings_path, 'r') as f:
                     settings = json.load(f)
                     comision_pct = settings.get("commission", 15.0)
-
-            # Calcular monto (ejemplo: $50/hora)
-            tarifa_hora = 50.0
+                    tarifa_hora = settings.get("tariff_per_hour", 50.0)
             monto_bruto = orden["cantidad_horas"] * tarifa_hora
             comision = monto_bruto * (comision_pct / 100)
             monto_total = monto_bruto + comision
@@ -317,7 +345,7 @@ class OrquestadorAutonomo:
                 "message": f"Factura {factura_id} creada - Total: ${monto_total:.2f}"
             })
 
-            print(f"[OPERACIONES] ✅ Factura procesada: ${monto_total:.2f}")
+            logger.info(f"[OPERACIONES] ✅ Factura procesada: ${monto_total:.2f}")
 
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
@@ -333,11 +361,11 @@ class OrquestadorAutonomo:
                 "message": f"Error: {str(e)}"
             })
 
-            print(f"[OPERACIONES] [ERROR] {e}")
+            logger.info(f"[OPERACIONES] [ERROR] {e}")
 
     def _procesar_etapa_entrega(self, orden_id, orden):
         """Procesa la etapa final de entrega."""
-        print(f"[ENTREGA] Preparando entrega para {orden_id}...")
+        logger.info(f"[ENTREGA] Preparando entrega para {orden_id}...")
 
         # Broadcast: Delivery stage started
         _broadcast_event("stage_update", {
@@ -369,7 +397,7 @@ class OrquestadorAutonomo:
                 "message": "Acceso entregado al cliente"
             })
 
-            print(f"[ENTREGA] ✅ Orden {orden_id} entregada al cliente")
+            logger.info(f"[ENTREGA] ✅ Orden {orden_id} entregada al cliente")
 
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
@@ -385,7 +413,7 @@ class OrquestadorAutonomo:
                 "message": f"Error: {str(e)}"
             })
 
-            print(f"[ENTREGA] [ERROR] {e}")
+            logger.info(f"[ENTREGA] [ERROR] {e}")
 
 
 # Instancia global del orquestador

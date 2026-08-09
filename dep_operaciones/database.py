@@ -719,3 +719,16 @@ def limpiar_sessions_expiradas():
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM sessions WHERE expires_at <= ?", (datetime.now().isoformat(),))
+
+
+def actualizar_password(user_id, new_password_hash):
+    """Actualiza la contraseña de un usuario."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (new_password_hash, user_id)
+        )
+        # Verificar que el usuario existía
+        user = obtener_usuario_por_id(user_id)
+        return user is not None
