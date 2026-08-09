@@ -463,6 +463,8 @@ def consultar_clon_offline(clon, pregunta, session_id=None):
         partes.append("\nHaz tu pregunta y haré mi mejor esfuerzo para responderte.")
 
     else:  # conocimiento
+        # Siempre identificar quién responde en respuestas de conocimiento
+        partes.append(f"**{nombre}** _{especialidad}_\n")
         info_relevante = conocimiento_estructurado.buscar_informacion_relevante(pregunta)
 
         if info_relevante:
