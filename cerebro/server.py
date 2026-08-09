@@ -10,6 +10,7 @@ import logging
 import time
 import uuid
 import threading
+import queue
 from datetime import datetime
 
 
@@ -20,6 +21,37 @@ _metrics = {
     "response_times": []
 }
 _metrics_lock = threading.Lock()
+
+# Server-Sent Events (SSE) system for real-time collaboration
+_sse_clients = []  # List of (client_id, queue)
+_sse_lock = threading.Lock()
+
+
+def broadcast_sse_event(event_type, data):
+    """Broadcast an event to all connected SSE clients."""
+    event_msg = f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+    with _sse_lock:
+        dead_clients = []
+        for client_id, queue in _sse_clients:
+            try:
+                queue.put_nowait(event_msg)
+            except Exception:
+                dead_clients.append((client_id, queue))
+        # Remove dead clients
+        for client in dead_clients:
+            _sse_clients.remove(client)
+
+
+def register_sse_client(client_id, queue):
+    """Register a new SSE client."""
+    with _sse_lock:
+        _sse_clients.append((client_id, queue))
+
+
+def unregister_sse_client(client_id):
+    """Unregister an SSE client."""
+    with _sse_lock:
+        _sse_clients[:] = [(cid, q) for cid, q in _sse_clients if cid != client_id]
 
 
 def load_dotenv():
@@ -367,6 +399,41 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 "python_version": platform.python_version(),
                 "database": "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json"
             })
+            return
+
+        if self.path == '/api/events':
+            # Server-Sent Events endpoint
+            client_id = str(uuid.uuid4())
+            client_queue = queue.Queue()
+            register_sse_client(client_id, client_queue)
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Connection', 'keep-alive')
+            self.send_header('Access-Control-Allow-Origin', self._get_cors_origin())
+            self.end_headers()
+
+            try:
+                # Send initial connection event
+                init_msg = f"event: connected\ndata: {json.dumps({'client_id': client_id})}\n\n"
+                self.wfile.write(init_msg.encode('utf-8'))
+                self.wfile.flush()
+
+                # Keep connection alive and send events
+                while True:
+                    try:
+                        event = client_queue.get(timeout=30)
+                        self.wfile.write(event.encode('utf-8'))
+                        self.wfile.flush()
+                    except Exception:
+                        # Send heartbeat to keep connection alive
+                        self.wfile.write(b": heartbeat\n\n")
+                        self.wfile.flush()
+            except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                pass
+            finally:
+                unregister_sse_client(client_id)
             return
 
         if self.path == '/favicon.ico':
@@ -781,6 +848,55 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.error(f"Error en /api/clon-limpiar-memoria: {e}")
                 self.send_error_response(str(e), 400)
+        elif self.path == '/api/demo-chat':
+            try:
+                data = self.read_json_body()
+                clon_id = security.sanitize_string(data.get("clon_id", ""), 50)
+                pregunta = security.sanitize_string(data.get("pregunta", ""), 500)
+
+                if not clon_id or not pregunta:
+                    self.send_error_response("clon_id y pregunta son requeridos")
+                    return
+
+                # Rate limiting for demo: 3 questions per IP per day
+                client_ip = security.get_client_ip(self)
+                demo_key = f"demo_{client_ip}"
+                
+                # Get or create demo counter
+                if not hasattr(self, '_demo_counters'):
+                    self._demo_counters = {}
+                
+                today = datetime.now().strftime("%Y-%m-%d")
+                if demo_key not in self._demo_counters or self._demo_counters[demo_key]["date"] != today:
+                    self._demo_counters[demo_key] = {"date": today, "count": 0}
+                
+                if self._demo_counters[demo_key]["count"] >= 3:
+                    self.send_error_response("Has alcanzado el límite de 3 preguntas diarias. Regístrate para acceso ilimitado.", 429)
+                    return
+
+                # Verify clone exists
+                datos = motor_clonacion.cargar_datos()
+                if clon_id not in datos["clones"]:
+                    self.send_error_response("Clon no encontrado")
+                    return
+
+                # Generate response
+                session_id = f"demo_{client_ip}_{today}"
+                respuesta = motor_clonacion.consultar_clon(clon_id, pregunta, session_id)
+
+                # Increment counter
+                self._demo_counters[demo_key]["count"] += 1
+                remaining = 3 - self._demo_counters[demo_key]["count"]
+
+                self.send_json_response({
+                    "success": True,
+                    "respuesta": respuesta,
+                    "remaining_questions": remaining
+                })
+
+            except Exception as e:
+                logger.error(f"Error en /api/demo-chat: {e}")
+                self.send_error_response(str(e), 500)
         elif self.path == '/api/procesar-pago':
             if not self.require_admin():
                 return
@@ -993,6 +1109,88 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 })
             except Exception as e:
                 logger.error(f"Error en /api/auth/login: {e}")
+                self.send_error_response(str(e), 400)
+
+        elif self.path == '/api/auth/forgot-password':
+            try:
+                data = self.read_json_body()
+                email = security.sanitize_string(data.get("email", ""), 254)
+
+                if not email:
+                    raise ValueError("El email es obligatorio")
+                if not security.validate_email(email):
+                    raise ValueError("Formato de email inválido")
+
+                user = database.obtener_usuario_por_email(email)
+                if not user:
+                    # Por seguridad, no revelar si el email existe
+                    self.send_json_response({
+                        "success": True,
+                        "message": "Si el email está registrado, recibirás un código de recuperación."
+                    })
+                    return
+
+                # Generar código de 6 dígitos
+                reset_code = str(secrets.randbelow(900000) + 100000)
+                expires = datetime.now().timestamp() + 900  # 15 minutos
+
+                # Guardar código en la tabla sessions con prefijo especial
+                reset_token = f"reset_{reset_code}"
+                database.guardar_session(reset_token, user["id"], email, datetime.fromtimestamp(expires).isoformat())
+
+                # Enviar email
+                success, error = email_service.send_password_reset_email(
+                    user["nombre"], email, reset_code
+                )
+
+                if not success:
+                    logger.error(f"Error enviando email de reset: {error}")
+
+                self.send_json_response({
+                    "success": True,
+                    "message": "Si el email está registrado, recibirás un código de recuperación."
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/auth/forgot-password: {e}")
+                self.send_error_response(str(e), 400)
+
+        elif self.path == '/api/auth/reset-password':
+            try:
+                data = self.read_json_body()
+                email = security.sanitize_string(data.get("email", ""), 254)
+                code = security.sanitize_string(data.get("code", ""), 10)
+                new_password = data.get("new_password", "")
+
+                if not email or not code or not new_password:
+                    raise ValueError("Email, código y nueva contraseña son obligatorios")
+                if not security.validate_email(email):
+                    raise ValueError("Formato de email inválido")
+                if len(new_password) < 8:
+                    raise ValueError("La contraseña debe tener al menos 8 caracteres")
+
+                # Validar código
+                reset_token = f"reset_{code}"
+                session = database.obtener_session(reset_token)
+                if not session or session["email"] != email:
+                    raise ValueError("Código inválido o expirado")
+
+                # Actualizar contraseña
+                user = database.obtener_usuario_por_email(email)
+                if not user:
+                    raise ValueError("Usuario no encontrado")
+
+                new_hash = security.hash_password(new_password)
+                database.actualizar_password(user["id"], new_hash)
+
+                # Eliminar código de reset
+                database.eliminar_session(reset_token)
+
+                self.send_json_response({
+                    "success": True,
+                    "message": "Contraseña actualizada correctamente"
+                })
+            except Exception as e:
+                logger.error(f"Error en /api/auth/reset-password: {e}")
                 self.send_error_response(str(e), 400)
 
         elif self.path == '/api/stripe/create-payment':
@@ -1212,8 +1410,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             "1. **Finanzas**: Consultar flujo de caja, cuentas por cobrar/pagar, alertas financieras\n"
             "2. **Marketing**: Investigacion de nichos de mercado y generacion de correos de ventas\n"
             "3. **Legal**: Generar contratos de licencia para expertos\n"
-            "4. **Desarrollo**: Consultar a 12 clones digitales expertos en diferentes industrias\n\n"
+            "4. **Desarrollo**: Consultar a 12 clones digitales expertos en diferentes industrias\n"
+            "5. **Demo**: Puedes compartir el enlace a la demo interactiva\n\n"
             "Clones disponibles: COBOL, Finanzas, Ciberseguridad, UX/UI, Data Science, Legal, Ventas, Telemedicina, Cloud/DevOps, Patentes, RRHH, Manufactura\n\n"
+            "INFORMACION IMPORTANTE:\n"
+            "- La Demo Interactiva esta disponible en: /demo.html\n"
+            "- En la demo, los usuarios pueden probar 3 preguntas gratis sin registro\n"
+            "- Si preguntan por un link/demo/prueba, comparte: /demo.html\n\n"
             "Responde de forma conversacional, util y amigable. Si el usuario pregunta sobre algo que no esta en tu alcance, "
             "explica que eres un asistente especializado en SkillTwin y sugiere los comandos disponibles.\n\n"
             f"USUARIO: \"{comando}\"\n\n"
@@ -1393,6 +1596,24 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
         # 5. MENSAJE POR DEFECTO - Intentar respuesta IA, si no hay API key mostrar ayuda
         else:
+            # Detectar preguntas sobre demo/link/prueba
+            cmd_lower = comando.lower()
+            if any(p in cmd_lower for p in ["demo", "link", "prueba", "probar", "gratis", "interactuar"]):
+                return {
+                    "tag": "cerebro",
+                    "message": (
+                        "🎯 **Demo Interactiva de SkillTwin**\n\n"
+                        "Puedes probar nuestros expertos de IA gratis aquí:\n"
+                        "**👉 [demo.html](/demo.html)**\n\n"
+                        "En la demo puedes:\n"
+                        "- Hablar con 12 expertos digitales\n"
+                        "- Hacer 3 preguntas gratis sin registro\n"
+                        "- Ver cómo funciona la plataforma\n\n"
+                        "¿Te gustaría ver algo más?"
+                    ),
+                    "console_log": "Enlace de demo compartido."
+                }
+
             # Intentar generar respuesta inteligente con IA
             respuesta_ia = self.generar_respuesta_ia(comando)
             if respuesta_ia:
@@ -1411,7 +1632,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     f"1. 📊 **`finanzas`**: Muestra el flujo de caja y alertas reales del negocio.\n"
                     f"2. 📢 **`marketing [nicho]`**: Realiza un estudio de mercado web real y redacta un correo persuasivo.\n"
                     f"3. ⚖️ **`contrato [Nombre] [ID] [Especialidad] [Comisión]`**: Redacta y firma un contrato de licencia.\n"
-                    f"4. 💬 **`preguntar [ID_Clon] [pregunta]`**: Lanza una consulta al motor de clonación de un experto.\n\n"
+                    f"4. 💬 **`preguntar [ID_Clon] [pregunta]`**: Lanza una consulta al motor de clonación de un experto.\n"
+                    f"5. 🔗 **`demo`**: Obtén el enlace a la demo interactiva\n\n"
                     f"O simplemente **pregúntame lo que quieras** y responderé de forma inteligente."
                 ),
                 "console_log": "Comando genérico procesado por el Cerebro Central."

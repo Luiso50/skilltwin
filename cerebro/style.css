@@ -1056,9 +1056,15 @@ body {
   margin: 1rem 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 0.75rem;
   font-family: var(--font-body);
   font-size: 0.9rem;
+}
+
+.chat-spacer {
+  flex: 1;
+  min-height: 1rem;
 }
 
 .test-chat-placeholder {

@@ -224,6 +224,66 @@
         <span style="color:var(--text-secondary); font-size:0.85rem;">¿No tienes cuenta? </span>
         <a href="#" id="register-link" style="color:var(--color-cerebro); font-size:0.85rem; text-decoration:none; font-weight:500;">Crear cuenta</a>
       </div>
+      <div style="text-align:center; margin-top:1rem;">
+        <a href="demo.html" style="color:var(--accent-warm); font-size:0.85rem; text-decoration:none; font-weight:500;">O prueba la demo gratis sin registro</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Recuperación de Contraseña -->
+  <div id="forgot-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:20px; padding:2.5rem; width:100%; max-width:420px; margin:1.5rem;">
+      <h2 style="color:var(--text-primary); margin-bottom:1.5rem; text-align:center;">Recuperar Contraseña</h2>
+      
+      <!-- Paso 1: Solicitar email -->
+      <div id="forgot-step1">
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem; text-align:center;">
+          Ingresa tu email y te enviaremos un código de recuperación.
+        </p>
+        <form id="forgot-form" novalidate>
+          <div class="form-group">
+            <label for="forgot-email">Correo electrónico</label>
+            <input type="email" id="forgot-email" class="form-input" placeholder="tu@email.com" required>
+          </div>
+          <div id="forgot-error" style="display:none; color:var(--color-marketing); font-size:0.8rem; margin-bottom:1rem;"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar Código</button>
+            <button type="button" id="cancel-forgot" class="btn btn-secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Paso 2: Ingresar código y nueva contraseña -->
+      <div id="forgot-step2" style="display:none;">
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem; text-align:center;">
+          Ingresa el código que recibiste y tu nueva contraseña.
+        </p>
+        <form id="reset-form" novalidate>
+          <div class="form-group">
+            <label for="reset-code">Código de verificación</label>
+            <input type="text" id="reset-code" class="form-input" placeholder="123456" maxlength="6" required>
+          </div>
+          <div class="form-group">
+            <label for="reset-password">Nueva contraseña</label>
+            <input type="password" id="reset-password" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8">
+          </div>
+          <div id="reset-error" style="display:none; color:var(--color-marketing); font-size:0.8rem; margin-bottom:1rem;"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Restablecer</button>
+            <button type="button" id="back-to-step1" class="btn btn-secondary">Volver</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Paso 3: Éxito -->
+      <div id="forgot-step3" style="display:none; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:1rem;">✓</div>
+        <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">Contraseña actualizada</h3>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">
+          Ya puedes iniciar sesión con tu nueva contraseña.
+        </p>
+        <button id="goto-login" class="btn btn-primary" style="width:100%;">Ir a Iniciar Sesión</button>
+      </div>
     </div>
   </div>
 
@@ -315,6 +375,117 @@
         regError.textContent = err.message;
         regError.style.display = 'block';
       }
+    });
+
+    // Recuperación de Contraseña
+    const forgotLink = document.getElementById('forgot-link');
+    const forgotModal = document.getElementById('forgot-modal');
+    const cancelForgot = document.getElementById('cancel-forgot');
+    const forgotForm = document.getElementById('forgot-form');
+    const forgotError = document.getElementById('forgot-error');
+    const forgotStep1 = document.getElementById('forgot-step1');
+    const forgotStep2 = document.getElementById('forgot-step2');
+    const forgotStep3 = document.getElementById('forgot-step3');
+    const resetForm = document.getElementById('reset-form');
+    const resetError = document.getElementById('reset-error');
+    const backToStep1 = document.getElementById('back-to-step1');
+    const gotoLogin = document.getElementById('goto-login');
+
+    let resetEmail = '';
+
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      forgotModal.style.display = 'flex';
+      forgotStep1.style.display = 'block';
+      forgotStep2.style.display = 'none';
+      forgotStep3.style.display = 'none';
+      forgotForm.reset();
+      forgotError.style.display = 'none';
+    });
+
+    cancelForgot.addEventListener('click', () => {
+      forgotModal.style.display = 'none';
+      forgotForm.reset();
+      forgotError.style.display = 'none';
+    });
+
+    forgotModal.addEventListener('click', (e) => {
+      if (e.target === forgotModal) {
+        forgotModal.style.display = 'none';
+        forgotForm.reset();
+        forgotError.style.display = 'none';
+      }
+    });
+
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+
+      if (!email) {
+        forgotError.textContent = 'El email es obligatorio';
+        forgotError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar código');
+
+        resetEmail = email;
+        forgotStep1.style.display = 'none';
+        forgotStep2.style.display = 'block';
+      } catch (err) {
+        forgotError.textContent = err.message;
+        forgotError.style.display = 'block';
+      }
+    });
+
+    backToStep1.addEventListener('click', () => {
+      forgotStep2.style.display = 'none';
+      forgotStep1.style.display = 'block';
+      resetError.style.display = 'none';
+    });
+
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('reset-code').value.trim();
+      const newPassword = document.getElementById('reset-password').value;
+
+      if (!code || code.length !== 6) {
+        resetError.textContent = 'El código debe tener 6 dígitos';
+        resetError.style.display = 'block';
+        return;
+      }
+      if (newPassword.length < 8) {
+        resetError.textContent = 'La contraseña debe tener al menos 8 caracteres';
+        resetError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: resetEmail, code, new_password: newPassword })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al restablecer contraseña');
+
+        forgotStep2.style.display = 'none';
+        forgotStep3.style.display = 'block';
+      } catch (err) {
+        resetError.textContent = err.message;
+        resetError.style.display = 'block';
+      }
+    });
+
+    gotoLogin.addEventListener('click', () => {
+      forgotModal.style.display = 'none';
     });
   </script>
 </body>

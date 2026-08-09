@@ -68,6 +68,119 @@ if (!checkAuth()) {
   throw new Error("Redirigiendo a login...");
 }
 
+// ======================================================================
+// SERVER-SENT EVENTS (SSE) - COLABORACIÓN EN TIEMPO REAL
+// ======================================================================
+
+let sseConnection = null;
+let sseReconnectAttempts = 0;
+const MAX_SSE_RECONNECT = 5;
+
+function connectSSE() {
+  if (sseConnection) {
+    sseConnection.close();
+  }
+
+  sseConnection = new EventSource('/api/events');
+
+  sseConnection.onopen = () => {
+    console.log('[SSE] Conexión establecida');
+    sseReconnectAttempts = 0;
+    addLog('cerebro', 'Conexión en tiempo real establecida');
+  };
+
+  sseConnection.addEventListener('connected', (e) => {
+    const data = JSON.parse(e.data);
+    console.log('[SSE] Cliente conectado:', data.client_id);
+  });
+
+  sseConnection.addEventListener('order_started', (e) => {
+    const data = JSON.parse(e.data);
+    addLog('cerebro', `Nueva orden en proceso: ${data.orden_id}`);
+    showNotification(`Orden ${data.orden_id} iniciada`, 'info');
+    
+    // Animate all departments
+    animateDepartment('legal');
+    setTimeout(() => animateDepartment('desarrollo'), 500);
+    setTimeout(() => animateDepartment('operaciones'), 1000);
+  });
+
+  sseConnection.addEventListener('stage_update', (e) => {
+    const data = JSON.parse(e.data);
+    const { orden_id, department, status, message } = data;
+    
+    // Update department status
+    const depKey = department === 'entrega' ? 'operaciones' : department;
+    if (departments[depKey]) {
+      const dep = departments[depKey];
+      
+      if (status === 'en_proceso') {
+        dep.status.textContent = 'Trabajando';
+        dep.status.className = 'dep-status status-working';
+        dep.card.style.borderColor = dep.color;
+        dep.progress.style.width = '0%';
+        
+        setTimeout(() => {
+          dep.progress.style.width = '70%';
+        }, 100);
+      } else if (status === 'completada') {
+        dep.status.textContent = 'Completado';
+        dep.status.className = 'dep-status status-active';
+        dep.progress.style.width = '100%';
+        
+        setTimeout(() => {
+          dep.card.style.borderColor = 'var(--panel-border)';
+          dep.progress.style.width = '0%';
+        }, 2000);
+      } else if (status === 'error') {
+        dep.status.textContent = 'Error';
+        dep.status.className = 'dep-status status-error';
+        dep.card.style.borderColor = 'var(--color-danger)';
+      }
+    }
+    
+    addLog(department, `[Orden ${orden_id}] ${message}`);
+  });
+
+  sseConnection.addEventListener('stage_progress', (e) => {
+    const data = JSON.parse(e.data);
+    const { orden_id, department, progress } = data;
+    
+    const depKey = department === 'entrega' ? 'operaciones' : department;
+    if (departments[depKey]) {
+      departments[depKey].progress.style.width = `${progress}%`;
+    }
+  });
+
+  sseConnection.addEventListener('order_completed', (e) => {
+    const data = JSON.parse(e.data);
+    addLog('cerebro', `Orden ${data.orden_id} completada exitosamente`);
+    showNotification(`Orden ${data.orden_id} completada`, 'success');
+  });
+
+  sseConnection.onerror = (e) => {
+    console.error('[SSE] Error de conexión:', e);
+    sseConnection.close();
+    
+    if (sseReconnectAttempts < MAX_SSE_RECONNECT) {
+      sseReconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, sseReconnectAttempts), 30000);
+      console.log(`[SSE] Reconectando en ${delay}ms (intento ${sseReconnectAttempts})`);
+      setTimeout(connectSSE, delay);
+    } else {
+      addLog('cerebro', 'Conexión en tiempo real perdida. Recarga la página.');
+    }
+  };
+}
+
+// Start SSE connection when page loads
+connectSSE();
+
+// Alias for notifications
+function showNotification(message, type = 'info') {
+  showToast(message, type);
+}
+
 // Debounce: retrasa ejecución hasta que el usuario deja de escribir
 function debounce(func, wait) {
   let timeout;
@@ -641,6 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 5. Limpiar caja de chat y agregar saludo inicial del clon
     if (testChatBox) {
       testChatBox.innerHTML = `
+        <div class="chat-spacer"></div>
         <div class="chat-bubble cerebro-msg" style="border-left-color: var(--color-desarrollo);">
           Hola, soy el gemelo digital de <strong>${clone.nombre}</strong>. He sido entrenado con sus habilidades y conocimientos en <em>${clone.especialidad}</em>.<br><br>¿En qué puedo asesorarte o ayudarte hoy?
         </div>

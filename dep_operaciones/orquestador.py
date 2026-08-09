@@ -12,6 +12,15 @@ from dep_operaciones import gestor_ordenes, gestor_pagos  # noqa: E402
 from dep_legal import gemini_contratos  # noqa: E402
 from dep_desarrollo import motor_clonacion  # noqa: E402
 
+# Import SSE broadcasting from cerebro server
+def _broadcast_event(event_type, data):
+    """Broadcast event to all connected SSE clients."""
+    try:
+        from cerebro.server import broadcast_sse_event
+        broadcast_sse_event(event_type, data)
+    except ImportError:
+        pass  # SSE not available
+
 class OrquestadorAutonomo:
     """
     Procesa órdenes automáticamente a través de todos los departamentos.
@@ -68,6 +77,13 @@ class OrquestadorAutonomo:
         if not orden:
             return
 
+        # Broadcast: Order processing started
+        _broadcast_event("order_started", {
+            "orden_id": orden_id,
+            "clon_id": orden.get("clon_id"),
+            "cliente": orden.get("cliente_email")
+        })
+
         # ===== ETAPA 1: LEGAL =====
         self._procesar_etapa_legal(orden_id, orden)
 
@@ -80,9 +96,23 @@ class OrquestadorAutonomo:
         # ===== ETAPA 4: ENTREGA =====
         self._procesar_etapa_entrega(orden_id, orden)
 
+        # Broadcast: Order processing completed
+        _broadcast_event("order_completed", {
+            "orden_id": orden_id,
+            "clon_id": orden.get("clon_id")
+        })
+
     def _procesar_etapa_legal(self, orden_id, orden):
         """Procesa la etapa legal de la orden."""
         print(f"[LEGAL] Procesando contrato para {orden_id}...")
+
+        # Broadcast: Legal stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "legal",
+            "status": "en_proceso",
+            "message": "Generando contrato con IA..."
+        })
 
         gestor_ordenes.actualizar_etapa_orden(
             orden_id, "legal", "en_proceso",
@@ -115,6 +145,15 @@ class OrquestadorAutonomo:
                 orden_id, "legal", "completada",
                 "Contrato generado y validado con IA. Contrato guardado en sistema."
             )
+
+            # Broadcast: Legal stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "legal",
+                "status": "completada",
+                "message": "Contrato generado exitosamente"
+            })
+
             print(f"[LEGAL] ✅ Contrato generado para {orden_id}")
 
             time.sleep(1)
@@ -124,11 +163,28 @@ class OrquestadorAutonomo:
                 orden_id, "legal", "error",
                 f"Error al generar contrato: {str(e)}"
             )
+
+            # Broadcast: Legal stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "legal",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
             print(f"[LEGAL] [ERROR] {e}")
 
     def _procesar_etapa_desarrollo(self, orden_id, orden):
         """Procesa la etapa de desarrollo."""
         print(f"[DESARROLLO] Preparando clon para {orden_id}...")
+
+        # Broadcast: Development stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "desarrollo",
+            "status": "en_proceso",
+            "message": f"Configurando instancia del clon '{orden['clon_id']}'..."
+        })
 
         gestor_ordenes.actualizar_etapa_orden(
             orden_id, "desarrollo", "en_proceso",
@@ -152,12 +208,27 @@ class OrquestadorAutonomo:
             for i in range(tiempo_preparacion):
                 time.sleep(1)
                 progreso = int((i + 1) / tiempo_preparacion * 100)
+                # Broadcast progress
+                _broadcast_event("stage_progress", {
+                    "orden_id": orden_id,
+                    "department": "desarrollo",
+                    "progress": progreso
+                })
                 print(f"[DESARROLLO] {progreso}% - Preparando ambiente...")
 
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "desarrollo", "completada",
                 f"Instancia del clon lista. ID: {instancia_id}. Acceso: API disponible."
             )
+
+            # Broadcast: Development stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "desarrollo",
+                "status": "completada",
+                "message": "Clon preparado y listo"
+            })
+
             print(f"[DESARROLLO] ✅ Clon preparado para {orden_id}")
 
         except Exception as e:
@@ -165,11 +236,28 @@ class OrquestadorAutonomo:
                 orden_id, "desarrollo", "error",
                 f"Error en preparación del clon: {str(e)}"
             )
+
+            # Broadcast: Development stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "desarrollo",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
             print(f"[DESARROLLO] [ERROR] {e}")
 
     def _procesar_etapa_operaciones(self, orden_id, orden):
         """Procesa la etapa de operaciones (facturación y pagos)."""
         print(f"[OPERACIONES] Procesando facturación para {orden_id}...")
+
+        # Broadcast: Operations stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "operaciones",
+            "status": "en_proceso",
+            "message": "Calculando monto total y procesando facturación..."
+        })
 
         gestor_ordenes.actualizar_etapa_orden(
             orden_id, "operaciones", "en_proceso",
@@ -220,6 +308,15 @@ class OrquestadorAutonomo:
                 orden_id, "operaciones", "completada",
                 f"✅ Factura creada: {factura_id}. Total: ${monto_total:.2f} (Comisión: ${comision:.2f}). Pendiente de pago."
             )
+
+            # Broadcast: Operations stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "operaciones",
+                "status": "completada",
+                "message": f"Factura {factura_id} creada - Total: ${monto_total:.2f}"
+            })
+
             print(f"[OPERACIONES] ✅ Factura procesada: ${monto_total:.2f}")
 
         except Exception as e:
@@ -227,11 +324,28 @@ class OrquestadorAutonomo:
                 orden_id, "operaciones", "error",
                 f"Error en facturación: {str(e)}"
             )
+
+            # Broadcast: Operations stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "operaciones",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
             print(f"[OPERACIONES] [ERROR] {e}")
 
     def _procesar_etapa_entrega(self, orden_id, orden):
         """Procesa la etapa final de entrega."""
         print(f"[ENTREGA] Preparando entrega para {orden_id}...")
+
+        # Broadcast: Delivery stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "entrega",
+            "status": "en_proceso",
+            "message": "Generando credenciales de acceso y enviando al cliente..."
+        })
 
         gestor_ordenes.actualizar_etapa_orden(
             orden_id, "entrega", "en_proceso",
@@ -247,6 +361,14 @@ class OrquestadorAutonomo:
                 f"✅ Acceso entregado. Email enviado a {orden['cliente_email']} con credenciales."
             )
 
+            # Broadcast: Delivery stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "entrega",
+                "status": "completada",
+                "message": "Acceso entregado al cliente"
+            })
+
             print(f"[ENTREGA] ✅ Orden {orden_id} entregada al cliente")
 
         except Exception as e:
@@ -254,6 +376,15 @@ class OrquestadorAutonomo:
                 orden_id, "entrega", "error",
                 f"Error en entrega: {str(e)}"
             )
+
+            # Broadcast: Delivery stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "entrega",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
             print(f"[ENTREGA] [ERROR] {e}")
 
 
