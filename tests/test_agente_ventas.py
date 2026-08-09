@@ -1,13 +1,13 @@
+import json
 import os
 import sys
 import tempfile
 import unittest
-import json
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
 
-from dep_marketing import agente_ventas_mercado
+from dep_marketing import agente_ventas_mercado # noqa: E402
 
 
 class AgenteVentasTests(unittest.TestCase):

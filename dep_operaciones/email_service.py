@@ -1,8 +1,8 @@
 import os
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
 def get_smtp_config():
@@ -37,7 +37,7 @@ def send_contact_email(nombre, email, telefono, empresa, interes, mensaje):
             <h1 style="margin: 0;">SkillTwin</h1>
             <p style="margin: 5px 0 0 0; opacity: 0.8;">Nuevo mensaje de contacto</p>
         </div>
-        
+
         <div style="padding: 20px; background: #f5f5f5;">
             <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
                 <tr style="background: #e94560; color: white;">
@@ -72,7 +72,7 @@ def send_contact_email(nombre, email, telefono, empresa, interes, mensaje):
                     </td>
                 </tr>
             </table>
-            
+
             <p style="text-align: center; color: #666; font-size: 12px; margin-top: 20px;">
                 Recibido el {datetime.now().strftime("%d/%m/%Y a las %H:%M")} | SkillTwin Platform
             </p>
@@ -89,10 +89,10 @@ def send_contact_email(nombre, email, telefono, empresa, interes, mensaje):
     Teléfono: {telefono or 'No proporcionado'}
     Empresa: {empresa or 'No proporcionada'}
     Interés: {interes or 'No especificado'}
-    
+
     Mensaje:
     {mensaje}
-    
+
     ---
     Recibido el {datetime.now().strftime("%d/%m/%Y a las %H:%M")}
     """
@@ -117,9 +117,9 @@ def send_contact_email(nombre, email, telefono, empresa, interes, mensaje):
     except smtplib.SMTPAuthenticationError:
         return False, "Error de autenticación SMTP. Verifica SMTP_USER y SMTP_PASS."
     except smtplib.SMTPException as e:
-        return False, f"Error SMTP: {str(e)}"
+        return False, f"Error SMTP: {e!s}"
     except Exception as e:
-        return False, f"Error inesperado: {str(e)}"
+        return False, f"Error inesperado: {e!s}"
 
 
 def send_confirmation_email(nombre, email):
@@ -142,26 +142,26 @@ def send_confirmation_email(nombre, email):
         <div style="background: #1a1a2e; color: white; padding: 20px; text-align: center;">
             <h1 style="margin: 0;">SkillTwin</h1>
         </div>
-        
+
         <div style="padding: 30px; background: #f5f5f5;">
             <div style="background: white; padding: 25px; border-radius: 8px;">
                 <h2 style="color: #1a1a2e; margin-top: 0;">¡Gracias por contactarnos!</h2>
-                
+
                 <p>Hola <strong>{nombre}</strong>,</p>
-                
+
                 <p>Hemos recibido tu mensaje y nos pondremos en contacto contigo en las próximas 24-48 horas hábiles.</p>
-                
+
                 <p>Mientras tanto, puedes explorar nuestra plataforma:</p>
-                
+
                 <div style="text-align: center; margin: 25px 0;">
                     <a href="{os.environ.get('SKILLTWIN_PUBLIC_URL', 'http://localhost:8000')}" style="background: #e94560; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visitar SkillTwin</a>
                 </div>
-                
+
                 <p style="color: #666; font-size: 12px;">
                     Si tienes preguntas adicionales, responde a este email.
                 </p>
             </div>
-            
+
             <p style="text-align: center; color: #666; font-size: 11px; margin-top: 20px;">
                 © 2026 SkillTwin - Gemelos Digitales de Expertos
             </p>

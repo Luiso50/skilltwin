@@ -1,7 +1,7 @@
 import json
 import os
-from datetime import datetime
 import threading
+from datetime import datetime
 
 USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
@@ -55,9 +55,8 @@ def cargar_contactos():
 def guardar_contactos(datos):
     if USE_SQLITE:
         return
-    with db_lock:
-        with open(DB_CONTACTOS, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock, open(DB_CONTACTOS, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=4, ensure_ascii=False)
 
 
 def registrar_contacto(nombre, email, telefono, empresa, interes, mensaje):

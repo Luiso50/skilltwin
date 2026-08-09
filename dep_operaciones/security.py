@@ -1,22 +1,22 @@
+import hashlib
 import os
 import re
-import hashlib
 import secrets
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Tuple, Any
+from typing import Any
 
-_admin_token: Optional[str] = None
-_token_created_at: Optional[datetime] = None
+_admin_token: str | None = None
+_token_created_at: datetime | None = None
 ADMIN_TOKEN_LIFETIME: timedelta = timedelta(hours=1)
 
-_rate_limit_store: Dict[str, List[Tuple[float, str]]] = defaultdict(list)
+_rate_limit_store: dict[str, list[tuple[float, str]]] = defaultdict(list)
 RATE_LIMIT_WINDOW: int = int(os.environ.get("SKILLTWIN_RATE_LIMIT_WINDOW", "60"))
 RATE_LIMIT_MAX_REQUESTS: int = int(os.environ.get("SKILLTWIN_RATE_LIMIT_MAX", "30"))
 
-_valid_tokens: Dict[str, Dict[str, Any]] = {}
-_csrf_tokens: Dict[str, Dict[str, Any]] = {}
+_valid_tokens: dict[str, dict[str, Any]] = {}
+_csrf_tokens: dict[str, dict[str, Any]] = {}
 
 
 def get_admin_secret() -> str:
@@ -37,7 +37,7 @@ def get_admin_token() -> str:
     return _admin_token
 
 
-def validate_admin_token(token: Optional[str]) -> bool:
+def validate_admin_token(token: str | None) -> bool:
     if not token:
         return False
     return secrets.compare_digest(token, get_admin_token())

@@ -1,7 +1,7 @@
-import os
 import json
-from datetime import datetime, timedelta
+import os
 import threading
+from datetime import datetime, timedelta
 
 USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
@@ -10,12 +10,15 @@ db_lock = threading.RLock()
 
 if USE_SQLITE:
     try:
+        from dep_operaciones.database import (
+            cargar_cuentas_cobrar as db_cargar_cuentas_cobrar,
+        )
+        from dep_operaciones.database import (
+            cargar_cuentas_pagar as db_cargar_cuentas_pagar,
+        )
         from dep_operaciones.database import cargar_flujo_caja as db_cargar_flujo_caja
+        from dep_operaciones.database import get_connection, init_database
         from dep_operaciones.database import guardar_flujo_caja as db_guardar_flujo_caja
-        from dep_operaciones.database import cargar_cuentas_cobrar as db_cargar_cuentas_cobrar
-        from dep_operaciones.database import cargar_cuentas_pagar as db_cargar_cuentas_pagar
-        from dep_operaciones.database import get_connection
-        from dep_operaciones.database import init_database
         init_database()
     except ImportError:
         USE_SQLITE = False
@@ -90,9 +93,8 @@ def guardar_finanzas(datos):
                 cursor.execute("""INSERT OR REPLACE INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
                     VALUES (?, ?, ?, ?, ?)""", (p["id"], p["proveedor"], p["monto"], p["vencimiento"], p["estado"]))
         return
-    with db_lock:
-        with open(DB_FINANZAS, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock, open(DB_FINANZAS, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Test Stripe checkout - complete flow."""
-import sys, os, json, urllib.request
+import json
+import os
+import sys
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(__file__))
 from cerebro.server import load_dotenv
+
 load_dotenv()
 
 BASE = "http://localhost:8000"
@@ -26,7 +30,7 @@ def api(method, path, data=None, token=None):
 admin_secret = os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
 token_resp = api("POST", "/api/auth/token", {"secret": admin_secret})
 token = token_resp["token"]
-print(f"[1] Admin token obtained")
+print("[1] Admin token obtained")
 
 # 2. Create order
 orden_data = {
@@ -41,7 +45,8 @@ orden_id = result["orden_id"]
 print(f"[2] Orden creada: {orden_id}")
 
 # 3. Create factura via database
-from dep_operaciones import gestor_pagos, gestor_ordenes
+from dep_operaciones import gestor_ordenes, gestor_pagos # noqa: E402
+
 factura_id, factura = gestor_pagos.crear_factura(
     orden_id=orden_id,
     cliente_email="test@stripe.com",
@@ -55,11 +60,11 @@ gestor_ordenes.actualizar_pago_orden(orden_id, factura_id, "pendiente")
 print(f"[3] Factura creada: {factura_id} (${factura['monto_total']})")
 
 # 4. Create checkout via API
-print(f"\n=== CREATING CHECKOUT SESSION ===")
+print("\n=== CREATING CHECKOUT SESSION ===")
 checkout_data = {"factura_id": factura_id, "orden_id": orden_id}
 checkout = api("POST", "/api/stripe/create-checkout", checkout_data, token)
 checkout_url = checkout.get("url", "")
-print(f"[4] Checkout creado!")
+print("[4] Checkout creado!")
 print(f"    URL: {checkout_url[:100]}...")
 
 # Save
@@ -70,12 +75,12 @@ with open("test_orden_id.txt", "w") as f:
 with open("test_factura_id.txt", "w") as f:
     f.write(factura_id)
 
-print(f"\n=== INSTRUCCIONES PARA PROBAR ===")
-print(f"1. Abre esta URL en tu navegador:")
+print("\n=== INSTRUCCIONES PARA PROBAR ===")
+print("1. Abre esta URL en tu navegador:")
 print(f"   {checkout_url}")
-print(f"\n2. Tarjeta de prueba: 4242 4242 4242 4242")
-print(f"3. Fecha: cualquier fecha futura")
-print(f"4. CVC: 123")
-print(f"5. Email: cualquier email")
-print(f"\n6. Después del pago, verifica con:")
-print(f"   python test_stripe_verify.py")
+print("\n2. Tarjeta de prueba: 4242 4242 4242 4242")
+print("3. Fecha: cualquier fecha futura")
+print("4. CVC: 123")
+print("5. Email: cualquier email")
+print("\n6. Después del pago, verifica con:")
+print("   python test_stripe_verify.py")

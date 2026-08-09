@@ -1,8 +1,8 @@
-import unittest
 import os
+import shutil
 import sys
 import tempfile
-import shutil
+import unittest
 
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, RAIZ_DIR)
@@ -16,6 +16,7 @@ class OrquestadorTests(unittest.TestCase):
         os.environ["SKILLTWIN_USE_SQLITE"] = "1"
 
         import importlib
+
         from dep_operaciones import database
         database.DB_PATH = self.db_path
         importlib.reload(database)

@@ -1,9 +1,9 @@
-import os
-import json
-import urllib.request
-import urllib.parse
-import re
 import html  # Importación corregida para unescape
+import json
+import os
+import re
+import urllib.parse
+import urllib.request
 from datetime import datetime
 
 REPORT_FILE = os.path.join(os.path.dirname(__file__), "reporte_inteligencia.json")

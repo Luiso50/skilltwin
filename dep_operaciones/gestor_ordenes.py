@@ -1,8 +1,8 @@
-import os
 import json
+import os
+import threading
 import uuid
 from datetime import datetime
-import threading
 
 USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
 
@@ -13,8 +13,8 @@ if USE_SQLITE:
     try:
         from dep_operaciones.database import cargar_ordenes as db_cargar_ordenes
         from dep_operaciones.database import guardar_orden as db_guardar_orden
-        from dep_operaciones.database import obtener_orden as db_obtener_orden
         from dep_operaciones.database import init_database
+        from dep_operaciones.database import obtener_orden as db_obtener_orden
         init_database()
     except ImportError:
         USE_SQLITE = False
@@ -190,9 +190,8 @@ def guardar_ordenes(datos):
         for orden_id, orden in datos.get("ordenes", {}).items():
             db_guardar_orden(orden)
         return
-    with db_lock:
-        with open(DB_ORDENES, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+    with db_lock, open(DB_ORDENES, "w", encoding="utf-8") as f:
+        json.dump(datos, f, indent=4, ensure_ascii=False)
 
 
 def crear_orden(cliente_email, clon_id, cantidad_horas, descripcion_proyecto, requiere_contrato=True):

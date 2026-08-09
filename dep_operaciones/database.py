@@ -1,10 +1,10 @@
-import sqlite3
 import json
 import os
+import sqlite3
 import threading
-from datetime import datetime
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
+from datetime import datetime
 
 DB_PATH: str = os.environ.get("SKILLTWIN_DB_PATH") or os.path.join(os.path.dirname(__file__), "skilltwin.db")
 db_lock: threading.RLock = threading.RLock()

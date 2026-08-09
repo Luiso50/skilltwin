@@ -1,12 +1,11 @@
+import json
 import os
 import sys
 import tempfile
-import unittest
-import json
 import threading
 import time
+import unittest
 from http.client import HTTPConnection
-from socket import error as SocketError
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
@@ -31,7 +30,12 @@ class IntegrationTests(unittest.TestCase):
         os.environ['PORT'] = str(cls.port)
 
         from dep_desarrollo import motor_clonacion
-        from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos
+        from dep_operaciones import (
+            gestor_contactos,
+            gestor_financiero,
+            gestor_ordenes,
+            gestor_pagos,
+        )
 
         motor_clonacion.DB_FILE = os.path.join(cls.tmpdir.name, 'clones_db.json')
         motor_clonacion.inicializar_db()
@@ -71,7 +75,7 @@ class IntegrationTests(unittest.TestCase):
                 conn.close()
                 if resp.status == 200:
                     return True
-            except (SocketError, ConnectionRefusedError, OSError):
+            except (ConnectionRefusedError, OSError):
                 pass
             time.sleep(0.2)
         return False
