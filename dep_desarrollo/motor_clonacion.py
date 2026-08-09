@@ -260,20 +260,42 @@ class ConocimientoEstructurado:
 
         return "\n".join(partes) if partes else self.texto_original[:200] + "..."
 
+    @staticmethod
+    def _normalizar_palabra(palabra):
+        """Normaliza una palabra para matching (elimina plurales y tildes comunes)."""
+        p = ''.join(c for c in palabra if c.isalnum())
+        p = p.replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u')
+        # Quitar plurales simples: -es, -s
+        if len(p) > 5 and p.endswith('es'):
+            p = p[:-2]
+        elif len(p) > 4 and p.endswith('s'):
+            p = p[:-1]
+        return p
+
     def buscar_informacion_relevante(self, pregunta):
         """Busca información relevante para una pregunta específica."""
-        palabras_pregunta = set(pregunta.lower().split())
+        # Normalizar palabras de la pregunta, ignorar palabras cortas (stopwords)
+        _STOPWORDS = {"el","la","los","las","un","una","de","del","al","en","con","por",
+                      "para","se","que","es","y","o","a","me","mi","tu","su","le","lo",
+                      "quiero","necesito","puedo","hacer","como","cual","donde","cuando"}
+        palabras_pregunta = {
+            self._normalizar_palabra(w)
+            for w in pregunta.lower().split()
+            if len(w) > 3 and w not in _STOPWORDS
+        }
         relevantes = []
 
-        # Buscar en todas las categorías
         for categoria, oraciones in self.categorias.items():
             for oracion in oraciones:
-                palabras_oracion = set(oracion.lower().split())
+                palabras_oracion = {
+                    self._normalizar_palabra(w)
+                    for w in oracion.lower().split()
+                    if len(w) > 3
+                }
                 coincidencias = len(palabras_pregunta.intersection(palabras_oracion))
                 if coincidencias > 0:
                     relevantes.append((coincidencias, oracion, categoria))
 
-        # Ordenar por relevancia
         relevantes.sort(key=lambda x: x[0], reverse=True)
 
         return [
@@ -373,75 +395,119 @@ def crear_clon(id_clon, nombre, especialidad, conocimiento):
     return True
 
 
+def _detectar_intencion(pregunta):
+    """Clasifica la intención de la pregunta en: saludo, capacidad o conocimiento."""
+    p = pregunta.lower().strip()
+    palabras = p.split()
+
+    _SALUDOS = {"hola", "hi", "hello", "hey", "saludos", "buenas"}
+    # Frases completas que expresan solicitud de información sobre capacidades
+    _CAPACIDAD_FRASES = {
+        "qué puedo hacer", "que puedo hacer", "qué puedes hacer", "que puedes hacer",
+        "qué sabes", "que sabes", "en qué ayudas", "en que ayudas",
+        "cómo funciona", "como funciona", "para qué sirves", "para que sirves",
+        "qué haces", "que haces", "qué ofreces", "que ofreces",
+        "que puedo hacer aqui", "qué puedo hacer aquí",
+    }
+    # Palabras sueltas que sólo aplican si la pregunta es muy corta (≤2 palabras)
+    _CAPACIDAD_CORTA = {"ayuda", "help", "menu", "menú", "opciones"}
+
+    # Saludo simple (≤4 palabras y contiene palabra de saludo)
+    if len(palabras) <= 4 and any(s in p for s in _SALUDOS):
+        return "saludo"
+
+    if any(frase in p for frase in _CAPACIDAD_FRASES):
+        return "capacidad"
+
+    # Solo clasifica como capacidad si la pregunta tiene ≤2 palabras
+    if len(palabras) <= 2 and any(c in palabras for c in _CAPACIDAD_CORTA):
+        return "capacidad"
+
+    return "conocimiento"
+
+
 def consultar_clon_offline(clon, pregunta, session_id=None):
-    """Responde de forma inteligente usando conocimiento estructurado y memoria."""
+    """Responde usando el conocimiento estructurado del clon, sin volcar metadatos."""
     conocimiento = clon["conocimiento"]
     especialidad = clon["especialidad"]
     nombre = clon["nombre"]
-    clon_id = None
 
-    # Obtener el ID del clon si está en los datos
     datos = cargar_datos()
-    for cid, cdata in datos["clones"].items():
-        if cdata["nombre"] == nombre:
-            clon_id = cid
-            break
+    clon_id = next(
+        (cid for cid, cd in datos["clones"].items() if cd["nombre"] == nombre),
+        nombre.lower().replace(" ", "_")
+    )
 
-    if not clon_id:
-        clon_id = nombre.lower().replace(" ", "_")
-
-    # Crear o cargar memoria de conversación
     memoria = ConversacionMemoria(clon_id, session_id)
-
-    # Analizar conocimiento estructurado
     conocimiento_estructurado = ConocimientoEstructurado(conocimiento)
 
-    # Buscar información relevante
-    info_relevante = conocimiento_estructurado.buscar_informacion_relevante(pregunta)
+    es_primera_vez = memoria.contexto.get("total_interacciones", 0) == 0
+    intencion = _detectar_intencion(pregunta)
 
-    # Buscar memorias de éxito similares
-    memorias_similares = memoria.buscar_memorias_similares(pregunta)
+    partes = []
 
-    # Construir respuesta
-    partes_respuesta = []
+    if intencion == "saludo":
+        if es_primera_vez:
+            partes.append(f"Hola, soy el clon digital de **{nombre}**, especialista en *{especialidad}*.")
+            partes.append("¿En qué puedo asesorarte hoy?")
+        else:
+            partes.append("¡Hola de nuevo! ¿En qué más puedo ayudarte?")
 
-    # Saludo con contexto de sesión
-    if memoria.contexto.get("total_interacciones", 0) == 0:
-        partes_respuesta.append(f"Hola, soy el clon digital de {nombre}, especialista en {especialidad}.")
-        partes_respuesta.append("Es mi primera interacción contigo en esta sesión.")
-    else:
-        total = memoria.contexto.get("total_interacciones", 0)
-        partes_respuesta.append(f"Continuando nuestra conversación (interacción #{total + 1}):")
+    elif intencion == "capacidad":
+        partes.append(f"Soy el clon digital de **{nombre}** y puedo asesorarte sobre **{especialidad}**.")
+        conceptos = [c.capitalize() for c, _ in conocimiento_estructurado.conceptos_clave[:5]]
+        if conceptos:
+            partes.append("\nAlgunos temas en los que puedo ayudarte:")
+            for c in conceptos:
+                partes.append(f"  • {c}")
+        partes.append("\nHaz tu pregunta y haré mi mejor esfuerzo para responderte.")
 
-    # Agregar contexto de conversación reciente
-    contexto_conversacion = memoria.obtener_contexto_para_prompt()
-    if contexto_conversacion:
-        partes_respuesta.append("\n" + contexto_conversacion)
+    else:  # conocimiento
+        info_relevante = conocimiento_estructurado.buscar_informacion_relevante(pregunta)
 
-    # Agregar información relevante encontrada
-    if info_relevante:
-        partes_respuesta.append("\nINFORMACIÓN RELEVANTE DE MI BASE DE CONOCIMIENTO:")
-        for info in info_relevante[:2]:
-            partes_respuesta.append(f"- [{info['categoria'].upper()}] {info['texto']}")
+        if info_relevante:
+            _ETIQUETAS = {
+                "definiciones": "Información relevante",
+                "mejores_practicas": "Mejores prácticas",
+                "herramientas": "Herramientas recomendadas",
+                "procesos": "Proceso recomendado",
+                "consejos": "Puntos clave",
+            }
+            # Agrupar por categoría, máximo 4 resultados
+            por_categoria = {}
+            for info in info_relevante[:4]:
+                cat = info["categoria"]
+                por_categoria.setdefault(cat, []).append(info["texto"])
 
-    # Agregar memorias de éxito similares
-    if memorias_similares:
-        partes_respuesta.append("\nRESPUESTAS ANTERIORES QUE FUNCIONARON BIEN:")
-        for memoria_sim in memorias_similares[:1]:
-            partes_respuesta.append(f"- Pregunta similar: {memoria_sim['pregunta']}")
-            partes_respuesta.append(f"  Mi respuesta: {memoria_sim['respuesta'][:150]}...")
+            for cat, textos in por_categoria.items():
+                partes.append(f"**{_ETIQUETAS.get(cat, cat.capitalize())}:**")
+                for t in textos:
+                    partes.append(f"• {t}")
+                partes.append("")
 
-    # Si no se encontró información específica, usar conocimiento general
-    if not info_relevante:
-        partes_respuesta.append("\nMi conocimiento general sobre " + especialidad + ":")
-        partes_respuesta.append(conocimiento[:200] + "...")
+            # Referencia al contexto previo si existe
+            if memoria.historial:
+                ultima_pregunta = memoria.historial[-1]["pregunta"]
+                if ultima_pregunta.lower() != pregunta.lower():
+                    partes.append(
+                        f"_Anteriormente hablamos sobre: «{ultima_pregunta}». "
+                        "Si quieres profundizar en algún punto, pregúntame._"
+                    )
+        else:
+            # La pregunta no coincide con el conocimiento del clon
+            partes.append(
+                f"Mi especialidad es **{especialidad}** y no tengo información específica "
+                f"sobre «{pregunta}» en mi base de conocimiento."
+            )
+            # Ofrecer lo que sí sabe
+            resumen = conocimiento_estructurado.obtener_resumen_estructurado()
+            if resumen:
+                partes.append("\nLo que sí puedo ofrecerte dentro de mi especialidad:")
+                partes.append(resumen[:400])
 
-    # Pie de página
-    partes_respuesta.append("\n(Modo offline - Configura GEMINI_API_KEY para respuestas más avanzadas)")
+    partes.append("\n_(Modo offline · Configura GEMINI_API_KEY para respuestas con IA avanzada)_")
 
-    respuesta_completa = "\n".join(partes_respuesta)
-
-    # Guardar interacción en memoria
+    respuesta_completa = "\n".join(filter(None, partes))
     memoria.agregar_interaccion(pregunta, respuesta_completa, exitosa=True)
 
     return respuesta_completa
