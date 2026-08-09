@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def test_zoho_email():
+def run_zoho_email_test():
     """Send a test email via Zoho SMTP."""
     smtp_host = os.getenv("SMTP_HOST", "smtp.zoho.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
@@ -61,5 +61,5 @@ def test_zoho_email():
         return False
 
 if __name__ == "__main__":
-    success = test_zoho_email()
+    success = run_zoho_email_test()
     exit(0 if success else 1)

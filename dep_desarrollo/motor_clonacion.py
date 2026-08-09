@@ -8,13 +8,17 @@ import uuid
 from collections import defaultdict
 
 # Soporte para JSON (legacy) y SQLite (nuevo)
-USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+def _use_sqlite():
+    return os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
+
+USE_SQLITE = _use_sqlite()
 
 DB_FILE = os.path.join(os.path.dirname(__file__), "clones_db.json")
 MEMORY_DIR = os.path.join(os.path.dirname(__file__), "memories")
 db_lock = threading.RLock()
 
-if USE_SQLITE:
+if _use_sqlite():
     try:
         from dep_operaciones.database import cargar_clones as db_cargar_clones
         from dep_operaciones.database import guardar_clone as db_guardar_clone
@@ -280,11 +284,12 @@ class ConocimientoEstructurado:
 
 def inicializar_db():
     """Crea el archivo JSON de base de datos si no existe (solo modo JSON)."""
-    if USE_SQLITE:
+    if _use_sqlite():
         return
 
     with db_lock:
         if not os.path.exists(DB_FILE):
+            os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
             datos_iniciales = {
                 "clones": {
                     "rsanchez_cobol": {
@@ -311,7 +316,7 @@ def inicializar_db():
 
 def cargar_datos():
     """Carga todos los datos de clones."""
-    if USE_SQLITE:
+    if _use_sqlite():
         clones = db_cargar_clones()
         return {"clones": clones}
 
@@ -323,7 +328,7 @@ def cargar_datos():
 
 def guardar_datos(datos):
     """Guarda todos los datos de clones."""
-    if USE_SQLITE:
+    if _use_sqlite():
         for clon_id, clon_data in datos.get("clones", {}).items():
             db_guardar_clone(
                 clon_id,
@@ -340,7 +345,7 @@ def guardar_datos(datos):
 
 def crear_clon(id_clon, nombre, especialidad, conocimiento):
     """Registra y entrena a un nuevo clon digital."""
-    if USE_SQLITE:
+    if _use_sqlite():
         existing = db_obtener_clone(id_clon)
         if existing:
             print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")
@@ -546,8 +551,7 @@ def consultar_clon(id_clon, pregunta, session_id=None):
 
     if api_key:
         return consultar_clon_online(clon, pregunta, api_key, session_id)
-    else:
-        return consultar_clon_offline(clon, pregunta, session_id)
+    return consultar_clon_offline(clon, pregunta, session_id)
 
 
 def obtener_historial_conversacion(id_clon, session_id=None):

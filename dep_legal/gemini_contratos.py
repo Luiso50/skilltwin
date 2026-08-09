@@ -9,8 +9,16 @@ import urllib.request
 from datetime import datetime, timedelta
 
 
-def generar_contrato_gemini(orden_id, cliente_email, clon_id, clon_nombre,
-                            especialidad, cantidad_horas, monto_total, comision):
+def generar_contrato_gemini(
+    orden_id,
+    cliente_email,
+    clon_id,
+    clon_nombre,
+    especialidad,
+    cantidad_horas,
+    monto_total,
+    comision,
+):
     """
     Genera un contrato legal profesional usando Gemini AI.
     Retorna el texto del contrato.
@@ -19,8 +27,15 @@ def generar_contrato_gemini(orden_id, cliente_email, clon_id, clon_nombre,
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         # Si no hay API key, retornar un contrato por defecto
-        return generar_contrato_default(orden_id, cliente_email, clon_nombre,
-                                        especialidad, cantidad_horas, monto_total, comision)
+        return generar_contrato_default(
+            orden_id,
+            cliente_email,
+            clon_nombre,
+            especialidad,
+            cantidad_horas,
+            monto_total,
+            comision,
+        )
 
     model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
@@ -35,7 +50,7 @@ Genera un contrato profesional y legal para los siguientes datos:
 
 DATOS DEL CONTRATO:
 - ID de Orden: {orden_id}
-- Fecha: {fecha_inicio.strftime('%d de %B de %Y')}
+- Fecha: {fecha_inicio.strftime("%d de %B de %Y")}
 - Cliente: {cliente_email}
 - Experto (Licenciante): {clon_nombre}
 - Especialidad: {especialidad}
@@ -43,7 +58,7 @@ DATOS DEL CONTRATO:
 - Tarifa: ${monto_total / cantidad_horas:.2f}/hora
 - Total a Pagar: ${monto_total:.2f}
 - Comisión de Plataforma: ${comision:.2f}
-- Fecha de Vencimiento: {fecha_fin.strftime('%d de %B de %Y')}
+- Fecha de Vencimiento: {fecha_fin.strftime("%d de %B de %Y")}
 
 Genera un contrato en formato TEXTO que incluya:
 1. Encabezado: "CONTRATO DE LICENCIAMIENTO DE SERVICIOS PROFESIONALES"
@@ -65,25 +80,40 @@ El contrato debe ser profesional, legal y en español. Incluye números de artí
         "generationConfig": {
             "temperature": 0.3,
             "maxOutputTokens": 2000,
-            "responseMimeType": "text/plain"
-        }
+            "responseMimeType": "text/plain",
+        },
     }
 
     try:
-        req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
-                                     headers=headers, method="POST")
+        req = urllib.request.Request(
+            url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST"
+        )
         with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
             res_data = json.loads(response.read().decode("utf-8"))
             contrato_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
             return contrato_text
     except Exception as e:
         print(f"[GEMINI] Error generando contrato: {e}")
-        return generar_contrato_default(orden_id, cliente_email, clon_nombre,
-                                        especialidad, cantidad_horas, monto_total, comision)
+        return generar_contrato_default(
+            orden_id,
+            cliente_email,
+            clon_nombre,
+            especialidad,
+            cantidad_horas,
+            monto_total,
+            comision,
+        )
 
 
-def generar_contrato_default(orden_id, cliente_email, clon_nombre,
-                            especialidad, cantidad_horas, monto_total, comision):
+def generar_contrato_default(
+    orden_id,
+    cliente_email,
+    clon_nombre,
+    especialidad,
+    cantidad_horas,
+    monto_total,
+    comision,
+):
     """
     Contrato por defecto si Gemini no está disponible.
     """
@@ -96,7 +126,7 @@ def generar_contrato_default(orden_id, cliente_email, clon_nombre,
                 CONTRATO DE LICENCIAMIENTO DE SERVICIOS PROFESIONALES
 ════════════════════════════════════════════════════════════════════════════
 
-FECHA: {fecha_inicio.strftime('%d de %B de %Y')}
+FECHA: {fecha_inicio.strftime("%d de %B de %Y")}
 ID DE ORDEN: {orden_id}
 
 PARTES:
@@ -110,11 +140,11 @@ PARTES:
 ARTÍCULO 1: OBJETO DEL CONTRATO
 ────────────────────────────────────────────────────────────────────────────
 
-El Licenciante se compromete a proporcionar servicios profesionales de asesoría 
-y consultoría en el área de {especialidad} por un total de {cantidad_horas} horas 
+El Licenciante se compromete a proporcionar servicios profesionales de asesoría
+y consultoría en el área de {especialidad} por un total de {cantidad_horas} horas
 de trabajo.
 
-Los servicios se prestarán de conformidad con los más altos estándares de la 
+Los servicios se prestarán de conformidad con los más altos estándares de la
 industria y de acuerdo con la ley aplicable.
 
 ────────────────────────────────────────────────────────────────────────────
@@ -133,38 +163,38 @@ El pago debe realizarse según las indicaciones de SkillTwin.
 ARTÍCULO 3: PLAZO
 ────────────────────────────────────────────────────────────────────────────
 
-Este contrato es válido desde {fecha_inicio.strftime('%d de %B de %Y')} hasta 
-{fecha_fin.strftime('%d de %B de %Y')}.
+Este contrato es válido desde {fecha_inicio.strftime("%d de %B de %Y")} hasta
+{fecha_fin.strftime("%d de %B de %Y")}.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 4: CONFIDENCIALIDAD
 ────────────────────────────────────────────────────────────────────────────
 
-Ambas partes se comprometen a mantener en confidencialidad toda la información 
-compartida durante la prestación de servicios, excepto cuando lo autorice la ley 
+Ambas partes se comprometen a mantener en confidencialidad toda la información
+compartida durante la prestación de servicios, excepto cuando lo autorice la ley
 o sea necesario para cumplir obligaciones legales.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 5: LIMITACIÓN DE RESPONSABILIDAD
 ────────────────────────────────────────────────────────────────────────────
 
-SkillTwin actúa como plataforma intermediaria. Ni SkillTwin ni el Licenciante 
-serán responsables por daños indirectos, incidentales o consecuentes que puedan 
+SkillTwin actúa como plataforma intermediaria. Ni SkillTwin ni el Licenciante
+serán responsables por daños indirectos, incidentales o consecuentes que puedan
 derivarse del uso de los servicios.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 6: TERMINACIÓN
 ────────────────────────────────────────────────────────────────────────────
 
-Este contrato puede ser terminado por cualquiera de las partes con notificación 
-escrita con 48 horas de anticipación. En caso de terminación anticipada, se 
+Este contrato puede ser terminado por cualquiera de las partes con notificación
+escrita con 48 horas de anticipación. En caso de terminación anticipada, se
 facturarán solo las horas trabajadas.
 
 ────────────────────────────────────────────────────────────────────────────
 ARTÍCULO 7: LEY APLICABLE
 ────────────────────────────────────────────────────────────────────────────
 
-Este contrato se rige por las leyes del país donde SkillTwin está constituida y 
+Este contrato se rige por las leyes del país donde SkillTwin está constituida y
 por los términos de servicio de la plataforma SkillTwin.
 
 ════════════════════════════════════════════════════════════════════════════
@@ -172,15 +202,15 @@ por los términos de servicio de la plataforma SkillTwin.
 FIRMAS DIGITALES:
 
 Licenciante: {clon_nombre}
-Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+Fecha: {datetime.now().strftime("%d/%m/%Y %H:%M")}
 ✓ Digitalmente Firmado
 
 Licenciatario: {cliente_email}
-Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+Fecha: {datetime.now().strftime("%d/%m/%Y %H:%M")}
 ✓ Digitalmente Firmado
 
 SkillTwin (Plataforma)
-Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+Fecha: {datetime.now().strftime("%d/%m/%Y %H:%M")}
 ✓ Validado por Sistema
 
 ════════════════════════════════════════════════════════════════════════════

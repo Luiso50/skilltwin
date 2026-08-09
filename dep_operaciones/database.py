@@ -6,14 +6,34 @@ from datetime import datetime
 from contextlib import contextmanager
 from typing import Generator
 
-DB_PATH: str = os.environ.get("SKILLTWIN_DB_PATH") or os.path.join(os.path.dirname(__file__), "skilltwin.db")
+_DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "skilltwin.db")
+
+
+def _resolve_db_path() -> str:
+    env_path = os.environ.get("SKILLTWIN_DB_PATH")
+    if env_path:
+        return env_path
+
+    current_path = globals().get("DB_PATH")
+    if isinstance(current_path, str) and current_path:
+        current_dir = os.path.dirname(current_path)
+        if not current_dir or os.path.exists(current_dir):
+            return current_path
+
+    return _DEFAULT_DB_PATH
+
+
+DB_PATH: str = _resolve_db_path()
 db_lock: threading.RLock = threading.RLock()
 
 
 @contextmanager
 def get_connection() -> Generator[sqlite3.Connection, None, None]:
     with db_lock:
-        conn = sqlite3.connect(DB_PATH)
+        path = _resolve_db_path()
+        globals()["DB_PATH"] = path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        conn = sqlite3.connect(path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
