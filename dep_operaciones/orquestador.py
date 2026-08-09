@@ -8,9 +8,9 @@ import time
 RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(RAIZ_DIR)
 
-from dep_operaciones import gestor_ordenes, gestor_pagos
-from dep_legal import gemini_contratos
-from dep_desarrollo import motor_clonacion
+from dep_operaciones import gestor_ordenes, gestor_pagos  # noqa: E402
+from dep_legal import gemini_contratos  # noqa: E402
+from dep_desarrollo import motor_clonacion  # noqa: E402
 
 class OrquestadorAutonomo:
     """

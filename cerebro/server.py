@@ -77,11 +77,11 @@ sys.path.append(RAIZ_DIR)
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-from dep_desarrollo import motor_clonacion
-from dep_marketing import agente_ventas_mercado
-from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security, database
-from dep_operaciones import email_service, stripe_service
-from dep_legal import generador_contratos
+from dep_desarrollo import motor_clonacion  # noqa: E402
+from dep_marketing import agente_ventas_mercado  # noqa: E402
+from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos, orquestador, security, database  # noqa: E402
+from dep_operaciones import email_service, stripe_service  # noqa: E402
+from dep_legal import generador_contratos  # noqa: E402
 
 
 class _Cache:
