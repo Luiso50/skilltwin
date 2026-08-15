@@ -131,9 +131,9 @@ def send_contact_email(nombre, email, telefono, empresa, interes, mensaje):
     except smtplib.SMTPAuthenticationError:
         return False, "Error de autenticación SMTP. Verifica SMTP_USER y SMTP_PASS."
     except smtplib.SMTPException as e:
-        return False, f"Error SMTP: {e!s}"
+        return False, f"Error SMTP: {str(e)}"
     except Exception as e:
-        return False, f"Error inesperado: {e!s}"
+        return False, f"Error inesperado: {str(e)}"
 
 
 def send_confirmation_email(nombre, email):
@@ -387,6 +387,6 @@ Si tienes alguna pregunta, responde a este email.
     except smtplib.SMTPAuthenticationError:
         return False, "Error de autenticación SMTP. Verifica SMTP_USER y SMTP_PASS."
     except smtplib.SMTPException as e:
-        return False, f"Error SMTP: {e!s}"
+        return False, f"Error SMTP: {str(e)}"
     except Exception as e:
-        return False, f"Error inesperado: {e!s}"
+        return False, f"Error inesperado: {str(e)}"
