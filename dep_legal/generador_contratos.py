@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
-from docx import Document
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from dep_legal.header_documento import crear_documento_con_encabezado
@@ -79,8 +78,7 @@ def generar_contrato(id_experto, nombre, especialidad, comision=15.0):
         doc.add_heading("3. COMISIONES Y FACTURACIÓN", level=2)
 
         comision_texto = [
-            f"- La Plataforma cobrará una tarifa a los clientes finales por cada consulta "
-            f"realizada al Clon de IA.",
+            "- La Plataforma cobrará una tarifa a los clientes finales por cada consulta realizada al Clon de IA.",
             f"- De los ingresos generados, la Plataforma retendrá un {comision}% en concepto "
             f"de comisión por servicio, mantenimiento de servidores y procesamiento de APIs.",
             f"- El {100 - comision}% restante será transferido al Licenciante de forma mensual.",
@@ -109,101 +107,19 @@ def generar_contrato(id_experto, nombre, especialidad, comision=15.0):
 
         # ── SECCIÓN 5: RESPONSABILIDAD ──
         doc.add_heading("5. RESPONSABILIDAD", level=2)
-
         doc.add_paragraph(
             "La Plataforma no será responsable de las opiniones o respuestas generadas "
             "por el Clon de IA, las cuales tienen carácter estrictamente consultivo e informal."
         )
 
         doc.add_paragraph()
+        doc.add_paragraph("Firmado digitalmente en conformidad:")
         doc.add_paragraph()
+        doc.add_paragraph(f"Licenciante: {nombre}")
+        doc.add_paragraph("Plataforma: SKILLTWIN")
 
-        # ── FIRMAS ──
-        p_firma_titulo = doc.add_paragraph()
-        p_firma_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run_ft = p_firma_titulo.add_run("FIRMADO DIGITALMENTE EN CONFORMIDAD:")
-        run_ft.bold = True
-        run_ft.font.size = Pt(12)
-
-        doc.add_paragraph()
-
-        # Tabla de firmas
-        tabla_firmas = doc.add_table(rows=2, cols=2)
-        tabla_firmas.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-        # SkillTwin
-        cell_st = tabla_firmas.cell(0, 0)
-        p_st = cell_st.paragraphs[0]
-        p_st.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run_st = p_st.add_run("SKILLTWIN CORP")
-        run_st.bold = True
-        run_st.font.size = Pt(10)
-
-        p_st2 = cell_st.add_paragraph()
-        p_st2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_st2.add_run("Representante de la Plataforma").font.size = Pt(9)
-
-        # Licenciante
-        cell_lic = tabla_firmas.cell(0, 1)
-        p_lic = cell_lic.paragraphs[0]
-        p_lic.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run_lic = p_lic.add_run(nombre.upper())
-        run_lic.bold = True
-        run_lic.font.size = Pt(10)
-
-        p_lic2 = cell_lic.add_paragraph()
-        p_lic2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_lic2.add_run("Licenciante del Clon").font.size = Pt(9)
-
-        # ── PIE DE PÁGINA ──
-        doc.add_paragraph()
-        doc.add_paragraph()
-
-        p_pie = doc.add_paragraph()
-        p_pie.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run_pie = p_pie.add_run(
-            "SkillTwin © 2026 — Gemelos Digitales Profesionales"
-        )
-        run_pie.font.size = Pt(8)
-        run_pie.font.color.rgb = RGBColor(150, 150, 150)
-        run_pie.italic = True
-
-        # Guardar documento
         doc.save(ruta_guardado)
-
-        print("\n[CONTRATO] Contrato de licencia generado con éxito (.docx)!")
-        print(f"[ARCHIVO] Guardado en: {ruta_guardado}")
         return ruta_guardado
-
     except Exception as e:
-        print(f"[ERROR] No se pudo generar el contrato: {e}")
+        print(f"Error generando contrato: {e}")
         return None
-
-
-def main():
-    print("=" * 50)
-    print("    GENERADOR DE CONTRATOS LEGALES - SKILLTWIN")
-    print("=" * 50)
-
-    nombre = input("Nombre completo del profesional: ").strip()
-    id_experto = input("ID de usuario único (ej. rsanchez): ").strip().lower()
-    especialidad = input("Especialidad o Habilidad a licenciar: ").strip()
-
-    comision_str = input(
-        "Porcentaje de comisión para la plataforma (Defecto: 15%): "
-    ).strip()
-    comision = 15.0
-    if comision_str:
-        try:
-            comision = float(comision_str)
-        except ValueError:
-            print("[ALERTA] Entrada inválida, usando 15.0% por defecto.")
-
-    if nombre and id_experto and especialidad:
-        generar_contrato(id_experto, nombre, especialidad, comision)
-    else:
-        print("[ALERTA] Todos los campos de texto son obligatorios.")
-
-
-if __name__ == "__main__":
-    main()
