@@ -5,7 +5,7 @@ Todos los documentos SkillTwin usarán este módulo para el encabezado estándar
 
 import os
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor, Cm
+from docx.shared import Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 

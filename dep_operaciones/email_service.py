@@ -307,7 +307,7 @@ def send_contract_email(cliente_email, cliente_nombre, ruta_contrato, orden_id=N
 
                 <p>Hola <strong>{cliente_nombre}</strong>,</p>
 
-                <p>Adjunto encontrarás tu contrato de licencia de clon digital. 
+                <p>Adjunto encontrarás tu contrato de licencia de clon digital.
                    Por favor, revísalo cuidadosamente y conserve una copia para tus registros.</p>
 
                 {'<p><strong>Número de Orden:</strong> ' + orden_id + '</p>' if orden_id else ''}
@@ -321,8 +321,8 @@ def send_contract_email(cliente_email, cliente_nombre, ruta_contrato, orden_id=N
                 </p>
 
                 <div style="text-align: center; margin: 25px 0;">
-                    <a href="{os.environ.get('SKILLTWIN_PUBLIC_URL', 'https://skilltwin.es')}" 
-                       style="background: #e94560; color: white; padding: 12px 25px; 
+                    <a href="{os.environ.get('SKILLTWIN_PUBLIC_URL', 'https://skilltwin.es')}"
+                       style="background: #e94560; color: white; padding: 12px 25px;
                               text-decoration: none; border-radius: 5px; font-weight: bold;">
                         Visitar SkillTwin
                     </a>

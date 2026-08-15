@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
-from docx import Document
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from dep_legal.header_documento import crear_documento_con_encabezado
@@ -79,8 +78,8 @@ def generar_contrato(id_experto, nombre, especialidad, comision=15.0):
         doc.add_heading("3. COMISIONES Y FACTURACIÓN", level=2)
 
         comision_texto = [
-            f"- La Plataforma cobrará una tarifa a los clientes finales por cada consulta "
-            f"realizada al Clon de IA.",
+            "- La Plataforma cobrará una tarifa a los clientes finales por cada consulta "
+            "realizada al Clon de IA.",
             f"- De los ingresos generados, la Plataforma retendrá un {comision}% en concepto "
             f"de comisión por servicio, mantenimiento de servidores y procesamiento de APIs.",
             f"- El {100 - comision}% restante será transferido al Licenciante de forma mensual.",
