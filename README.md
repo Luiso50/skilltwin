@@ -75,7 +75,7 @@ La aplicación incluye:
 - Rate limiting configurable.
 - Validación y sanitización de entradas.
 - Autorización diferenciada entre admin y customer.
-- Validación servidor-side de importes y metadatos de pagos Stripe.
+- Validación server-side de importes y metadatos de pagos Stripe.
 - Protección contra path traversal en recursos estáticos.
 - Headers de seguridad HTTP.
 - API key de Gemini mediante variable de entorno/header.
@@ -145,11 +145,7 @@ cd cerebro
 python server.py
 ```
 
-Después abre:
-
-```text
-http://localhost:8000/login.html
-```
+Después abre `http://localhost:8000/login.html`.
 
 Antes de iniciar el backend configura al menos `SKILLTWIN_ADMIN_SECRET` con un secreto seguro.
 
@@ -184,17 +180,11 @@ También existe configuración para Docker Compose.
 
 ## API
 
-La documentación de endpoints está en:
-
-```text
-docs/API.md
-```
+La documentación de endpoints está en `docs/API.md`.
 
 ## GitHub Pages
 
-La landing pública está en `docs/` y puede publicarse desde:
-
-**GitHub → Settings → Pages → Deploy from branch → `main` → `/docs`**
+La landing pública está en `docs/` y puede publicarse desde **GitHub → Settings → Pages → Deploy from branch → `main` → `/docs`**.
 
 GitHub Pages solo sirve la parte estática; el backend Python se ejecuta por separado en Render.
 
