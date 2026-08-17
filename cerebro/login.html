@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión - SkillTwin</title>
+  <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Login Specific Styles - usando variables de style.css */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-color);
+      padding: 1.5rem;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .login-logo {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 1rem;
+    }
+    .login-header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    .login-header p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    .form-input-wrapper {
+      position: relative;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: var(--bg-color);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-cerebro);
+      box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.15);
+    }
+    .form-input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.5;
+    }
+    .form-input.error {
+      border-color: var(--color-marketing);
+    }
+    .error-message {
+      display: none;
+      color: var(--color-marketing);
+      font-size: 0.75rem;
+      margin-top: 0.4rem;
+      min-height: 1em;
+    }
+    .error-message.visible {
+      display: block;
+    }
+    .form-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .btn {
+      flex: 1;
+      padding: 0.875rem 1.5rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-cerebro), var(--color-desarrollo));
+      color: #000;
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      background: #555;
+      color: #888;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-primary);
+      border: 1px solid var(--panel-border);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255,255,255,0.1);
+    }
+    .forgot-password {
+      display: block;
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .forgot-password:hover {
+      color: var(--color-cerebro);
+      text-decoration: underline;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .btn-text { display: inline; }
+    .btn.loading .btn-text { display: none; }
+    .btn.loading .spinner { display: inline-block; }
+    .spinner { display: none; }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <header class="login-header">
+        <img src="logo-mark.svg" alt="SkillTwin Logo" class="login-logo">
+        <h1>SkillTwin HQ</h1>
+        <p>Inicia sesión para acceder al Cerebro Central</p>
+      </header>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="email">Correo electrónico</label>
+          <div class="form-input-wrapper">
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="form-input" 
+              placeholder="tu@email.com" 
+              autocomplete="email"
+              required
+              aria-describedby="email-error"
+            >
+          </div>
+          <div id="email-error" class="error-message" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <div class="form-input-wrapper">
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-input" 
+              placeholder="••••••••" 
+              autocomplete="current-password"
+              required
+              minlength="8"
+              aria-describedby="password-error"
+            >
+          </div>
+          <div id="password-error" class="error-message" aria-live="polite"></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="submit-btn" class="btn btn-primary">
+            <span class="btn-text">Enviar</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <button type="button" id="clear-btn" class="btn btn-secondary">Limpiar</button>
+        </div>
+      </form>
+
+      <a href="#" id="forgot-link" class="forgot-password">¿Olvidaste tu contraseña?</a>
+      
+      <div style="text-align:center; margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--panel-border);">
+        <span style="color:var(--text-secondary); font-size:0.85rem;">¿No tienes cuenta? </span>
+        <a href="#" id="register-link" style="color:var(--color-cerebro); font-size:0.85rem; text-decoration:none; font-weight:500;">Crear cuenta</a>
+      </div>
+      <div style="text-align:center; margin-top:1rem;">
+        <a href="demo.html" style="color:var(--accent-warm); font-size:0.85rem; text-decoration:none; font-weight:500;">O prueba la demo gratis sin registro</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Recuperación de Contraseña -->
+  <div id="forgot-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:20px; padding:2.5rem; width:100%; max-width:420px; margin:1.5rem;">
+      <h2 style="color:var(--text-primary); margin-bottom:1.5rem; text-align:center;">Recuperar Contraseña</h2>
+      
+      <!-- Paso 1: Solicitar email -->
+      <div id="forgot-step1">
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem; text-align:center;">
+          Ingresa tu email y te enviaremos un código de recuperación.
+        </p>
+        <form id="forgot-form" novalidate>
+          <div class="form-group">
+            <label for="forgot-email">Correo electrónico</label>
+            <input type="email" id="forgot-email" class="form-input" placeholder="tu@email.com" required>
+          </div>
+          <div id="forgot-error" style="display:none; color:var(--color-marketing); font-size:0.8rem; margin-bottom:1rem;"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar Código</button>
+            <button type="button" id="cancel-forgot" class="btn btn-secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Paso 2: Ingresar código y nueva contraseña -->
+      <div id="forgot-step2" style="display:none;">
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem; text-align:center;">
+          Ingresa el código que recibiste y tu nueva contraseña.
+        </p>
+        <form id="reset-form" novalidate>
+          <div class="form-group">
+            <label for="reset-code">Código de verificación</label>
+            <input type="text" id="reset-code" class="form-input" placeholder="123456" maxlength="6" required>
+          </div>
+          <div class="form-group">
+            <label for="reset-password">Nueva contraseña</label>
+            <input type="password" id="reset-password" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8">
+          </div>
+          <div id="reset-error" style="display:none; color:var(--color-marketing); font-size:0.8rem; margin-bottom:1rem;"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Restablecer</button>
+            <button type="button" id="back-to-step1" class="btn btn-secondary">Volver</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Paso 3: Éxito -->
+      <div id="forgot-step3" style="display:none; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:1rem;">✓</div>
+        <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">Contraseña actualizada</h3>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">
+          Ya puedes iniciar sesión con tu nueva contraseña.
+        </p>
+        <button id="goto-login" class="btn btn-primary" style="width:100%;">Ir a Iniciar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Registro -->
+  <div id="register-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:20px; padding:2.5rem; width:100%; max-width:420px; margin:1.5rem;">
+      <h2 style="color:var(--text-primary); margin-bottom:1.5rem; text-align:center;">Crear Cuenta</h2>
+      <form id="register-form" novalidate>
+        <div class="form-group">
+          <label for="reg-name">Nombre</label>
+          <input type="text" id="reg-name" class="form-input" placeholder="Tu nombre" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Correo electrónico</label>
+          <input type="email" id="reg-email" class="form-input" placeholder="tu@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Contraseña</label>
+          <input type="password" id="reg-password" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8">
+        </div>
+        <div id="reg-error" style="display:none; color:var(--color-marketing); font-size:0.8rem; margin-bottom:1rem;"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Registrar</button>
+          <button type="button" id="cancel-register" class="btn btn-secondary">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+  <script>
+    // Registro
+    const registerLink = document.getElementById('register-link');
+    const registerModal = document.getElementById('register-modal');
+    const cancelRegister = document.getElementById('cancel-register');
+    const registerForm = document.getElementById('register-form');
+    const regError = document.getElementById('reg-error');
+
+    registerLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      registerModal.style.display = 'flex';
+    });
+
+    cancelRegister.addEventListener('click', () => {
+      registerModal.style.display = 'none';
+      registerForm.reset();
+      regError.style.display = 'none';
+    });
+
+    registerModal.addEventListener('click', (e) => {
+      if (e.target === registerModal) {
+        registerModal.style.display = 'none';
+        registerForm.reset();
+        regError.style.display = 'none';
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      if (!name || !email || !password) {
+        regError.textContent = 'Todos los campos son obligatorios';
+        regError.style.display = 'block';
+        return;
+      }
+      if (password.length < 8) {
+        regError.textContent = 'La contraseña debe tener al menos 8 caracteres';
+        regError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre: name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al registrar');
+        
+        // Registro exitoso - login automático
+        localStorage.setItem('skilltwin_token', data.token);
+        localStorage.setItem('skilltwin_user', JSON.stringify(data.user));
+        window.location.href = 'home.html';
+      } catch (err) {
+        regError.textContent = err.message;
+        regError.style.display = 'block';
+      }
+    });
+
+    // Recuperación de Contraseña
+    const forgotLink = document.getElementById('forgot-link');
+    const forgotModal = document.getElementById('forgot-modal');
+    const cancelForgot = document.getElementById('cancel-forgot');
+    const forgotForm = document.getElementById('forgot-form');
+    const forgotError = document.getElementById('forgot-error');
+    const forgotStep1 = document.getElementById('forgot-step1');
+    const forgotStep2 = document.getElementById('forgot-step2');
+    const forgotStep3 = document.getElementById('forgot-step3');
+    const resetForm = document.getElementById('reset-form');
+    const resetError = document.getElementById('reset-error');
+    const backToStep1 = document.getElementById('back-to-step1');
+    const gotoLogin = document.getElementById('goto-login');
+
+    let resetEmail = '';
+
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      forgotModal.style.display = 'flex';
+      forgotStep1.style.display = 'block';
+      forgotStep2.style.display = 'none';
+      forgotStep3.style.display = 'none';
+      forgotForm.reset();
+      forgotError.style.display = 'none';
+    });
+
+    cancelForgot.addEventListener('click', () => {
+      forgotModal.style.display = 'none';
+      forgotForm.reset();
+      forgotError.style.display = 'none';
+    });
+
+    forgotModal.addEventListener('click', (e) => {
+      if (e.target === forgotModal) {
+        forgotModal.style.display = 'none';
+        forgotForm.reset();
+        forgotError.style.display = 'none';
+      }
+    });
+
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+
+      if (!email) {
+        forgotError.textContent = 'El email es obligatorio';
+        forgotError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar código');
+
+        resetEmail = email;
+        forgotStep1.style.display = 'none';
+        forgotStep2.style.display = 'block';
+      } catch (err) {
+        forgotError.textContent = err.message;
+        forgotError.style.display = 'block';
+      }
+    });
+
+    backToStep1.addEventListener('click', () => {
+      forgotStep2.style.display = 'none';
+      forgotStep1.style.display = 'block';
+      resetError.style.display = 'none';
+    });
+
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('reset-code').value.trim();
+      const newPassword = document.getElementById('reset-password').value;
+
+      if (!code || code.length !== 6) {
+        resetError.textContent = 'El código debe tener 6 dígitos';
+        resetError.style.display = 'block';
+        return;
+      }
+      if (newPassword.length < 8) {
+        resetError.textContent = 'La contraseña debe tener al menos 8 caracteres';
+        resetError.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: resetEmail, code, new_password: newPassword })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al restablecer contraseña');
+
+        forgotStep2.style.display = 'none';
+        forgotStep3.style.display = 'block';
+      } catch (err) {
+        resetError.textContent = err.message;
+        resetError.style.display = 'block';
+      }
+    });
+
+    gotoLogin.addEventListener('click', () => {
+      forgotModal.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

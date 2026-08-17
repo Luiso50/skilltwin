@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  skilltwin:
+    build: .
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - SKILLTWIN_ADMIN_SECRET=${SKILLTWIN_ADMIN_SECRET:-dev-secret-change-in-production}
+      - SKILLTWIN_USE_SQLITE=${SKILLTWIN_USE_SQLITE:-1}
+      - SKILLTWIN_CORS_ORIGINS=${SKILLTWIN_CORS_ORIGINS:-*}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - SKILLTWIN_PUBLIC_URL=${SKILLTWIN_PUBLIC_URL:-http://localhost:8000}
+    volumes:
+      - skilltwin_data:/app/dep_operaciones
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  skilltwin_data:

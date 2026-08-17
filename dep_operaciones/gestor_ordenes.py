@@ -1,0 +1,360 @@
+import os
+import json
+import uuid
+from datetime import datetime
+import threading
+
+USE_SQLITE = os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1"
+
+DB_ORDENES = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
+db_lock = threading.RLock()
+
+if USE_SQLITE:
+    try:
+        from dep_operaciones.database import cargar_ordenes as db_cargar_ordenes
+        from dep_operaciones.database import guardar_orden as db_guardar_orden
+        from dep_operaciones.database import obtener_orden as db_obtener_orden
+        from dep_operaciones.database import init_database
+        init_database()
+    except ImportError:
+        USE_SQLITE = False
+
+
+def _asegurar_esquema_orden(orden):
+    actualizado = False
+
+    if "archivos_entregables" not in orden:
+        orden["archivos_entregables"] = []
+        actualizado = True
+
+    if "pago" not in orden:
+        orden["pago"] = {
+            "factura_id": None,
+            "estado_pago": "pendiente",
+            "metodo_pago": None,
+            "fecha_pago": None
+        }
+        actualizado = True
+
+    if "rating" not in orden:
+        orden["rating"] = {
+            "puntuacion": None,
+            "resena": "",
+            "fecha_rating": None,
+            "cliente_satisfecho": None
+        }
+        actualizado = True
+
+    if "contrato" not in orden:
+        orden["contrato"] = {
+            "texto_contrato": None,
+            "generado_por_gemini": False,
+            "firma_cliente": False,
+            "fecha_firma": None
+        }
+        actualizado = True
+
+    pago = orden.get("pago", {})
+    if pago.get("metodo_pago") == "pendiente" and pago.get("estado_pago") == "pagada":
+        pago["estado_pago"] = "pendiente"
+        pago["metodo_pago"] = None
+        pago["fecha_pago"] = None
+        actualizado = True
+
+    return actualizado
+
+
+def _apply_etapa_update(orden, nombre_etapa, nuevo_estado, detalles=""):
+    if nombre_etapa not in orden["etapas"]:
+        return False, f"Etapa '{nombre_etapa}' no existe"
+
+    etapa = orden["etapas"][nombre_etapa]
+
+    if nuevo_estado == "en_proceso":
+        if etapa["estado"] == "pendiente":
+            etapa["fecha_inicio"] = datetime.now().isoformat()
+            etapa["estado"] = "en_proceso"
+    elif nuevo_estado == "completada":
+        etapa["fecha_fin"] = datetime.now().isoformat()
+        etapa["estado"] = "completada"
+    elif nuevo_estado == "error":
+        etapa["estado"] = "error"
+        etapa["fecha_fin"] = datetime.now().isoformat()
+
+    if detalles:
+        etapa["detalles"] = detalles
+
+    orden["notificaciones"].append({
+        "timestamp": datetime.now().isoformat(),
+        "tipo": "etapa_actualizada",
+        "mensaje": f"Etapa '{nombre_etapa}' actualizada a '{nuevo_estado}'. {detalles}",
+        "leida": False
+    })
+
+    if all(e["estado"] == "completada" for e in orden["etapas"].values()):
+        orden["estado"] = "completada"
+        orden["notificaciones"].append({
+            "timestamp": datetime.now().isoformat(),
+            "tipo": "completada",
+            "mensaje": "¡Orden completada! Se está preparando para entrega.",
+            "leida": False
+        })
+
+    return True, "Etapa actualizada"
+
+
+def _apply_rating(orden, puntuacion, resena=""):
+    if orden["estado"] != "completada":
+        return False, "Solo se pueden calificar órdenes completadas"
+
+    if orden["rating"]["puntuacion"] is not None:
+        return False, "Esta orden ya ha sido calificada"
+
+    if not (1 <= puntuacion <= 5):
+        return False, "La puntuación debe estar entre 1 y 5"
+
+    orden["rating"]["puntuacion"] = puntuacion
+    orden["rating"]["resena"] = resena
+    orden["rating"]["fecha_rating"] = datetime.now().isoformat()
+    orden["rating"]["cliente_satisfecho"] = puntuacion >= 4
+
+    orden["notificaciones"].append({
+        "timestamp": datetime.now().isoformat(),
+        "tipo": "rating_recibido",
+        "mensaje": f"Calificación recibida: {puntuacion}/5 estrellas",
+        "leida": False
+    })
+
+    return True, "Calificación registrada"
+
+
+def _apply_pago_update(orden, factura_id, metodo_pago):
+    orden["pago"]["factura_id"] = factura_id
+    if metodo_pago == "pendiente":
+        orden["pago"]["metodo_pago"] = None
+        orden["pago"]["fecha_pago"] = None
+        orden["pago"]["estado_pago"] = "pendiente"
+        orden["notificaciones"].append({
+            "timestamp": datetime.now().isoformat(),
+            "tipo": "factura_generada",
+            "mensaje": f"Factura generada: {factura_id}. Pendiente de pago.",
+            "leida": False
+        })
+    else:
+        orden["pago"]["metodo_pago"] = metodo_pago
+        orden["pago"]["fecha_pago"] = datetime.now().isoformat()
+        orden["pago"]["estado_pago"] = "pagada"
+        orden["notificaciones"].append({
+            "timestamp": datetime.now().isoformat(),
+            "tipo": "pago_recibido",
+            "mensaje": f"Pago recibido exitosamente. Método: {metodo_pago}",
+            "leida": False
+        })
+    return True
+
+
+def _apply_contrato_update(orden, texto_contrato, por_gemini=False):
+    orden["contrato"]["texto_contrato"] = texto_contrato
+    orden["contrato"]["generado_por_gemini"] = por_gemini
+    orden["contrato"]["fecha_firma"] = datetime.now().isoformat()
+    return True
+
+
+def inicializar_ordenes():
+    if USE_SQLITE:
+        return
+    with db_lock:
+        if not os.path.exists(DB_ORDENES):
+            with open(DB_ORDENES, "w", encoding="utf-8") as f:
+                json.dump({"ordenes": {}, "contador_ordenes": 0}, f, indent=4, ensure_ascii=False)
+
+
+def cargar_ordenes():
+    if USE_SQLITE:
+        ordenes_dict = db_cargar_ordenes()
+        return {"ordenes": ordenes_dict, "contador_ordenes": len(ordenes_dict)}
+    with db_lock:
+        inicializar_ordenes()
+        with open(DB_ORDENES, "r", encoding="utf-8") as f:
+            datos = json.load(f)
+        actualizado = False
+        for orden in datos.get("ordenes", {}).values():
+            actualizado = _asegurar_esquema_orden(orden) or actualizado
+        if actualizado:
+            guardar_ordenes(datos)
+        return datos
+
+
+def guardar_ordenes(datos):
+    if USE_SQLITE:
+        for orden_id, orden in datos.get("ordenes", {}).items():
+            db_guardar_orden(orden)
+        return
+    with db_lock:
+        with open(DB_ORDENES, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
+
+
+def crear_orden(cliente_email, clon_id, cantidad_horas, descripcion_proyecto, requiere_contrato=True):
+    orden_id = f"ORD-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    nueva_orden = {
+        "id": orden_id,
+        "cliente_email": cliente_email,
+        "clon_id": clon_id,
+        "cantidad_horas": cantidad_horas,
+        "descripcion_proyecto": descripcion_proyecto,
+        "requiere_contrato": requiere_contrato,
+        "fecha_creacion": datetime.now().isoformat(),
+        "estado": "pendiente",
+        "etapas": {
+            "legal": {"estado": "pendiente", "fecha_inicio": None, "fecha_fin": None, "detalles": "Esperando validación de contrato y política de privacidad"},
+            "desarrollo": {"estado": "pendiente", "fecha_inicio": None, "fecha_fin": None, "detalles": "Esperando preparación del clon para el proyecto"},
+            "operaciones": {"estado": "pendiente", "fecha_inicio": None, "fecha_fin": None, "detalles": "Esperando procesamiento financiero y facturación"},
+            "entrega": {"estado": "pendiente", "fecha_inicio": None, "fecha_fin": None, "detalles": "Esperando envío de acceso al cliente"}
+        },
+        "notificaciones": [{"timestamp": datetime.now().isoformat(), "tipo": "creacion", "mensaje": "Orden creada exitosamente. Se procesará automáticamente.", "leida": False}],
+        "monto_total": None,
+        "comision": None,
+        "archivos_entregables": [],
+        "pago": {"factura_id": None, "estado_pago": "pendiente", "metodo_pago": None, "fecha_pago": None},
+        "rating": {"puntuacion": None, "resena": "", "fecha_rating": None, "cliente_satisfecho": None},
+        "contrato": {"texto_contrato": None, "generado_por_gemini": False, "firma_cliente": False, "fecha_firma": None}
+    }
+    if USE_SQLITE:
+        db_guardar_orden(nueva_orden)
+    else:
+        datos = cargar_ordenes()
+        datos["ordenes"][orden_id] = nueva_orden
+        datos["contador_ordenes"] = datos.get("contador_ordenes", 0) + 1
+        guardar_ordenes(datos)
+    return orden_id, nueva_orden
+
+
+def obtener_orden(orden_id):
+    if USE_SQLITE:
+        return db_obtener_orden(orden_id)
+    datos = cargar_ordenes()
+    return datos["ordenes"].get(orden_id)
+
+
+def listar_ordenes(cliente_email=None):
+    if USE_SQLITE:
+        ordenes = list(db_cargar_ordenes().values())
+    else:
+        ordenes = list(cargar_ordenes()["ordenes"].values())
+    if cliente_email:
+        ordenes = [o for o in ordenes if o["cliente_email"] == cliente_email]
+    return ordenes
+
+
+def actualizar_etapa_orden(orden_id, nombre_etapa, nuevo_estado, detalles=""):
+    if USE_SQLITE:
+        orden = db_obtener_orden(orden_id)
+        if not orden:
+            return False, "Orden no encontrada"
+        ok, msg = _apply_etapa_update(orden, nombre_etapa, nuevo_estado, detalles)
+        if ok:
+            db_guardar_orden(orden)
+        return ok, msg
+
+    datos = cargar_ordenes()
+    if orden_id not in datos["ordenes"]:
+        return False, "Orden no encontrada"
+    ok, msg = _apply_etapa_update(datos["ordenes"][orden_id], nombre_etapa, nuevo_estado, detalles)
+    if ok:
+        guardar_ordenes(datos)
+    return ok, msg
+
+
+def marcar_notificacion_leida(orden_id, indice_notificacion):
+    if USE_SQLITE:
+        orden = db_obtener_orden(orden_id)
+        if not orden:
+            return False
+        if 0 <= indice_notificacion < len(orden["notificaciones"]):
+            orden["notificaciones"][indice_notificacion]["leida"] = True
+            db_guardar_orden(orden)
+            return True
+        return False
+
+    datos = cargar_ordenes()
+    if orden_id in datos["ordenes"]:
+        if 0 <= indice_notificacion < len(datos["ordenes"][orden_id]["notificaciones"]):
+            datos["ordenes"][orden_id]["notificaciones"][indice_notificacion]["leida"] = True
+            guardar_ordenes(datos)
+            return True
+    return False
+
+
+def obtener_notificaciones_no_leidas(cliente_email):
+    ordenes = listar_ordenes(cliente_email)
+    notificaciones = []
+    for orden in ordenes:
+        for i, notif in enumerate(orden["notificaciones"]):
+            if not notif["leida"]:
+                notif["orden_id"] = orden["id"]
+                notif["indice"] = i
+                notificaciones.append(notif)
+    return sorted(notificaciones, key=lambda x: x["timestamp"], reverse=True)
+
+
+def agregar_rating_orden(orden_id, puntuacion, resena=""):
+    if USE_SQLITE:
+        orden = db_obtener_orden(orden_id)
+        if not orden:
+            return False, "Orden no encontrada"
+        ok, msg = _apply_rating(orden, puntuacion, resena)
+        if ok:
+            db_guardar_orden(orden)
+        return ok, msg
+
+    datos = cargar_ordenes()
+    if orden_id not in datos["ordenes"]:
+        return False, "Orden no encontrada"
+    ok, msg = _apply_rating(datos["ordenes"][orden_id], puntuacion, resena)
+    if ok:
+        guardar_ordenes(datos)
+    return ok, msg
+
+
+def obtener_rating_experto(clon_id):
+    ratings = [o["rating"]["puntuacion"] for o in listar_ordenes()
+               if o["clon_id"] == clon_id and o["rating"]["puntuacion"] is not None]
+    if not ratings:
+        return None
+    promedio = sum(ratings) / len(ratings)
+    return {"clon_id": clon_id, "puntuacion_promedio": round(promedio, 2), "total_calificaciones": len(ratings), "calificaciones": ratings}
+
+
+def actualizar_pago_orden(orden_id, factura_id, metodo_pago):
+    if USE_SQLITE:
+        orden = db_obtener_orden(orden_id)
+        if not orden:
+            return False
+        _apply_pago_update(orden, factura_id, metodo_pago)
+        db_guardar_orden(orden)
+        return True
+
+    datos = cargar_ordenes()
+    if orden_id not in datos["ordenes"]:
+        return False
+    _apply_pago_update(datos["ordenes"][orden_id], factura_id, metodo_pago)
+    guardar_ordenes(datos)
+    return True
+
+
+def actualizar_contrato_orden(orden_id, texto_contrato, por_gemini=False):
+    if USE_SQLITE:
+        orden = db_obtener_orden(orden_id)
+        if not orden:
+            return False
+        _apply_contrato_update(orden, texto_contrato, por_gemini)
+        db_guardar_orden(orden)
+        return True
+
+    datos = cargar_ordenes()
+    if orden_id not in datos["ordenes"]:
+        return False
+    _apply_contrato_update(datos["ordenes"][orden_id], texto_contrato, por_gemini)
+    guardar_ordenes(datos)
+    return True

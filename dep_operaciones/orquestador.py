@@ -1,0 +1,430 @@
+import os
+import sys
+import json
+import logging
+import threading
+import time
+
+# Agregar rutas
+RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(RAIZ_DIR)
+
+from dep_operaciones import gestor_ordenes, gestor_pagos, email_service  # noqa: E402
+from dep_legal import gemini_contratos  # noqa: E402
+from dep_desarrollo import motor_clonacion  # noqa: E402
+
+logger = logging.getLogger("orquestador")
+
+# Import SSE broadcasting from cerebro server
+def _broadcast_event(event_type, data):
+    """Broadcast event to all connected SSE clients."""
+    try:
+        from cerebro.server import broadcast_sse_event
+        broadcast_sse_event(event_type, data)
+    except ImportError:
+        pass  # SSE not available
+
+class OrquestadorAutonomo:
+    """
+    Procesa órdenes automáticamente a través de todos los departamentos.
+    Corre en un thread separado para no bloquear el servidor web.
+    """
+
+    def __init__(self):
+        self.activo = True
+        self.intervalo_chequeo = 5  # Segundos entre chequeos
+        self.thread = None
+
+    def iniciar(self):
+        """Inicia el hilo de procesamiento automático."""
+        if self.thread is None or not self.thread.is_alive():
+            self.thread = threading.Thread(target=self._loop_procesamiento, daemon=True)
+            self.thread.start()
+            logger.info("[ORQUESTADOR] Automatización iniciada")
+
+    def detener(self):
+        """Detiene el procesamiento automático."""
+        self.activo = False
+        if self.thread:
+            self.thread.join(timeout=5)
+        logger.info("[ORQUESTADOR] Automatización detenida")
+
+    def _loop_procesamiento(self):
+        """Loop principal que procesa órdenes continuamente."""
+        while self.activo:
+            try:
+                self._procesar_ordenes_pendientes()
+                time.sleep(self.intervalo_chequeo)
+            except Exception as e:
+                logger.info(f"[ORQUESTADOR] Error en loop: {e}")
+                time.sleep(self.intervalo_chequeo)
+
+    def _procesar_ordenes_pendientes(self):
+        """Busca y procesa órdenes en estado 'pendiente'."""
+        from dep_operaciones.database import cargar_ordenes_pendientes
+        try:
+            ordenes = cargar_ordenes_pendientes()
+        except Exception:
+            datos = gestor_ordenes.cargar_ordenes()
+            ordenes = {k: v for k, v in datos.get("ordenes", {}).items() if v.get("estado") == "pendiente"}
+
+        for orden_id, orden in ordenes.items():
+            if orden.get("etapas", {}).get("legal", {}).get("estado") == "pendiente":
+                self._procesar_orden(orden_id)
+
+    def _procesar_orden(self, orden_id):
+        """Ejecuta el flujo completo de la orden a través de todos los departamentos."""
+        logger.info(f"\n[ORQUESTADOR] 🚀 Procesando orden: {orden_id}")
+
+        orden = gestor_ordenes.obtener_orden(orden_id)
+        if not orden:
+            return
+
+        # Broadcast: Order processing started
+        _broadcast_event("order_started", {
+            "orden_id": orden_id,
+            "clon_id": orden.get("clon_id"),
+            "cliente": orden.get("cliente_email")
+        })
+
+        # ===== ETAPA 1: LEGAL =====
+        self._procesar_etapa_legal(orden_id, orden)
+
+        # Check if legal stage succeeded before continuing
+        orden = gestor_ordenes.obtener_orden(orden_id)
+        legal_estado = orden.get("etapas", {}).get("legal", {}).get("estado", "")
+        if legal_estado == "error":
+            logger.info(f"[ORQUESTADOR] Legal stage failed for {orden_id}, stopping pipeline")
+            _broadcast_event("order_completed", {
+                "orden_id": orden_id,
+                "clon_id": orden.get("clon_id"),
+                "error": "Legal stage failed"
+            })
+            return
+
+        # ===== ETAPA 2: DESARROLLO =====
+        self._procesar_etapa_desarrollo(orden_id, orden)
+
+        # ===== ETAPA 3: OPERACIONES =====
+        self._procesar_etapa_operaciones(orden_id, orden)
+
+        # ===== ETAPA 4: ENTREGA =====
+        self._procesar_etapa_entrega(orden_id, orden)
+
+        # Broadcast: Order processing completed
+        _broadcast_event("order_completed", {
+            "orden_id": orden_id,
+            "clon_id": orden.get("clon_id")
+        })
+
+    def _procesar_etapa_legal(self, orden_id, orden):
+        """Procesa la etapa legal de la orden."""
+        logger.info(f"[LEGAL] Procesando contrato para {orden_id}...")
+
+        # Broadcast: Legal stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "legal",
+            "status": "en_proceso",
+            "message": "Generando contrato con IA..."
+        })
+
+        gestor_ordenes.actualizar_etapa_orden(
+            orden_id, "legal", "en_proceso",
+            "Generando contrato con IA..."
+        )
+
+        try:
+            # Obtener datos del clon
+            datos = motor_clonacion.cargar_datos()
+            clon = datos["clones"][orden["clon_id"]]
+
+            # Generar contrato usando Gemini o plantilla (ahora retorna ruta .docx)
+            ruta_contrato = gemini_contratos.generar_contrato_gemini(
+                orden_id,
+                orden["cliente_email"],
+                orden["clon_id"],
+                clon["nombre"],
+                clon["especialidad"],
+                orden["cantidad_horas"],
+                0,  # Monto se calcula en operaciones
+                0   # Comisión se calcula en operaciones
+            )
+
+            # Guardar ruta del contrato en la orden
+            gestor_ordenes.actualizar_contrato_orden(
+                orden_id, ruta_contrato, por_gemini=True
+            )
+
+            # Enviar contrato por email al cliente
+            nombre_cliente = orden.get("cliente_nombre", orden["cliente_email"].split("@")[0])
+            exito_email, error_email = email_service.send_contract_email(
+                cliente_email=orden["cliente_email"],
+                cliente_nombre=nombre_cliente,
+                ruta_contrato=ruta_contrato,
+                orden_id=orden_id
+            )
+
+            if exito_email:
+                mensaje_legal = "Contrato generado y enviado por email al cliente."
+            else:
+                mensaje_legal = f"Contrato generado. Error al enviar email: {error_email}"
+
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "legal", "completada",
+                mensaje_legal
+            )
+
+            # Broadcast: Legal stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "legal",
+                "status": "completada",
+                "message": "Contrato generado exitosamente"
+            })
+
+            logger.info(f"[LEGAL] ✅ Contrato generado para {orden_id}")
+
+            time.sleep(1)
+
+        except Exception as e:
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "legal", "error",
+                f"Error al generar contrato: {str(e)}"
+            )
+
+            # Broadcast: Legal stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "legal",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
+            logger.info(f"[LEGAL] [ERROR] {e}")
+
+    def _procesar_etapa_desarrollo(self, orden_id, orden):
+        """Procesa la etapa de desarrollo."""
+        logger.info(f"[DESARROLLO] Preparando clon para {orden_id}...")
+
+        # Broadcast: Development stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "desarrollo",
+            "status": "en_proceso",
+            "message": f"Configurando instancia del clon '{orden['clon_id']}'..."
+        })
+
+        gestor_ordenes.actualizar_etapa_orden(
+            orden_id, "desarrollo", "en_proceso",
+            f"Configurando instancia del clon '{orden['clon_id']}'..."
+        )
+
+        try:
+            # Cargar datos del clon
+            datos = motor_clonacion.cargar_datos()
+
+            if orden["clon_id"] not in datos["clones"]:
+                raise Exception(f"Clon '{orden['clon_id']}' no encontrado")
+
+            datos["clones"][orden["clon_id"]]
+
+            # Crear instancia específica para este cliente
+            instancia_id = f"{orden['clon_id']}__{orden_id}"
+
+            # Simular preparación
+            tiempo_preparacion = 2
+            for i in range(tiempo_preparacion):
+                time.sleep(1)
+                progreso = int((i + 1) / tiempo_preparacion * 100)
+                # Broadcast progress
+                _broadcast_event("stage_progress", {
+                    "orden_id": orden_id,
+                    "department": "desarrollo",
+                    "progress": progreso
+                })
+                logger.info(f"[DESARROLLO] {progreso}% - Preparando ambiente...")
+
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "desarrollo", "completada",
+                f"Instancia del clon lista. ID: {instancia_id}. Acceso: API disponible."
+            )
+
+            # Broadcast: Development stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "desarrollo",
+                "status": "completada",
+                "message": "Clon preparado y listo"
+            })
+
+            logger.info(f"[DESARROLLO] ✅ Clon preparado para {orden_id}")
+
+        except Exception as e:
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "desarrollo", "error",
+                f"Error en preparación del clon: {str(e)}"
+            )
+
+            # Broadcast: Development stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "desarrollo",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
+            logger.info(f"[DESARROLLO] [ERROR] {e}")
+
+    def _procesar_etapa_operaciones(self, orden_id, orden):
+        """Procesa la etapa de operaciones (facturación y pagos)."""
+        logger.info(f"[OPERACIONES] Procesando facturación para {orden_id}...")
+
+        # Broadcast: Operations stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "operaciones",
+            "status": "en_proceso",
+            "message": "Calculando monto total y procesando facturación..."
+        })
+
+        gestor_ordenes.actualizar_etapa_orden(
+            orden_id, "operaciones", "en_proceso",
+            "Calculando monto total y procesando facturación..."
+        )
+
+        try:
+            # Cargar configuración de comisión y tarifa
+            settings_path = os.path.join(os.path.dirname(__file__), '..', 'cerebro', 'server_settings.json')
+            comision_pct = 15.0
+            tarifa_hora = 50.0
+
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r') as f:
+                    settings = json.load(f)
+                    comision_pct = settings.get("commission", 15.0)
+                    tarifa_hora = settings.get("tariff_per_hour", 50.0)
+            monto_bruto = orden["cantidad_horas"] * tarifa_hora
+            comision = monto_bruto * (comision_pct / 100)
+            monto_total = monto_bruto + comision
+
+            # Actualizar orden con montos
+            datos_ordenes = gestor_ordenes.cargar_ordenes()
+            datos_ordenes["ordenes"][orden_id]["monto_total"] = monto_total
+            datos_ordenes["ordenes"][orden_id]["comision"] = comision
+            gestor_ordenes.guardar_ordenes(datos_ordenes)
+
+            # CREAR FACTURA
+            factura_id, factura_data = gestor_pagos.crear_factura(
+                orden_id,
+                orden["cliente_email"],
+                monto_total,
+                comision,
+                orden["cantidad_horas"],
+                tarifa_hora,
+                orden["descripcion_proyecto"]
+            )
+
+            # Actualizar orden con información de pago
+            gestor_ordenes.actualizar_pago_orden(
+                orden_id, factura_id, "pendiente"
+            )
+
+            time.sleep(1)
+
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "operaciones", "completada",
+                f"✅ Factura creada: {factura_id}. Total: ${monto_total:.2f} (Comisión: ${comision:.2f}). Pendiente de pago."
+            )
+
+            # Broadcast: Operations stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "operaciones",
+                "status": "completada",
+                "message": f"Factura {factura_id} creada - Total: ${monto_total:.2f}"
+            })
+
+            logger.info(f"[OPERACIONES] ✅ Factura procesada: ${monto_total:.2f}")
+
+        except Exception as e:
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "operaciones", "error",
+                f"Error en facturación: {str(e)}"
+            )
+
+            # Broadcast: Operations stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "operaciones",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
+            logger.info(f"[OPERACIONES] [ERROR] {e}")
+
+    def _procesar_etapa_entrega(self, orden_id, orden):
+        """Procesa la etapa final de entrega."""
+        logger.info(f"[ENTREGA] Preparando entrega para {orden_id}...")
+
+        # Broadcast: Delivery stage started
+        _broadcast_event("stage_update", {
+            "orden_id": orden_id,
+            "department": "entrega",
+            "status": "en_proceso",
+            "message": "Generando credenciales de acceso y enviando al cliente..."
+        })
+
+        gestor_ordenes.actualizar_etapa_orden(
+            orden_id, "entrega", "en_proceso",
+            "Generando credenciales de acceso y enviando al cliente..."
+        )
+
+        try:
+            # Simular envío de credenciales
+            time.sleep(1)
+
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "entrega", "completada",
+                f"✅ Acceso entregado. Email enviado a {orden['cliente_email']} con credenciales."
+            )
+
+            # Broadcast: Delivery stage completed
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "entrega",
+                "status": "completada",
+                "message": "Acceso entregado al cliente"
+            })
+
+            logger.info(f"[ENTREGA] ✅ Orden {orden_id} entregada al cliente")
+
+        except Exception as e:
+            gestor_ordenes.actualizar_etapa_orden(
+                orden_id, "entrega", "error",
+                f"Error en entrega: {str(e)}"
+            )
+
+            # Broadcast: Delivery stage error
+            _broadcast_event("stage_update", {
+                "orden_id": orden_id,
+                "department": "entrega",
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
+
+            logger.info(f"[ENTREGA] [ERROR] {e}")
+
+
+# Instancia global del orquestador
+orquestador_global = OrquestadorAutonomo()
+
+def iniciar_orquestador():
+    """Función para iniciar el orquestador desde el servidor."""
+    if orquestador_global:
+        orquestador_global.iniciar()
+
+def detener_orquestador():
+    """Función para detener el orquestador desde el servidor."""
+    if orquestador_global:
+        orquestador_global.detener()

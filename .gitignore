@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+venv/
+.venv/
+
+# Environment variables (SECRETS)
+.env
+.env.local
+.env.production
+
+# Server settings and local configuration
+server_settings.json
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Runtime conversation memory
+dep_desarrollo/memories/
+
+# Run scripts cache and local logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# Test output files
+test_stripe_url.txt
+test_orden_id.txt
+test_factura_id.txt
+test_token.txt

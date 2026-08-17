@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Instrucciones para ejecutar SkillTwin localmente o desde GitHub Pages.">
+  <title>SkillTwin - Instrucciones</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-mark">ST</span>
+        <div>
+          <h1>SkillTwin</h1>
+          <p>Guía de ejecución y despliegue</p>
+        </div>
+      </div>
+      <nav class="site-nav" aria-label="Navegación principal">
+        <a href="index.html">Inicio</a>
+        <a href="#local">Local</a>
+        <a href="#docker">Docker</a>
+        <a href="#github-pages">GitHub Pages</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <article class="hero-copy">
+          <p class="eyebrow">Guía de despliegue</p>
+          <h2>Cómo poner SkillTwin en marcha</h2>
+          <p>Esta página explica los pasos para ejecutar el backend localmente, usar Docker y publicar la landing estática en GitHub Pages.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-light" id="local">
+      <div class="container">
+        <div class="section-header">
+          <span>Ejecutar localmente</span>
+          <h3>Arranca el dashboard en tu equipo</h3>
+        </div>
+        <div class="feature-card">
+          <h4>Desde Windows</h4>
+          <p>Abre PowerShell en la raíz del repo y ejecuta:</p>
+          <pre>./run.ps1</pre>
+          <p>Luego ve a <strong>http://localhost:8000</strong>.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Desde Linux/macOS</h4>
+          <p>Abre un terminal en la raíz del repo y ejecuta:</p>
+          <pre>./run.sh</pre>
+          <p>Luego ve a <strong>http://localhost:8000</strong>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-dark" id="docker">
+      <div class="container">
+        <div class="section-header white">
+          <span>Docker</span>
+          <h3>Ejecuta SkillTwin en un contenedor</h3>
+        </div>
+        <div class="feature-card">
+          <p>Construye la imagen:</p>
+          <pre>docker build -t skilltwin .</pre>
+          <p>Ejecuta el contenedor:</p>
+          <pre>docker run -p 8000:8000 skilltwin</pre>
+          <p>Abre <strong>http://localhost:8000</strong>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-light" id="github-pages">
+      <div class="container">
+        <div class="section-header">
+          <span>GitHub Pages</span>
+          <h3>Publica la landing estática</h3>
+        </div>
+        <div class="feature-card">
+          <p>La landing ya está preparada en <code>docs/</code>. Para activar GitHub Pages:</p>
+          <ol>
+            <li>Sube el repo a GitHub.</li>
+            <li>En tu repositorio, abre <strong>Settings &gt; Pages</strong>.</li>
+            <li>Selecciona la rama principal y la carpeta <code>/docs</code>.</li>
+            <li>Guarda y espera unos minutos.</li>
+          </ol>
+          <p>La web estará disponible en <strong>https://&lt;tu-usuario&gt;.github.io/&lt;tu-repositorio&gt;/</strong>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>SkillTwin © 2026 · Proyecto experimental de gemelos digitales.</p>
+    </div>
+  </footer>
+</body>
+</html>

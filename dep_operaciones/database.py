@@ -1,0 +1,819 @@
+import json
+import os
+import re
+import threading
+from contextlib import contextmanager
+from datetime import datetime
+
+# ── Selección de driver ─────────────────────────────────────────────────────
+_DATABASE_URL = os.environ.get("DATABASE_URL")
+_USE_POSTGRES = bool(_DATABASE_URL)
+
+if _USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+else:
+    import sqlite3
+
+_DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "skilltwin.db")
+DB_PATH = _DEFAULT_DB_PATH  # Puede ser sobreescrito por tests o en tiempo de ejecución
+db_lock = threading.RLock()
+
+
+# ── Adaptadores de cursor y conexión ────────────────────────────────────────
+class _Cursor:
+    """Cursor unificado: traduce ? → %s para PostgreSQL y filas a dict."""
+
+    def __init__(self, raw, pg):
+        self._c = raw
+        self._pg = pg
+
+    def execute(self, sql, params=None):
+        if self._pg:
+            sql = sql.replace("?", "%s")
+        if params is not None:
+            self._c.execute(sql, params)
+        else:
+            self._c.execute(sql)
+        return self
+
+    def execute_ddl(self, sql):
+        """Ejecuta DDL adaptando AUTOINCREMENT → SERIAL para PostgreSQL."""
+        if self._pg:
+            sql = re.sub(r'\bINTEGER PRIMARY KEY AUTOINCREMENT\b', 'SERIAL PRIMARY KEY', sql, flags=re.I)
+        self.execute(sql)
+
+    def execute_returning_id(self, sql, params=None):
+        """INSERT que retorna el ID auto-generado (compatible con ambas bases)."""
+        if self._pg:
+            sql = sql.replace("?", "%s").rstrip().rstrip(";") + " RETURNING id"
+            if params is not None:
+                self._c.execute(sql, params)
+            else:
+                self._c.execute(sql)
+            row = self._c.fetchone()
+            return dict(row)["id"] if row else None
+        self.execute(sql, params)
+        return self._c.lastrowid
+
+    def fetchone(self):
+        row = self._c.fetchone()
+        return dict(row) if row else None
+
+    def fetchall(self):
+        return [dict(r) for r in self._c.fetchall()]
+
+    @property
+    def lastrowid(self):
+        return self._c.lastrowid
+
+
+class _Conn:
+    """Conexión unificada para sqlite3 y psycopg2."""
+
+    def __init__(self, raw, pg):
+        self._c = raw
+        self._pg = pg
+
+    def cursor(self):
+        return _Cursor(self._c.cursor(), self._pg)
+
+    def commit(self):
+        self._c.commit()
+
+    def rollback(self):
+        self._c.rollback()
+
+    def close(self):
+        self._c.close()
+
+    def _pragma(self, sql):
+        if not self._pg:
+            self._c.execute(sql)
+
+
+@contextmanager
+def get_connection():
+    if _USE_POSTGRES:
+        raw = psycopg2.connect(_DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = _Conn(raw, pg=True)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    else:
+        with db_lock:
+            # DB_PATH puede ser sobreescrito por tests; env var tiene prioridad en producción
+            path = os.environ.get("SKILLTWIN_DB_PATH") or globals().get("DB_PATH") or _DEFAULT_DB_PATH
+            d = os.path.dirname(path)
+            if d:
+                os.makedirs(d, exist_ok=True)
+            raw = sqlite3.connect(path)
+            raw.row_factory = sqlite3.Row
+            conn = _Conn(raw, pg=False)
+            conn._pragma("PRAGMA journal_mode=WAL")
+            conn._pragma("PRAGMA foreign_keys=ON")
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+
+
+def init_database():
+    """Inicializa todas las tablas de la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Tabla de clones
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS clones (
+                id TEXT PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                especialidad TEXT NOT NULL,
+                conocimiento TEXT NOT NULL,
+                fecha_creacion TEXT NOT NULL
+            )
+        """)
+
+        # Tabla de flujo de caja
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS flujo_caja (
+                mes TEXT PRIMARY KEY,
+                ingresos_plan REAL DEFAULT 0.0,
+                ingresos_real REAL DEFAULT 0.0,
+                egresos_plan REAL DEFAULT 0.0,
+                egresos_real REAL DEFAULT 0.0
+            )
+        """)
+
+        # Tabla de cuentas por cobrar
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS cuentas_cobrar (
+                id TEXT PRIMARY KEY,
+                cliente TEXT NOT NULL,
+                monto REAL NOT NULL,
+                vencimiento TEXT NOT NULL,
+                estado TEXT DEFAULT 'Pendiente'
+            )
+        """)
+
+        # Tabla de cuentas por pagar
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS cuentas_pagar (
+                id TEXT PRIMARY KEY,
+                proveedor TEXT NOT NULL,
+                monto REAL NOT NULL,
+                vencimiento TEXT NOT NULL,
+                estado TEXT DEFAULT 'Pendiente'
+            )
+        """)
+
+        # Tabla de órdenes
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ordenes (
+                id TEXT PRIMARY KEY,
+                cliente_email TEXT NOT NULL,
+                clon_id TEXT NOT NULL,
+                cantidad_horas INTEGER NOT NULL,
+                descripcion_proyecto TEXT,
+                requiere_contrato SMALLINT DEFAULT 1,
+                fecha_creacion TEXT NOT NULL,
+                estado TEXT DEFAULT 'pendiente',
+                etapas TEXT DEFAULT '{}',
+                notificaciones TEXT DEFAULT '[]',
+                monto_total REAL DEFAULT 0.0,
+                comision REAL DEFAULT 0.0,
+                pago TEXT DEFAULT '{}',
+                rating TEXT DEFAULT '{}',
+                contrato TEXT DEFAULT '{}',
+                archivos_entregables TEXT DEFAULT '[]'
+            )
+        """)
+
+        # Tabla de facturas/pagos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS facturas (
+                id TEXT PRIMARY KEY,
+                orden_id TEXT,
+                cliente_email TEXT NOT NULL,
+                fecha_emision TEXT,
+                fecha_vencimiento TEXT,
+                monto_subtotal REAL DEFAULT 0.0,
+                comision_plataforma REAL DEFAULT 0.0,
+                monto_total REAL NOT NULL,
+                moneda TEXT DEFAULT 'USD',
+                estado TEXT DEFAULT 'pendiente',
+                metodo_pago TEXT,
+                metodo_pago_seleccionado TEXT,
+                referencia_transaccion TEXT,
+                detalles TEXT DEFAULT '{}',
+                notas TEXT DEFAULT '',
+                fecha_creacion TEXT NOT NULL,
+                fecha_pago TEXT,
+                FOREIGN KEY (orden_id) REFERENCES ordenes(id)
+            )
+        """)
+
+        # Tabla de transacciones
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS transacciones (
+                id TEXT PRIMARY KEY,
+                factura_id TEXT,
+                orden_id TEXT,
+                cliente_email TEXT,
+                tipo TEXT NOT NULL,
+                monto REAL NOT NULL,
+                moneda TEXT DEFAULT 'USD',
+                metodo_pago TEXT,
+                numero_referencia TEXT,
+                codigo_autorizacion TEXT,
+                detalles_respuesta TEXT DEFAULT '{}',
+                estado TEXT DEFAULT 'completada',
+                fecha TEXT NOT NULL,
+                FOREIGN KEY (factura_id) REFERENCES facturas(id)
+            )
+        """)
+
+        # Tabla de contactos
+        cursor.execute_ddl("""
+            CREATE TABLE IF NOT EXISTS contactos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                email TEXT NOT NULL,
+                telefono TEXT,
+                empresa TEXT,
+                interes TEXT,
+                mensaje TEXT NOT NULL,
+                fecha TEXT NOT NULL,
+                estado TEXT DEFAULT 'nuevo'
+            )
+        """)
+
+        # Tabla de usuarios (autenticación)
+        cursor.execute_ddl("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                role TEXT DEFAULT 'customer',
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        # Tabla de sesiones de usuario (persistencia entre reinicios)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                email TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
+
+        # Tabla de sesiones de conversación por usuario/clon
+        cursor.execute_ddl("""
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+                session_id TEXT PRIMARY KEY,
+                clone_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                last_used_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_sessions_clone ON chat_sessions(clone_id)")
+
+        # Indices para consultas frecuentes
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_email ON ordenes(cliente_email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_clon ON ordenes(clon_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_orden ON facturas(orden_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_estado ON facturas(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_facturas_cliente_email ON facturas(cliente_email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_factura ON transacciones(factura_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_estado ON transacciones(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_fecha ON transacciones(fecha)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_email ON contactos(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_estado ON contactos(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cuentas_cobrar_estado ON cuentas_cobrar(estado)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cuentas_pagar_estado ON cuentas_pagar(estado)")
+
+
+def migrar_json_a_sqlite():
+    """Migra datos existentes de archivos JSON a SQLite."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Migrar clones
+        clones_path = os.path.join(os.path.dirname(__file__), "..", "dep_desarrollo", "clones_db.json")
+        if os.path.exists(clones_path):
+            with open(clones_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for clon_id, clon_data in data.get("clones", {}).items():
+                cursor.execute("""
+                    INSERT INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (clon_id, clon_data["nombre"], clon_data["especialidad"],
+                      clon_data["conocimiento"], clon_data["fecha_creacion"]))
+
+        # Migrar finanzas
+        finanzas_path = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
+        if os.path.exists(finanzas_path):
+            with open(finanzas_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for mes, valores in data.get("flujo_caja", {}).items():
+                cursor.execute("""
+                    INSERT INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (mes) DO UPDATE SET
+                        ingresos_plan=EXCLUDED.ingresos_plan, ingresos_real=EXCLUDED.ingresos_real,
+                        egresos_plan=EXCLUDED.egresos_plan, egresos_real=EXCLUDED.egresos_real
+                """, (mes, valores["ingresos_plan"], valores["ingresos_real"],
+                      valores["egresos_plan"], valores["egresos_real"]))
+
+            for cuenta in data.get("cuentas_cobrar", []):
+                cursor.execute("""
+                    INSERT INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (cuenta["id"], cuenta["cliente"], cuenta["monto"],
+                      cuenta["vencimiento"], cuenta["estado"]))
+
+            for cuenta in data.get("cuentas_pagar", []):
+                cursor.execute("""
+                    INSERT INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (cuenta["id"], cuenta["proveedor"], cuenta["monto"],
+                      cuenta["vencimiento"], cuenta["estado"]))
+
+        # Migrar órdenes
+        ordenes_path = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
+        if os.path.exists(ordenes_path):
+            with open(ordenes_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for orden_id, orden in data.get("ordenes", {}).items():
+                cursor.execute("""
+                    INSERT INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
+                        descripcion_proyecto, requiere_contrato, fecha_creacion, estado, etapas,
+                        notificaciones, monto_total, comision, pago, rating, contrato, archivos_entregables)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (orden["id"], orden["cliente_email"], orden["clon_id"],
+                      orden["cantidad_horas"], orden.get("descripcion_proyecto", ""),
+                      orden.get("requiere_contrato", True), orden["fecha_creacion"],
+                      orden["estado"], json.dumps(orden.get("etapas", {})),
+                      json.dumps(orden.get("notificaciones", [])),
+                      orden.get("monto_total", 0.0), orden.get("comision", 0.0),
+                      json.dumps(orden.get("pago", {})), json.dumps(orden.get("rating", {})),
+                      json.dumps(orden.get("contrato", {})),
+                      json.dumps(orden.get("archivos_entregables", []))))
+
+        # Migrar pagos
+        pagos_path = os.path.join(os.path.dirname(__file__), "pagos_db.json")
+        if os.path.exists(pagos_path):
+            with open(pagos_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for fac_id, factura in data.get("facturas", {}).items():
+                cursor.execute("""
+                    INSERT INTO facturas (id, orden_id, cliente_email, fecha_emision,
+                        fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
+                        moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
+                        detalles, notas, fecha_creacion, fecha_pago)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email", ""),
+                      factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
+                      factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", factura.get("comision", 0.0)),
+                      factura.get("monto_total", 0.0), factura.get("moneda", "USD"),
+                      factura.get("estado", "pendiente"), factura.get("metodo_pago"),
+                      factura.get("metodo_pago_seleccionado"), factura.get("referencia_transaccion"),
+                      json.dumps(factura.get("detalles", {})), factura.get("notas", ""),
+                      factura.get("fecha_creacion", datetime.now().isoformat()),
+                      factura.get("fecha_pago")))
+
+            for trans_id, trans in data.get("transacciones", {}).items():
+                cursor.execute("""
+                    INSERT INTO transacciones (id, factura_id, orden_id, cliente_email,
+                        tipo, monto, moneda, metodo_pago, numero_referencia, codigo_autorizacion,
+                        detalles_respuesta, estado, fecha)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (trans["id"], trans.get("factura_id"), trans.get("orden_id"),
+                      trans.get("cliente_email", ""), trans.get("tipo", "pago"),
+                      trans["monto"], trans.get("moneda", "USD"), trans.get("metodo_pago"),
+                      trans.get("numero_referencia", ""), trans.get("codigo_autorizacion", ""),
+                      json.dumps(trans.get("detalles_respuesta", {})),
+                      trans.get("estado", "completada"), trans.get("fecha")))
+
+        # Migrar contactos
+        contactos_path = os.path.join(os.path.dirname(__file__), "contactos_db.json")
+        if os.path.exists(contactos_path):
+            with open(contactos_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for contacto in data.get("contactos", []):
+                cursor.execute("""
+                    INSERT INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT DO NOTHING
+                """, (contacto["nombre"], contacto["email"], contacto.get("telefono", ""),
+                      contacto.get("empresa", ""), contacto.get("interes", ""),
+                      contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
+
+
+# Funciones de acceso a datos para clones
+def cargar_clones():
+    """Carga todos los clones de la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM clones")
+        rows = cursor.fetchall()
+        return {row["id"]: dict(row) for row in rows}
+
+
+def guardar_clone(clon_id, nombre, especialidad, conocimiento):
+    """Guarda o actualiza un clone en la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                nombre=EXCLUDED.nombre, especialidad=EXCLUDED.especialidad,
+                conocimiento=EXCLUDED.conocimiento, fecha_creacion=EXCLUDED.fecha_creacion
+        """, (clon_id, nombre, especialidad, conocimiento,
+              datetime.now().strftime("%Y-%m-%d")))
+
+
+def obtener_clone(clon_id):
+    """Obtiene un clone por su ID."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM clones WHERE id = ?", (clon_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+# Funciones de acceso a datos para finanzas
+def cargar_flujo_caja():
+    """Carga el flujo de caja."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM flujo_caja ORDER BY mes")
+        rows = cursor.fetchall()
+        return {row["mes"]: dict(row) for row in rows}
+
+
+def guardar_flujo_caja(mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real):
+    """Guarda o actualiza el flujo de caja de un mes."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (mes) DO UPDATE SET
+                ingresos_plan=EXCLUDED.ingresos_plan, ingresos_real=EXCLUDED.ingresos_real,
+                egresos_plan=EXCLUDED.egresos_plan, egresos_real=EXCLUDED.egresos_real
+        """, (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real))
+
+
+def cargar_cuentas_cobrar():
+    """Carga todas las cuentas por cobrar."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cuentas_cobrar")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def cargar_cuentas_pagar():
+    """Carga todas las cuentas por pagar."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cuentas_pagar")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+# Funciones de acceso a datos para órdenes
+def cargar_ordenes():
+    """Carga todas las órdenes."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM ordenes")
+        rows = cursor.fetchall()
+        result = {}
+        for row in rows:
+            d = dict(row)
+            d["etapas"] = json.loads(d["etapas"])
+            d["notificaciones"] = json.loads(d["notificaciones"])
+            d["pago"] = json.loads(d["pago"])
+            d["rating"] = json.loads(d["rating"])
+            d["contrato"] = json.loads(d["contrato"])
+            d["archivos_entregables"] = json.loads(d["archivos_entregables"])
+            result[d["id"]] = d
+        return result
+
+
+def cargar_ordenes_pendientes():
+    """Carga solo órdenes pendientes de procesamiento (optimizado para orquestador)."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM ordenes WHERE estado = 'pendiente'")
+        rows = cursor.fetchall()
+        result = {}
+        for row in rows:
+            d = dict(row)
+            d["etapas"] = json.loads(d["etapas"])
+            d["notificaciones"] = json.loads(d["notificaciones"])
+            d["pago"] = json.loads(d["pago"])
+            d["rating"] = json.loads(d["rating"])
+            d["contrato"] = json.loads(d["contrato"])
+            d["archivos_entregables"] = json.loads(d["archivos_entregables"])
+            result[d["id"]] = d
+        return result
+
+
+def guardar_orden(orden):
+    """Guarda o actualiza una orden."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
+                descripcion_proyecto, requiere_contrato, fecha_creacion, estado, etapas,
+                notificaciones, monto_total, comision, pago, rating, contrato, archivos_entregables)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                cliente_email=EXCLUDED.cliente_email, clon_id=EXCLUDED.clon_id,
+                cantidad_horas=EXCLUDED.cantidad_horas, descripcion_proyecto=EXCLUDED.descripcion_proyecto,
+                requiere_contrato=EXCLUDED.requiere_contrato, fecha_creacion=EXCLUDED.fecha_creacion,
+                estado=EXCLUDED.estado, etapas=EXCLUDED.etapas, notificaciones=EXCLUDED.notificaciones,
+                monto_total=EXCLUDED.monto_total, comision=EXCLUDED.comision, pago=EXCLUDED.pago,
+                rating=EXCLUDED.rating, contrato=EXCLUDED.contrato,
+                archivos_entregables=EXCLUDED.archivos_entregables
+        """, (orden["id"], orden["cliente_email"], orden["clon_id"],
+              orden["cantidad_horas"], orden.get("descripcion_proyecto", ""),
+              orden.get("requiere_contrato", True), orden["fecha_creacion"],
+              orden["estado"], json.dumps(orden.get("etapas", {})),
+              json.dumps(orden.get("notificaciones", [])),
+              orden.get("monto_total", 0.0), orden.get("comision", 0.0),
+              json.dumps(orden.get("pago", {})), json.dumps(orden.get("rating", {})),
+              json.dumps(orden.get("contrato", {})),
+              json.dumps(orden.get("archivos_entregables", []))))
+
+
+def obtener_orden(orden_id):
+    """Obtiene una orden por su ID."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM ordenes WHERE id = ?", (orden_id,))
+        row = cursor.fetchone()
+        if row:
+            d = dict(row)
+            d["etapas"] = json.loads(d["etapas"])
+            d["notificaciones"] = json.loads(d["notificaciones"])
+            d["pago"] = json.loads(d["pago"])
+            d["rating"] = json.loads(d["rating"])
+            d["contrato"] = json.loads(d["contrato"])
+            d["archivos_entregables"] = json.loads(d["archivos_entregables"])
+            return d
+        return None
+
+
+# Funciones de acceso a datos para facturas
+def cargar_facturas():
+    """Carga todas las facturas."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM facturas")
+        return {row["id"]: dict(row) for row in cursor.fetchall()}
+
+
+def guardar_factura(factura):
+    """Guarda o actualiza una factura."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO facturas (id, orden_id, cliente_email, fecha_emision,
+                fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
+                moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
+                detalles, notas, fecha_creacion, fecha_pago)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                orden_id=EXCLUDED.orden_id, cliente_email=EXCLUDED.cliente_email,
+                fecha_emision=EXCLUDED.fecha_emision, fecha_vencimiento=EXCLUDED.fecha_vencimiento,
+                monto_subtotal=EXCLUDED.monto_subtotal, comision_plataforma=EXCLUDED.comision_plataforma,
+                monto_total=EXCLUDED.monto_total, moneda=EXCLUDED.moneda, estado=EXCLUDED.estado,
+                metodo_pago=EXCLUDED.metodo_pago, metodo_pago_seleccionado=EXCLUDED.metodo_pago_seleccionado,
+                referencia_transaccion=EXCLUDED.referencia_transaccion, detalles=EXCLUDED.detalles,
+                notas=EXCLUDED.notas, fecha_creacion=EXCLUDED.fecha_creacion, fecha_pago=EXCLUDED.fecha_pago
+        """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email"),
+              factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
+              factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", 0.0),
+              factura["monto_total"], factura.get("moneda", "USD"), factura["estado"],
+              factura.get("metodo_pago"), factura.get("metodo_pago_seleccionado"),
+              factura.get("referencia_transaccion"),
+              json.dumps(factura.get("detalles", {})),
+              factura.get("notas", ""),
+              factura.get("fecha_creacion", datetime.now().isoformat()),
+              factura.get("fecha_pago")))
+
+
+def obtener_factura(factura_id):
+    """Obtiene una factura por su ID."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM facturas WHERE id = ?", (factura_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+# Funciones de acceso a datos para contactos
+def cargar_contactos():
+    """Carga todos los contactos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM contactos")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def guardar_contacto(nombre, email, telefono, empresa, interes, mensaje):
+    """Guarda un nuevo contacto."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        return cursor.execute_returning_id("""
+            INSERT INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'nuevo')
+        """, (nombre, email, telefono, empresa, interes, mensaje,
+              datetime.now().isoformat()))
+
+
+# Funciones de acceso a datos para usuarios
+def crear_usuario(email, password_hash, nombre, role="customer"):
+    """Crea un nuevo usuario. Retorna el ID o None si el email ya existe."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            return cursor.execute_returning_id("""
+                INSERT INTO users (email, password_hash, nombre, role, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (email.lower().strip(), password_hash, nombre, role,
+                  datetime.now().isoformat()))
+        except Exception:
+            return None
+
+
+def obtener_usuario_por_email(email):
+    """Obtiene un usuario por su email."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email.lower().strip(),))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def obtener_usuario_por_id(user_id):
+    """Obtiene un usuario por su ID."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def guardar_session(token, user_id, email, expires_at):
+    """Persiste un token de sesión en la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sessions (token, user_id, email, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (token) DO UPDATE SET
+                user_id=EXCLUDED.user_id, email=EXCLUDED.email,
+                created_at=EXCLUDED.created_at, expires_at=EXCLUDED.expires_at
+        """, (token, user_id, email, datetime.now().isoformat(), expires_at))
+
+
+def obtener_session(token):
+    """Recupera una sesión activa por token. Retorna None si expiró o no existe."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM sessions WHERE token = ? AND expires_at > ?",
+            (token, datetime.now().isoformat())
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def eliminar_session(token):
+    """Elimina un token de sesión."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE token = ?", (token,))
+
+
+def limpiar_sessions_expiradas():
+    """Elimina todas las sesiones expiradas de la base de datos."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE expires_at <= ?", (datetime.now().isoformat(),))
+
+
+def registrar_chat_session(session_id, clone_id, user_id):
+    """Registra una sesión de conversación y la vincula de forma permanente a su usuario."""
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO chat_sessions (session_id, clone_id, user_id, created_at, last_used_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (session_id) DO NOTHING
+        """, (session_id, clone_id, user_id, now, now))
+        cursor.execute(
+            "SELECT * FROM chat_sessions WHERE session_id = ?",
+            (session_id,)
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def obtener_chat_session(session_id):
+    """Obtiene el propietario y clon asociados a una sesión de conversación."""
+    if not session_id:
+        return None
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM chat_sessions WHERE session_id = ?",
+            (session_id,)
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def validar_propietario_chat_session(session_id, clone_id, user_id):
+    """Devuelve True únicamente si la sesión pertenece al usuario y clon indicados."""
+    session = obtener_chat_session(session_id)
+    if not session:
+        return False
+    return (str(session["user_id"]) == str(user_id) and session["clone_id"] == clone_id)
+
+
+def tocar_chat_session(session_id):
+    """Actualiza la actividad de una sesión de conversación existente."""
+    if not session_id:
+        return
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE chat_sessions SET last_used_at = ? WHERE session_id = ?",
+            (datetime.now().isoformat(), session_id)
+        )
+
+
+def eliminar_chat_session(session_id, user_id=None):
+    """Elimina una sesión de conversación; opcionalmente exige su propietario."""
+    if not session_id:
+        return False
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        if user_id is None:
+            cursor.execute("SELECT session_id FROM chat_sessions WHERE session_id = ?", (session_id,))
+        else:
+            cursor.execute(
+                "SELECT session_id FROM chat_sessions WHERE session_id = ? AND user_id = ?",
+                (session_id, user_id)
+            )
+        exists = cursor.fetchone() is not None
+        if not exists:
+            return False
+        cursor.execute("DELETE FROM chat_sessions WHERE session_id = ?", (session_id,))
+        return True
+
+
+def actualizar_password(user_id, new_password_hash):
+    """Actualiza la contraseña de un usuario."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (new_password_hash, user_id)
+        )
+        # Verificar que el usuario existía
+        user = obtener_usuario_por_id(user_id)
+        return user is not None

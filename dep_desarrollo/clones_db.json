@@ -1,0 +1,76 @@
+{
+    "clones": {
+        "rsanchez_cobol": {
+            "nombre": "Roberto Sánchez",
+            "especialidad": "Programador Senior de COBOL",
+            "conocimiento": "La estructura básica de un programa COBOL consta de cuatro divisiones obligatorias: IDENTIFICATION DIVISION, ENVIRONMENT DIVISION, DATA DIVISION y PROCEDURE DIVISION. Para optimizar el rendimiento de procesos batch, siempre es mejor usar sentencias PERFORM en lugar de bucles anidados complejos, y evitar a toda costa el uso de GOTO. Los archivos secuenciales indexados se definen en el FILE-CONTROL bajo la ENVIRONMENT DIVISION.",
+            "fecha_creacion": "2026-07-04"
+        },
+        "ana_finanzas": {
+            "nombre": "Ana Gómez",
+            "especialidad": "Asesora de Finanzas Personales",
+            "conocimiento": "La regla de oro del ahorro es la fórmula 50/30/20: 50% para necesidades básicas (vivienda, comida), 30% para deseos y entretenimiento, y 20% destinado al ahorro o pago de deudas. Antes de invertir, siempre se debe construir un fondo de emergencia que cubra entre 3 y 6 meses de gastos fijos en un activo líquido y de bajo riesgo.",
+            "fecha_creacion": "2026-07-04"
+        },
+        "carlos_ciberseguridad": {
+            "nombre": "Carlos Mendoza",
+            "especialidad": "Experto en Ciberseguridad",
+            "conocimiento": "El framework OWASP Top 10 es la referencia estándar para identificar las vulnerabilidades más críticas en aplicaciones web: inyección SQL, XSS, broken authentication, y misconfiguration son las más comunes. La implementación de Zero Trust significa 'nunca confiar, siempre verificar': cada petición debe autenticarse independientemente de su origen. Para hardening de servidores, siempre: cambiar puertos por defecto, deshabilitar root login SSH, configurar fail2ban, y mantener parches actualizados. El principle of least privilege debe aplicarse a todos los sistemas y usuarios.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "laura_ux": {
+            "nombre": "Laura Fernández",
+            "especialidad": "Diseñadora UX/UI",
+            "conocimiento": "El Design Thinking sigue 5 fases: Empatizar, Definir, Idear, Prototipar y Testear. La accesibilidad WCAG 2.1 requiere: contraste mínimo 4.5:1 para texto normal, alternativa de texto para todas las imágenes, navegación completa por teclado, y semántica HTML correcta. Los principios de usabilidad de Nielsen incluyen: visibilidad del estado del sistema, correspondencia entre sistema y mundo real, control y libertad del usuario, consistencia y estándares, y prevención de errores. Para prototipado rápido, Figma permite crear wireframes interactivos en minutos usando componentes y auto-layout.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "pedro_data": {
+            "nombre": "Pedro Ruiz",
+            "especialidad": "Data Scientist",
+            "conocimiento": "Python es el lenguaje principal para ciencia de datos con librerías como pandas (manipulación), numpy (cálculo numérico), scikit-learn (ML), y matplotlib/seaborn (visualización). SQL es esencial para extraer datos: JOINs, GROUP BY, window functions, y subconsultas. Los modelos predictivos siguen un pipeline: exploración de datos, feature engineering, selección de modelo, entrenamiento, validación cruzada y despliegue. El A/B testing requiere: definir hipótesis, calcular tamaño de muestra, aleatorizar grupos, medir métricas clave, y aplicar tests estadísticos (t-test o chi-cuadrado) con nivel de significancia del 5%.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "maria_legal": {
+            "nombre": "María Torres",
+            "especialidad": "Abogada Tech / DPO",
+            "conocimiento": "El GDPR establece 6 principios para el tratamiento de datos: licitud, lealtad, transparencia, limitación de la finalidad, minimización de datos, exactitud, limitación de almacenamiento, integridad y confidencialidad. El AI Act de la UE clasifica sistemas de IA por riesgo: inaceptable (prohibido), alto (regulados estrictamente), limitado (transparencia obligatoria), y mínimo (sin regulación específica). Para contratos SaaS, las cláusulas esenciales incluyen: SLA con métricas de uptime, data processing agreement (DPA), limitación de responsabilidad, propiedad intelectual, terminación y portabilidad de datos. El DPO debe supervisar el cumplimiento normativo y servir de punto de contacto con las autoridades de control.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "diego_ventas": {
+            "nombre": "Diego Vargas",
+            "especialidad": "Director Comercial B2B",
+            "conocimiento": "El outbound sales effectivo sigue la metodología SPIN: Situation (entender el contexto), Problem (identificar el dolor), Implication (consecuencias del problema), Need-payoff (valor de la solución). Los SaaS metrics clave son: MRR/ARR, churn rate (objetivo <5% mensual), CAC payback period (<12 meses), LTV:CAC ratio (>3:1), y Net Revenue Retention (>100%). La gestión de pipeline requiere etapas claras: Prospecting, Qualification, Demo, Proposal, Negotiation, Closed Won/Lost. Cada oportunidad debe tener un score de probabilidad y próxima acción definida. El cold email personalizado tiene 3x más tasa de respuesta que el genérico: incluir trigger event específico de la empresa, referencia a un caso de uso relevante, y CTA de baja fricción.",
+            "fecha_creacion": "2026-07-19"
+        },
+        "fernando_telemedicina": {
+            "nombre": "Dr. Fernando López",
+            "especialidad": "Telemedicina y Salud Digital",
+            "conocimiento": "La telemedicina se clasifica en 4 modalidades principales: sincrónica (videoconsulta en tiempo real), asincrónica (almacenamiento y revisión de datos clínicos), monitoreo remoto de pacientes (RPM con dispositivos IoT), y e-health (plataformas digitales de salud). Los estándares de interoperabilidad son HL7 FHIR para intercambio de datos clínicos, DICOM para imágenes médicas, y SNOMED CT para terminología clínica. La normativa HIPAA exige: cifrado AES-256 en reposo y TLS 1.3 en tránsito, auditoría de accesos, minimum necessary principle, y Business Associate Agreements (BAA) con todos los proveedores. Para consultas remotas, el protocolo SOAP (Subjective, Objective, Assessment, Plan) estructura la nota clínica: subjetivo (síntomas del paciente), objetivo (signos vitales y hallazgos), evaluación (diagnóstico diferencial), y plan (tratamiento y seguimiento). Los dispositivos de RPM deben certificarse FDA 510(k) o CE Medical Device. La IA diagnóstica debe validarse con sensibilidad >90% y especificidad >85% antes de uso clínico. La gestión de consentimiento informado digital requiere firma electrónica cualificada y registro inmutable de auditoría.",
+            "fecha_creacion": "2026-08-02"
+        },
+        "patricia_cloud": {
+            "nombre": "Patricia Morales",
+            "especialidad": "Arquitectura de Nube y DevOps",
+            "conocimiento": "La arquitectura en la nube sigue los 6 pilares del Well-Architected Framework de AWS: excelencia operativa, seguridad, fiabilidad, eficiencia de rendimiento, optimización de costes, y sostenibilidad. Los patrones de despliegue incluyen: blue-green (cero downtime), canary (rollout gradual), y rolling updates. Containers con Docker siguen el estándar OCI: multi-stage builds reducen imagen en 60%, healthchecks son obligatorios, y la regla de un proceso por contenedor garantiza escalabilidad. Kubernetes gestiona workloads con: Deployments para declarar estado deseado, Services para networking interno, Ingress para tráfico HTTP externo, y ConfigMaps/Secrets para configuración. El CI/CD efectivo tiene 5 fases: source, build, test, analyze, y deploy. Herramientas clave: GitHub Actions para CI, Terraform o Pulumi para IaC, Ansible para configuración, Prometheus + Grafana para monitoreo, y ELK Stack para logs. La estrategia de costes cloud debe incluir: Reserved Instances para carga base (ahorro 30-60%), Spot Instances para workloads intermitentes (ahorro 70-90%), Auto Scaling para ajustar capacidad, y S3 Intelligent-Tiering para almacenamiento. El disaster recovery se mide en RTO (Recovery Time Objective) y RPO (Recovery Point Objective): RTO <1h y RPO <5min para sistemas críticos. La seguridad cloud aplica Defense in Depth: VPC con subnets privadas, Security Groups restrictivos, WAF para proteger endpoints, y Secrets Manager para rotación automática de credenciales.",
+            "fecha_creacion": "2026-08-02"
+        },
+        "alejandro_patentes": {
+            "nombre": "Alejandro Ríos",
+            "especialidad": "Propiedad Intelectual y Patentes de Software",
+            "conocimiento": "La protección de propiedad intelectual en tecnología tiene 3 verticales: patentes (invenciones técnicas), marcas (identidad de marca), y derechos de autor (código fuente y contenido). Para patentar software, el requisito fundamental es que la invención resuelva un problema técnico con efecto técnico tangible, no meramente computacional. Los 4 pasos de una solicitud de patente son: búsqueda de anterioridad (prior art), redacción de reivindicaciones (claims), respuesta a objeciones del examinador, y concesión. El plazo de protección es 20 años desde la solicitud. La estrategia de IP para startups debe considerar: invention disclosure documents para cada开发 significativo, employee IP assignment agreements obligatorios, y non-disclosure agreements (NDA) antes de revelar tecnología. Las marcas registradas requieren: búsqueda de disponibilidad en clasificación Nice, solicitud ante la oficina de patentes nacional (USPTO, EUIPO, IMPI), uso comercial continuo, y renovación cada 10-15 años. El trade secret (secreto industrial) protege información confidencial sin registro: requiere medidas de seguridad razonables, valor económico por ser secreto, y acuerdos de confidencialidad con empleados y socios. Para open source, la elección de licencia es crítica: permissiva (MIT, Apache 2.0) vs copyleft (GPL, AGPL). El compliance de licencias open source requiere SBOM (Software Bill of Materials) y auditoría automatizada con herramientas como FOSSA o Snyk.",
+            "fecha_creacion": "2026-08-02"
+        },
+        "valentina_rrhh": {
+            "nombre": "Valentina Herrera",
+            "especialidad": "Recursos Humanos y Talento Digital",
+            "conocimiento": "El reclutamiento tech moderno sigue el funnel: sourcing (200 candidatos) → screening (50) → entrevista técnica (10) → entrevista cultural (5) → oferta (2-3). Los frameworks de evaluación técnica incluyen: coding challenges (HackerRank, LeetCode), system design interviews para seniors, y pair programming para evaluar colaboración. La employer branding effectiva requiere: employee value proposition (EVP) clara, presencia activa en Glassdoor y LinkedIn, contenido de engineering blog, y presencia en conferencias tech. Para equipos remotos, las mejores prácticas son: documentación escrita como fuente de verdad (no meeting notes), herramientas asíncronas (Notion, Loom), overlaps de horario de 2-4 horas diarias, y team bonding rituals virtuales. La compensación en tech se estructura en 4 pilares: salario base (benchmark por mercado), equity/stock options (vesting 4 años con 1-year cliff), beneficios (health, dental, 401k), y perks (learning budget, home office stipend). El employee engagement se mide con NPS interno (objetivo >50), pulse surveys quincenales, y 1-on-1s semanales con manager. La gestión del desempeño debe ser continua: OKRs trimestrales, feedback 360° semestral, y career pathing documentado. Para evitar burnout, monitorear: horas worked >45/semana como alerta, uso de PTO >80% como objetivo, y satisfaction score <7 como señal de alarma.",
+            "fecha_creacion": "2026-08-02"
+        },
+        "sebastian_manufactura": {
+            "nombre": "Sebastián Vargas",
+            "especialidad": "Manufactura y Supply Chain Digital",
+            "conocimiento": "La manufactura digital se basa en 4 industrias: IoT Industrial (IIoT) para monitoreo en tiempo real, gemelos digitales de procesos productivos, mantenimiento predictivo con ML, y automatización con robótica colaborativa (cobots). El framework Smart Manufacturing sigue el modelo RAMI 4.0 (Reference Architecture Model Industrial): capas de negocio, functionality, information, communication, integration, y physical. Los KPIs de manufacturing son: OEE (Overall Equipment Effectiveness) objetivo >85%, que se descompone en disponibilidad × rendimiento × calidad. El Supply Chain Management usa el modelo SCOR (Plan, Source, Make, Deliver, Return, Enable) para estandarizar procesos. La gestión de inventario aplica: EOQ (Economic Order Quantity) para cantidades óptimas, Safety Stock con fórmula Z × σ × √Lead Time para cubrir variabilidad, y ABC Analysis para priorizar control. El lean manufacturing se apoya en 5 principios: definir valor del cliente, mapear value stream, crear flujo continuo, establecer pull system (Kanban), y buscar perfección continua (Kaizen). Las herramientas lean incluyen: 5S para organización del workspace, Poka-Yoke para error-proofing, SMED para reducción de tiempos de cambio, y Andon para alertas de calidad. La trazabilidad en supply chain requiere: lot tracking, serialization con GS1, y blockchain para origen verificable de materias primas.",
+            "fecha_creacion": "2026-08-02"
+        }
+    }
+}

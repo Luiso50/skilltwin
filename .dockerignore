@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.pyo
+*.egg-info
+dist
+build
+.eggs
+
+# Virtual environments
+env
+venv
+.venv
+ENV
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Documentation
+docs/*.html
+docs/*.md
+website
+
+# Tests
+tests
+.pytest_cache
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Temp files
+*.tmp
+*.log
+*.bak
+
+# Server settings (will be mounted as volume)
+cerebro/server_settings.json
+
+# Database files (will be mounted as volume)
+dep_operaciones/*.db
+dep_operaciones/*.db-journal
+dep_operaciones/*.db-wal
+dep_operaciones/*.db-shm
