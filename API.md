@@ -47,7 +47,31 @@ Health check endpoint.
 
 **Response:**
 ```json
-{"status": "ok", "service": "skilltwin"}
+{
+  "status": "ok",
+  "service": "skilltwin",
+  "uptime_seconds": 12345,
+  "requests_total": 500,
+  "errors_total": 5,
+  "avg_response_ms": 12.3,
+  "python_version": "3.13.0",
+  "database": "sqlite"
+}
+```
+
+#### `GET /api/sessions/health`
+Session health diagnostics (admin only).
+
+**Headers:** Admin token required
+
+**Response:**
+```json
+{
+  "active_sessions": 10,
+  "expired_cleaned": 3,
+  "memory_cache_hits": 85,
+  "db_lookups": 15
+}
 ```
 
 #### `GET /api/csrf-token`
@@ -155,6 +179,40 @@ Authorization: Bearer <session_token>
     "role": "customer"
   }
 }
+```
+
+---
+
+#### `POST /api/auth/forgot-password`
+Request a password reset code.
+
+**Request:**
+```json
+{"email": "user@example.com"}
+```
+
+**Response:**
+```json
+{"success": true, "message": "Si el email está registrado, recibirás un código de recuperación."}
+```
+
+---
+
+#### `POST /api/auth/reset-password`
+Reset password using the code received by email.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "code": "123456",
+  "new_password": "newsecurepassword123"
+}
+```
+
+**Response:**
+```json
+{"success": true, "message": "Contraseña actualizada correctamente"}
 ```
 
 ---
@@ -304,6 +362,30 @@ Clear conversation memory for a clone.
 ```json
 {"success": true, "mensaje": "Memoria de conversacion limpiada"}
 ```
+
+---
+
+#### `POST /api/demo-chat`
+Send a question to a clone without authentication (public demo).
+
+**Request:**
+```json
+{
+  "clon_id": "rsanchez_cobol",
+  "pregunta": "¿Qué es COBOL?"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "respuesta": "COBOL es un lenguaje de programación...",
+  "remaining_questions": 2
+}
+```
+
+**Note:** Rate-limited to 3 questions per IP per day.
 
 ---
 

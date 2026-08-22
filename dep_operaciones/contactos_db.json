@@ -21,6 +21,50 @@
             "mensaje": "Quiero una demostracion",
             "fecha": "2026-07-25T19:38:38.713248",
             "estado": "nuevo"
+        },
+        {
+            "id": "CT-20260822-003",
+            "nombre": "Test Contact",
+            "email": "contact-test@example.com",
+            "telefono": "+1234567890",
+            "empresa": "Test Corp",
+            "interes": "Demo",
+            "mensaje": "Testing the contact endpoint",
+            "fecha": "2026-08-22T09:22:28.648399",
+            "estado": "nuevo"
+        },
+        {
+            "id": "CT-20260822-004",
+            "nombre": "Test Contact",
+            "email": "contact-test@example.com",
+            "telefono": "+1234567890",
+            "empresa": "Test Corp",
+            "interes": "Demo",
+            "mensaje": "Testing the contact endpoint",
+            "fecha": "2026-08-22T09:25:30.156184",
+            "estado": "nuevo"
+        },
+        {
+            "id": "CT-20260822-005",
+            "nombre": "Test Contact",
+            "email": "contact-test@example.com",
+            "telefono": "+1234567890",
+            "empresa": "Test Corp",
+            "interes": "Demo",
+            "mensaje": "Testing the contact endpoint",
+            "fecha": "2026-08-22T09:45:11.976040",
+            "estado": "nuevo"
+        },
+        {
+            "id": "CT-20260822-006",
+            "nombre": "Test Contact",
+            "email": "contact-test@example.com",
+            "telefono": "+1234567890",
+            "empresa": "Test Corp",
+            "interes": "Demo",
+            "mensaje": "Testing the contact endpoint",
+            "fecha": "2026-08-22T09:49:16.228521",
+            "estado": "nuevo"
         }
     ]
 }

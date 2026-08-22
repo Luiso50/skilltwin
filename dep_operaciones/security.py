@@ -21,6 +21,23 @@ _valid_tokens: Dict[str, Dict[str, Any]] = {}
 _csrf_tokens: Dict[str, Dict[str, Any]] = {}
 REQUIRE_PERSISTENT_SESSIONS = os.environ.get("SKILLTWIN_REQUIRE_PERSISTENT_SESSIONS", "0") == "1"
 
+_session_events: List[Dict[str, Any]] = []
+_SESSION_EVENTS_MAX = 200
+
+
+def _record_session_event(event_type: str, token=None, user_id=None, email=None, detail: str = "") -> None:
+    """Appends a session event to the in-memory ring buffer."""
+    _session_events.append({
+        "timestamp": datetime.now().isoformat(),
+        "event_type": event_type,
+        "token_prefix": (token[:8] + "...") if token else None,
+        "user_id": user_id,
+        "email": email,
+        "detail": detail,
+    })
+    if len(_session_events) > _SESSION_EVENTS_MAX:
+        del _session_events[: len(_session_events) - _SESSION_EVENTS_MAX]
+
 
 def get_admin_secret() -> str:
     return os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
@@ -124,11 +141,13 @@ def create_session_token(user_id=None, email=None):
     try:
         from dep_operaciones import database
         database.guardar_session(token, user_id, email, expires.isoformat())
-    except Exception:
+    except Exception as exc:
         if REQUIRE_PERSISTENT_SESSIONS:
             _valid_tokens.pop(token, None)
+            _record_session_event("create_failed", token, user_id, email, str(exc))
             raise RuntimeError("No se pudo persistir la sesión")
         # Local development can continue with an in-memory session.
+    _record_session_event("created", token, user_id, email)
     return token
 
 
@@ -140,7 +159,9 @@ def get_session_user(token):
     if session:
         if datetime.now() > session['expires']:
             del _valid_tokens[token]
+            _record_session_event("expired_memory", token)
         else:
+            _record_session_event("validated_memory", token, session.get("user_id"), session.get("email"))
             return {"user_id": session.get("user_id"), "email": session.get("email")}
     try:
         from dep_operaciones import database
@@ -152,16 +173,41 @@ def get_session_user(token):
                 'user_id': db_session['user_id'],
                 'email': db_session['email']
             }
+            _record_session_event("validated_db", token, db_session['user_id'], db_session['email'])
             return {"user_id": db_session['user_id'], "email": db_session['email']}
-    except Exception:
+    except Exception as e:
         if REQUIRE_PERSISTENT_SESSIONS:
+            _record_session_event("db_lookup_failed", token, detail=str(e))
             return None
+    _record_session_event("not_found", token)
     return None
 
 
 def validate_session_token(token):
     """Valida si un token de sesión es válido."""
     return get_session_user(token) is not None
+
+
+def get_session_health():
+    """Returns observability data about recent session events."""
+    counts = {
+        "created": 0,
+        "validated_memory": 0,
+        "validated_db": 0,
+        "expired_memory": 0,
+        "not_found": 0,
+        "create_failed": 0,
+        "db_lookup_failed": 0,
+    }
+    for event in _session_events:
+        etype = event["event_type"]
+        if etype in counts:
+            counts[etype] += 1
+    return {
+        "total_events": len(_session_events),
+        "recent_events": _session_events[-20:],
+        "counts": counts,
+    }
 
 
 def sanitize_string(value, max_length=500):

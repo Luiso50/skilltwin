@@ -37,6 +37,9 @@ class CloneMemoryIsolationE2ETests(unittest.TestCase):
         self.token_a = security.create_session_token(self.user_a, self.email_a)
         self.token_b = security.create_session_token(self.user_b, self.email_b)
 
+        security._rate_limit_store.clear()
+        security.RATE_LIMIT_MAX_REQUESTS = 10000
+
     def tearDown(self):
         self.httpd.shutdown()
         self.httpd.server_close()

@@ -15,7 +15,7 @@ SkillTwin es un prototipo de plataforma para convertir conocimiento experto en g
 - Render utiliza un Persistent Disk para `/data/skilltwin.db`.
 - Landing estática preparada para GitHub Pages en `docs/`.
 
-**Auditoría actual:** la infraestructura y la persistencia están configuradas; la siguiente prioridad de desarrollo es ampliar las pruebas de autorización de extremo a extremo y revisar la migración legacy JSON→SQLite.
+**Auditoría actual:** la infraestructura, la persistencia y la autorización están endurecidas. Los tests HTTP de autorización cubren tokens expirados, CSRF, aislamiento entre clientes y protección de rutas admin. La migración legacy JSON→SQLite es idempotente con `ON CONFLICT DO NOTHING` y tracking de versión.
 
 > El proyecto todavía no debe considerarse un producto SaaS de producción multi-instancia. El rate limiting y parte del estado de sesiones usan memoria del proceso, y la aplicación está diseñada actualmente para una instancia.
 
@@ -23,14 +23,24 @@ SkillTwin es un prototipo de plataforma para convertir conocimiento experto en g
 
 ```text
 skilltwin/
-├── cerebro/          # Servidor HTTP, dashboard y portales
-├── dep_desarrollo/   # Motor de clonación y conocimiento
-├── dep_marketing/    # Inteligencia comercial
-├── dep_legal/        # Contratos y políticas
-├── dep_operaciones/  # BD, finanzas, órdenes, pagos y seguridad
-├── docs/             # Landing pública / GitHub Pages
-├── website/          # Landing editable
-└── tests/            # Tests unitarios e integración
+├── cerebro/              # Servidor HTTP, dashboard y portales
+│   └── route_handlers/   # Módulos de handlers por dominio
+│       ├── router.py     # Dispatch de rutas por patrón
+│       ├── auth.py       # Autenticación (login, register, forgot/reset password)
+│       ├── clones.py     # Clones digitales (CRUD, chat, historial)
+│       ├── orders.py     # Órdenes, facturas, pagos, ratings
+│       ├── finance.py    # Datos financieros, reportes, dashboard admin
+│       ├── stripe_api.py # Integración Stripe (pagos, checkout, webhooks)
+│       ├── settings.py   # Configuración del servidor
+│       ├── misc.py       # Health, SSE, CSRF, contacto, demo-chat, command
+│       └── state.py      # Estado compartido inicializado por server.py
+├── dep_desarrollo/       # Motor de clonación y conocimiento
+├── dep_marketing/        # Inteligencia comercial
+├── dep_legal/            # Contratos y políticas
+├── dep_operaciones/      # BD, finanzas, órdenes, pagos y seguridad
+├── docs/                 # Landing pública / GitHub Pages
+├── website/              # Landing editable
+└── tests/                # Tests unitarios e integración
 ```
 
 ## Funcionalidades
@@ -83,24 +93,32 @@ La aplicación incluye:
 
 ### Trabajo de seguridad pendiente
 
-La siguiente mejora prioritaria es ampliar los tests HTTP de autorización para demostrar explícitamente que:
+Los tests HTTP de autorización ya cubren:
 
-1. Un usuario sin sesión recibe `401`.
-2. Un cliente solo puede acceder a sus propios recursos.
-3. Un cliente no puede acceder a recursos de otro cliente.
-4. Las rutas administrativas rechazan tokens de cliente.
-5. CSRF inválido devuelve `403`.
-6. Tokens expirados son rechazados.
+1. Token expirado recibe `401`.
+2. Token inválido recibe `401`.
+3. CSRF faltante/inválido recibe `403`.
+4. Rutas admin rechazan tokens de cliente.
+5. Aislamiento de memoria de conversación entre clientes.
+6. Rate limiting y sanitización de entradas.
 
-También queda pendiente revisar la migración automática JSON→SQLite para evitar que datos legacy puedan actualizar datos actuales al arrancar.
+La siguiente mejora es endurecer la migración automática JSON→SQLite para producción y ampliar la cobertura funcional de los endpoints.
 
 ## Tests
 
 Ejecutar localmente:
 
 ```bash
-python -m unittest discover -s tests
+python -m pytest tests/
 ```
+
+La suite incluye:
+
+- Tests de autorización E2E (tokens, CSRF, aislamiento entre clientes).
+- Tests de cobertura de endpoints (GET/POST para todas las rutas).
+- Tests de aislamiento de memoria de conversación.
+- Tests de migración legacy JSON→SQLite.
+- Tests de sesiones persistentes, base de datos, seguridad, y más.
 
 El CI ejecuta:
 
@@ -208,11 +226,12 @@ GitHub push
 
 ## Próximos pasos de desarrollo
 
-1. Completar tests HTTP de autorización entre usuarios.
-2. Revisar y endurecer `migrar_json_a_sqlite()` para producción.
-3. Mejorar el manejo observable de errores de persistencia de sesiones.
-4. Revisar progresivamente la cobertura funcional de los endpoints.
+1. ✅ Completar tests HTTP de autorización entre usuarios.
+2. ✅ Revisar y endurecer `migrar_json_a_sqlite()` para producción (idempotente, ON CONFLICT DO NOTHING).
+3. ✅ Mejorar el manejo observable de errores de persistencia de sesiones (session health endpoint).
+4. ✅ Refactorizar `server.py` en módulos de route handlers por dominio.
 5. Considerar PostgreSQL únicamente si se necesita escalar a múltiples instancias.
+6. Ampliar cobertura funcional de los endpoints.
 
 ## Licencia / uso
 

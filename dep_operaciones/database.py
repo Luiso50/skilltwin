@@ -19,6 +19,9 @@ _DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "skilltwin.db")
 DB_PATH = _DEFAULT_DB_PATH  # Puede ser sobreescrito por tests o en tiempo de ejecución
 db_lock = threading.RLock()
 
+# Migration version – increment whenever the schema or migration logic changes
+_MIGRATION_VERSION = 2
+
 
 # ── Adaptadores de cursor y conexión ────────────────────────────────────────
 class _Cursor:
@@ -281,6 +284,15 @@ def init_database():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)")
 
+        # Tabla de metadata de migraciones
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS migracion_metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                applied_at TEXT NOT NULL
+            )
+        """)
+
         # Indices para consultas frecuentes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_email ON ordenes(cliente_email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes(estado)")
@@ -298,7 +310,11 @@ def init_database():
 
 
 def migrar_json_a_sqlite():
-    """Migra datos existentes de archivos JSON a SQLite."""
+    """DEPRECATED: Usa migrar_json_a_sqlite_safe() en su lugar.
+
+    Esta función puede sobreescribir datos SQLite actuales con datos JSON legacy.
+    Se conserva solo por compatibilidad hacia atrás.
+    """
     with get_connection() as conn:
         cursor = conn.cursor()
 
@@ -422,6 +438,181 @@ def migrar_json_a_sqlite():
                 """, (contacto["nombre"], contacto["email"], contacto.get("telefono", ""),
                       contacto.get("empresa", ""), contacto.get("interes", ""),
                       contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
+
+
+def migrar_json_a_sqlite_safe():
+    """Migra datos JSON a SQLite de forma segura, sin sobreescribir datos existentes.
+
+    Verifica si la migración ya fue aplicada mediante migracion_metadata.
+    Todas las inserciones usan ON CONFLICT DO NOTHING para proteger datos actuales.
+
+    Returns:
+        int: Número de registros migrados (0 si ya estaba aplicada o sin datos).
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Verificar si la migración ya fue aplicada
+        cursor.execute("SELECT value, applied_at FROM migracion_metadata WHERE key = ?", ("json_to_sqlite",))
+        existing = cursor.fetchone()
+        if existing is not None:
+            return 0
+
+        rows_migrated = 0
+
+        # Migrar clones
+        clones_path = os.path.join(os.path.dirname(__file__), "..", "dep_desarrollo", "clones_db.json")
+        if os.path.exists(clones_path):
+            with open(clones_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for clon_id, clon_data in data.get("clones", {}).items():
+                cursor.execute("""
+                    INSERT INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (clon_id, clon_data["nombre"], clon_data["especialidad"],
+                      clon_data["conocimiento"], clon_data["fecha_creacion"]))
+                rows_migrated += 1
+
+        # Migrar finanzas
+        finanzas_path = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
+        if os.path.exists(finanzas_path):
+            with open(finanzas_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for mes, valores in data.get("flujo_caja", {}).items():
+                cursor.execute("""
+                    INSERT INTO flujo_caja (mes, ingresos_plan, ingresos_real, egresos_plan, egresos_real)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (mes) DO NOTHING
+                """, (mes, valores["ingresos_plan"], valores["ingresos_real"],
+                      valores["egresos_plan"], valores["egresos_real"]))
+                rows_migrated += 1
+
+            for cuenta in data.get("cuentas_cobrar", []):
+                cursor.execute("""
+                    INSERT INTO cuentas_cobrar (id, cliente, monto, vencimiento, estado)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (cuenta["id"], cuenta["cliente"], cuenta["monto"],
+                      cuenta["vencimiento"], cuenta["estado"]))
+                rows_migrated += 1
+
+            for cuenta in data.get("cuentas_pagar", []):
+                cursor.execute("""
+                    INSERT INTO cuentas_pagar (id, proveedor, monto, vencimiento, estado)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (cuenta["id"], cuenta["proveedor"], cuenta["monto"],
+                      cuenta["vencimiento"], cuenta["estado"]))
+                rows_migrated += 1
+
+        # Migrar órdenes
+        ordenes_path = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
+        if os.path.exists(ordenes_path):
+            with open(ordenes_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for orden_id, orden in data.get("ordenes", {}).items():
+                cursor.execute("""
+                    INSERT INTO ordenes (id, cliente_email, clon_id, cantidad_horas,
+                        descripcion_proyecto, requiere_contrato, fecha_creacion, estado, etapas,
+                        notificaciones, monto_total, comision, pago, rating, contrato, archivos_entregables)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (orden["id"], orden["cliente_email"], orden["clon_id"],
+                      orden["cantidad_horas"], orden.get("descripcion_proyecto", ""),
+                      orden.get("requiere_contrato", True), orden["fecha_creacion"],
+                      orden["estado"], json.dumps(orden.get("etapas", {})),
+                      json.dumps(orden.get("notificaciones", [])),
+                      orden.get("monto_total", 0.0), orden.get("comision", 0.0),
+                      json.dumps(orden.get("pago", {})), json.dumps(orden.get("rating", {})),
+                      json.dumps(orden.get("contrato", {})),
+                      json.dumps(orden.get("archivos_entregables", []))))
+                rows_migrated += 1
+
+        # Migrar pagos
+        pagos_path = os.path.join(os.path.dirname(__file__), "pagos_db.json")
+        if os.path.exists(pagos_path):
+            with open(pagos_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for fac_id, factura in data.get("facturas", {}).items():
+                cursor.execute("""
+                    INSERT INTO facturas (id, orden_id, cliente_email, fecha_emision,
+                        fecha_vencimiento, monto_subtotal, comision_plataforma, monto_total,
+                        moneda, estado, metodo_pago, metodo_pago_seleccionado, referencia_transaccion,
+                        detalles, notas, fecha_creacion, fecha_pago)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (factura["id"], factura.get("orden_id"), factura.get("cliente_email", ""),
+                      factura.get("fecha_emision"), factura.get("fecha_vencimiento"),
+                      factura.get("monto_subtotal", 0.0), factura.get("comision_plataforma", factura.get("comision", 0.0)),
+                      factura.get("monto_total", 0.0), factura.get("moneda", "USD"),
+                      factura.get("estado", "pendiente"), factura.get("metodo_pago"),
+                      factura.get("metodo_pago_seleccionado"), factura.get("referencia_transaccion"),
+                      json.dumps(factura.get("detalles", {})), factura.get("notas", ""),
+                      factura.get("fecha_creacion", datetime.now().isoformat()),
+                      factura.get("fecha_pago")))
+                rows_migrated += 1
+
+            for trans_id, trans in data.get("transacciones", {}).items():
+                cursor.execute("""
+                    INSERT INTO transacciones (id, factura_id, orden_id, cliente_email,
+                        tipo, monto, moneda, metodo_pago, numero_referencia, codigo_autorizacion,
+                        detalles_respuesta, estado, fecha)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING
+                """, (trans["id"], trans.get("factura_id"), trans.get("orden_id"),
+                      trans.get("cliente_email", ""), trans.get("tipo", "pago"),
+                      trans["monto"], trans.get("moneda", "USD"), trans.get("metodo_pago"),
+                      trans.get("numero_referencia", ""), trans.get("codigo_autorizacion", ""),
+                      json.dumps(trans.get("detalles_respuesta", {})),
+                      trans.get("estado", "completada"), trans.get("fecha")))
+                rows_migrated += 1
+
+        # Migrar contactos
+        contactos_path = os.path.join(os.path.dirname(__file__), "contactos_db.json")
+        if os.path.exists(contactos_path):
+            with open(contactos_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for contacto in data.get("contactos", []):
+                cursor.execute("""
+                    INSERT INTO contactos (nombre, email, telefono, empresa, interes, mensaje, fecha, estado)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT DO NOTHING
+                """, (contacto["nombre"], contacto["email"], contacto.get("telefono", ""),
+                      contacto.get("empresa", ""), contacto.get("interes", ""),
+                      contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
+                rows_migrated += 1
+
+        # Registrar que la migración fue completada
+        cursor.execute("""
+            INSERT INTO migracion_metadata (key, value, applied_at)
+            VALUES (?, ?, ?)
+        """, ("json_to_sqlite", str(_MIGRATION_VERSION), datetime.now().isoformat()))
+
+        return rows_migrated
+
+
+def get_migration_status():
+    """Retorna el estado actual de la migración JSON → SQLite.
+
+    Returns:
+        dict: con claves 'applied' (bool), 'version' (int|None), 'applied_at' (str|None).
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT value, applied_at FROM migracion_metadata WHERE key = ?", ("json_to_sqlite",))
+        row = cursor.fetchone()
+        if row is None:
+            return {"applied": False, "version": None, "applied_at": None}
+        return {
+            "applied": True,
+            "version": int(row["value"]),
+            "applied_at": row["applied_at"],
+        }
 
 
 # Funciones de acceso a datos para clones
