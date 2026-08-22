@@ -1,10 +1,10 @@
 import http.client
 import json
 import os
+import re
 import tempfile
 import threading
 import unittest
-from urllib.parse import urlencode
 
 from dep_operaciones import database, security
 from dep_operaciones import gestor_ordenes, gestor_pagos
@@ -35,8 +35,9 @@ class AuthorizationE2ETests(unittest.TestCase):
         cls.tmpdir.cleanup()
 
     def setUp(self):
-        self.email_a = "cliente-a@example.com"
-        self.email_b = "cliente-b@example.com"
+        suffix = re.sub(r"[^a-z0-9]+", "-", self._testMethodName.lower()).strip("-")
+        self.email_a = f"cliente-a-{suffix}@example.com"
+        self.email_b = f"cliente-b-{suffix}@example.com"
         self.user_a = database.crear_usuario(
             self.email_a, security.hash_password("password-a"), "Cliente A"
         )
@@ -53,7 +54,6 @@ class AuthorizationE2ETests(unittest.TestCase):
             self.email_b, "clone_b", 3, "Proyecto B"
         )
 
-        # Create invoices with deterministic ownership for isolation tests.
         self.invoice_a, _ = gestor_pagos.crear_factura(
             self.order_a, self.email_a, 100.0, 15.0, 2, 50.0, "Proyecto A"
         )
