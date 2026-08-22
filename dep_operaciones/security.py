@@ -19,6 +19,7 @@ RATE_LIMIT_MAX_REQUESTS: int = int(os.environ.get("SKILLTWIN_RATE_LIMIT_MAX", "3
 
 _valid_tokens: Dict[str, Dict[str, Any]] = {}
 _csrf_tokens: Dict[str, Dict[str, Any]] = {}
+REQUIRE_PERSISTENT_SESSIONS = os.environ.get("SKILLTWIN_REQUIRE_PERSISTENT_SESSIONS", "0") == "1"
 
 
 def get_admin_secret() -> str:
@@ -124,7 +125,10 @@ def create_session_token(user_id=None, email=None):
         from dep_operaciones import database
         database.guardar_session(token, user_id, email, expires.isoformat())
     except Exception:
-        pass  # En memoria es suficiente si la DB no está disponible
+        if REQUIRE_PERSISTENT_SESSIONS:
+            _valid_tokens.pop(token, None)
+            raise RuntimeError("No se pudo persistir la sesión")
+        # Local development can continue with an in-memory session.
     return token
 
 
@@ -150,7 +154,8 @@ def get_session_user(token):
             }
             return {"user_id": db_session['user_id'], "email": db_session['email']}
     except Exception:
-        pass
+        if REQUIRE_PERSISTENT_SESSIONS:
+            return None
     return None
 
 
