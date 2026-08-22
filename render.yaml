@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python -c "from dep_operaciones.database import init_database, migrar_json_a_sqlite; init_database(); migrar_json_a_sqlite()" && cd cerebro && python server.py
+    startCommand: python scripts/migrate_legacy_once.py && cd cerebro && python server.py
     healthCheckPath: /api/health
     autoDeploy: true
     # Disco persistente para que la base de datos sobreviva entre deploys
