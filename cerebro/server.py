@@ -258,6 +258,8 @@ class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
             return
         super().handle_error(request, client_address)
 
+# AUTHORIZATION_HARDENING_V1
+
 class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def _get_cors_origin(self):
         origin = self.headers.get('Origin', '')
@@ -350,6 +352,17 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             return {"role": "customer", **user_data}
         self.send_error_response("No autorizado.", 401)
         return None
+
+    def require_resource_owner(self, owner_email, auth_data):
+        """Require that a customer owns the requested resource; admins bypass."""
+        if auth_data.get("role") == "admin":
+            return True
+        requester_email = (auth_data.get("email") or "").strip().lower()
+        resource_email = (owner_email or "").strip().lower()
+        if not requester_email or requester_email != resource_email:
+            self.send_error_response("No tienes permisos para acceder a este recurso.", 403)
+            return False
+        return True
 
     def do_OPTIONS(self):
         """Manejar preflight requests de CORS."""
@@ -577,12 +590,15 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/notificaciones: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/facturas'):
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 cliente_email = params.get('email', [None])[0]
+                if auth_data["role"] == "customer":
+                    cliente_email = auth_data.get("email")
 
                 facturas = gestor_pagos.listar_facturas(cliente_email)
                 self.send_json_response({"facturas": facturas})
@@ -780,13 +796,16 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/command: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/crear-orden':
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             if not self.require_csrf():
                 return
             try:
                 data = self.read_json_body()
                 cliente_email = security.sanitize_string(data.get("cliente_email", ""), 254)
+                if auth_data["role"] == "customer":
+                    cliente_email = auth_data.get("email", "")
                 clon_id = security.sanitize_string(data.get("clon_id", ""), 50)
                 cantidad_horas = data.get("cantidad_horas", 0)
                 descripcion_proyecto = security.sanitize_string(data.get("descripcion_proyecto", ""), 500)
@@ -816,12 +835,21 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/crear-orden: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path.startswith('/api/marcar-leida'):
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
+                return
+            if not self.require_csrf():
                 return
             try:
                 data = self.read_json_body()
                 orden_id = data.get("orden_id", "").strip()
                 indice = data.get("indice", 0)
+                orden = gestor_ordenes.obtener_orden(orden_id)
+                if not orden:
+                    self.send_error_response("Orden no encontrada o no autorizada", 404)
+                    return
+                if not self.require_resource_owner(orden.get("cliente_email"), auth_data):
+                    return
 
                 exito = gestor_ordenes.marcar_notificacion_leida(orden_id, indice)
 
@@ -920,7 +948,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/demo-chat: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/procesar-pago':
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             if not self.require_csrf():
                 return
@@ -928,6 +957,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 data = self.read_json_body()
                 factura_id = data.get("factura_id", "").strip()
                 metodo_pago = data.get("metodo_pago", "tarjeta_credito").strip()
+                factura = gestor_pagos.obtener_factura(factura_id)
+                if not factura:
+                    self.send_error_response("Factura no encontrada", 404)
+                    return
+                if not self.require_resource_owner(factura.get("cliente_email"), auth_data):
+                    return
 
                 exito, resultado = gestor_pagos.procesar_pago(factura_id, metodo_pago)
 
@@ -949,7 +984,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/procesar-pago: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path == '/api/agregar-rating':
-            if not self.require_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             if not self.require_csrf():
                 return
@@ -958,6 +994,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 orden_id = security.sanitize_string(data.get("orden_id", ""), 50)
                 puntuacion = data.get("puntuacion", 0)
                 resena = security.sanitize_string(data.get("resena", ""), 500)
+                orden = gestor_ordenes.obtener_orden(orden_id)
+                if not orden:
+                    self.send_error_response("Orden no encontrada o no autorizada", 404)
+                    return
+                if not self.require_resource_owner(orden.get("cliente_email"), auth_data):
+                    return
 
                 if not security.validate_puntuacion(puntuacion):
                     raise ValueError("Puntuación inválida (debe ser 1-5)")
