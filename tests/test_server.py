@@ -63,17 +63,18 @@ class ServerConfigTests(unittest.TestCase):
         self.assertTrue(path.startswith(server.CEREBRO_DIR))
 
     def test_register_stripe_payment_rejects_tampered_amount(self):
-        import server
+        from cerebro.route_handlers import stripe_api
+        from dep_operaciones import gestor_pagos
         factura = {
             'id': 'FAC-001',
             'orden_id': 'ORD-001',
             'monto_total': 99.99,
             'estado': 'pendiente',
         }
-        with patch.object(server.gestor_pagos, 'obtener_factura', return_value=factura), \
-             patch.object(server.gestor_pagos, 'procesar_pago') as procesar_pago:
+        with patch.object(gestor_pagos, 'obtener_factura', return_value=factura), \
+             patch.object(gestor_pagos, 'procesar_pago') as procesar_pago:
             with self.assertRaises(ValueError):
-                server.register_stripe_payment('FAC-001', 'ORD-001', 1, 'cs_test')
+                stripe_api.register_stripe_payment('FAC-001', 'ORD-001', 1, 'cs_test')
         procesar_pago.assert_not_called()
 
 

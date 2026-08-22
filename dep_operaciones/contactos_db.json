@@ -65,6 +65,28 @@
             "mensaje": "Testing the contact endpoint",
             "fecha": "2026-08-22T09:49:16.228521",
             "estado": "nuevo"
+        },
+        {
+            "id": "CT-20260822-007",
+            "nombre": "Test Contact",
+            "email": "contact-test@example.com",
+            "telefono": "+1234567890",
+            "empresa": "Test Corp",
+            "interes": "Demo",
+            "mensaje": "Testing the contact endpoint",
+            "fecha": "2026-08-22T09:58:37.011130",
+            "estado": "nuevo"
+        },
+        {
+            "id": "CT-20260822-008",
+            "nombre": "Test Contact",
+            "email": "contact-test@example.com",
+            "telefono": "+1234567890",
+            "empresa": "Test Corp",
+            "interes": "Demo",
+            "mensaje": "Testing the contact endpoint",
+            "fecha": "2026-08-22T14:42:03.719517",
+            "estado": "nuevo"
         }
     ]
 }

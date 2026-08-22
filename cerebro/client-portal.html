@@ -633,7 +633,10 @@
           </div>
         </div>
       </div>
-      <div class="header-badge">Operación conectada</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="header-badge">Operación conectada</div>
+        <button onclick="logout()" style="padding:10px 18px;border-radius:999px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);color:var(--danger);cursor:pointer;font-size:0.85rem;font-family:inherit;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">Cerrar sesión</button>
+      </div>
     </header>
 
     <!-- Auth Section (shown when not logged in) -->
@@ -978,7 +981,7 @@
       setTimeout(() => alert.classList.remove('show'), 5000);
     }
 
-    // Registrar una solicitud pública; las órdenes se crean únicamente desde el flujo autenticado.
+    // Crear solicitud como orden autenticada; si no hay sesión, enviar como contacto público.
     document.getElementById('request-form').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -993,25 +996,57 @@
       }
 
       try {
-        const res = await fetch(`${API_BASE}/contacto`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nombre: 'Solicitud desde portal de clientes',
-            email: email,
-            interes: `Servicio con clon ${selectedCloneId}`,
-            mensaje: `Clon: ${selectedCloneId}\nHoras solicitadas: ${horas}\nContrato: ${contrato ? 'Sí' : 'No'}\n\nDescripción:\n${descripcion}`
-          })
-        });
+        let res, data;
 
-        const data = await res.json();
+        if (authToken) {
+          // Fetch CSRF token for authenticated order creation
+          const csrfRes = await fetch(`${API_BASE}/csrf-token`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const csrfData = await csrfRes.json();
+
+          res = await fetch(`${API_BASE}/crear-orden`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+              'X-CSRF-Token': csrfData.token || '',
+              'X-Session-ID': csrfData.session_id || ''
+            },
+            body: JSON.stringify({
+              clon_id: selectedCloneId,
+              cantidad_horas: horas,
+              descripcion_proyecto: descripcion,
+              requiere_contrato: contrato
+            })
+          });
+          data = await res.json();
+        } else {
+          // Public fallback as contact request
+          res = await fetch(`${API_BASE}/contacto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nombre: 'Solicitud desde portal de clientes',
+              email: email,
+              interes: `Servicio con clon ${selectedCloneId}`,
+              mensaje: `Clon: ${selectedCloneId}\nHoras solicitadas: ${horas}\nContrato: ${contrato ? 'Sí' : 'No'}\n\nDescripción:\n${descripcion}`
+            })
+          });
+          data = await res.json();
+        }
+
         if (res.ok) {
-          showAlert('✅ Solicitud recibida. Te contactaremos para validar el alcance y habilitar tu acceso seguro.', 'success');
+          const msg = authToken
+            ? '✅ Orden creada exitosamente. Se procesará automáticamente.'
+            : '✅ Solicitud recibida. Te contactaremos para validar el alcance y habilitar tu acceso seguro.';
+          showAlert(msg, 'success');
           document.getElementById('request-form').reset();
           selectedCloneId = null;
           selectedCloneName = null;
           document.querySelectorAll('.clone-card').forEach(el => el.classList.remove('selected'));
           updateEstimate();
+          if (authToken) loadOrdenes(email);
         } else {
           showAlert(data.error || 'Error al enviar la solicitud', 'error');
         }

@@ -188,13 +188,14 @@ class AuthorizationE2ETests(unittest.TestCase):
     # === Stripe cross-customer ===
 
     def test_customer_cannot_confirm_other_customers_checkout_session(self):
+        from cerebro.route_handlers import stripe_api
         fake_session = {
             "id": "cs_test_123", "payment_status": "paid",
             "amount_total": 20000, "currency": "usd",
             "metadata": {"factura_id": self.invoice_b, "orden_id": self.order_b},
         }
         with patch.object(server.stripe_service, "retrieve_checkout_session", return_value=(fake_session, None)), \
-             patch.object(server, "register_stripe_payment") as mocked_register:
+             patch.object(stripe_api, "register_stripe_payment") as mocked_register:
             status, data = self._request(
                 "POST", "/api/stripe/confirm-session", self.token_a,
                 {"session_id": "cs_test_123"},

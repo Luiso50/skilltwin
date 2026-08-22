@@ -27,9 +27,6 @@ _demo_counters = {}
 # Server-Sent Events (SSE) system for real-time collaboration
 _sse_clients = []  # List of (client_id, queue)
 _sse_lock = threading.Lock()
-_PASSWORD_RESET_ATTEMPTS = {}
-_PASSWORD_RESET_WINDOW_SECONDS = int(os.environ.get("SKILLTWIN_PASSWORD_RESET_WINDOW", "900"))
-_PASSWORD_RESET_MAX_ATTEMPTS = int(os.environ.get("SKILLTWIN_PASSWORD_RESET_MAX_ATTEMPTS", "5"))
 
 
 def broadcast_sse_event(event_type, data):
@@ -103,38 +100,6 @@ def _generate_request_id():
     return uuid.uuid4().hex[:12]
 
 
-def _password_reset_token(email, code):
-    raw = f"{email.strip().lower()}:{code}".encode("utf-8")
-    return "reset_" + hashlib.sha256(raw).hexdigest()
-
-
-def _reset_attempts_prune(email):
-    now = time.time()
-    key = (email or "").strip().lower()
-    attempts = _PASSWORD_RESET_ATTEMPTS.get(key, [])
-    valid = [ts for ts in attempts if now - ts <= _PASSWORD_RESET_WINDOW_SECONDS]
-    if valid:
-        _PASSWORD_RESET_ATTEMPTS[key] = valid
-    else:
-        _PASSWORD_RESET_ATTEMPTS.pop(key, None)
-    return len(valid)
-
-
-def _reset_attempts_blocked(email):
-    return _reset_attempts_prune(email) >= _PASSWORD_RESET_MAX_ATTEMPTS
-
-
-def _reset_attempts_record_failure(email):
-    key = (email or "").strip().lower()
-    _reset_attempts_prune(key)
-    _PASSWORD_RESET_ATTEMPTS.setdefault(key, []).append(time.time())
-
-
-def _reset_attempts_clear(email):
-    key = (email or "").strip().lower()
-    _PASSWORD_RESET_ATTEMPTS.pop(key, None)
-
-
 def _record_response_time(duration):
     with _metrics_lock:
         _metrics["response_times"].append(duration)
@@ -169,7 +134,7 @@ load_dotenv()
 from dep_desarrollo import motor_clonacion  # noqa: E402
 from dep_marketing import agente_ventas_mercado  # noqa: E402
 from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, orquestador, security  # noqa: E402
-from dep_operaciones import gestor_contactos, database, email_service, stripe_service  # noqa: E402,F401  # backward-compat
+from dep_operaciones import stripe_service  # noqa: E402  # imported as server.stripe_service for tests
 from dep_legal import generador_contratos  # noqa: E402
 
 
@@ -220,40 +185,6 @@ def resolve_static_path(request_path):
         return None
     return candidate
 
-
-def get_pending_invoice(factura_id):
-    """Return server-owned payment details for a pending invoice."""
-    factura = gestor_pagos.obtener_factura(factura_id)
-    if not factura:
-        raise ValueError("Factura no encontrada")
-    if factura.get("estado") != "pendiente":
-        raise ValueError("La factura no está pendiente de pago")
-    amount_cents = round(float(factura["monto_total"]) * 100)
-    if amount_cents <= 0:
-        raise ValueError("La factura no tiene un monto válido")
-    return factura, amount_cents
-
-
-def register_stripe_payment(factura_id, orden_id, amount_cents, reference):
-    """Validate Stripe metadata against the invoice before recording payment."""
-    factura = gestor_pagos.obtener_factura(factura_id)
-    if not factura:
-        raise ValueError("Factura no encontrada")
-    if factura.get("orden_id") != orden_id:
-        raise ValueError("La orden no coincide con la factura")
-    if not isinstance(amount_cents, int) or amount_cents <= 0:
-        raise ValueError("Stripe no proporcionó un importe válido")
-    if round(float(factura["monto_total"]) * 100) != amount_cents:
-        raise ValueError("El importe de Stripe no coincide con la factura")
-    if factura.get("estado") == "pagada":
-        return
-    if factura.get("estado") != "pendiente":
-        raise ValueError("La factura no está pendiente de pago")
-
-    success, result = gestor_pagos.procesar_pago(factura_id, "stripe", reference)
-    if not success:
-        raise ValueError(result)
-    gestor_ordenes.actualizar_pago_orden(orden_id, factura_id, "stripe")
 
 def cargar_ajustes():
     if not os.path.exists(SETTINGS_FILE):
@@ -462,8 +393,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         return full_path
 
     def end_headers(self):
-        # Desactivar caché para desarrollo fluido
-        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        # Cache-Control: no-cache for API, allow caching for static assets
+        path = getattr(self, 'path', '')
+        if path.startswith('/api/'):
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        else:
+            self.send_header('Cache-Control', 'no-cache, must-revalidate')
         # Headers de seguridad
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')
@@ -495,6 +430,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         handler, matched = resolve_get(self.path)
         if matched:
             handler(self)
+            return
         else:
             super().do_GET()
 
