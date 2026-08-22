@@ -3,15 +3,21 @@ name: Apply clone memory isolation
 on:
   push:
     branches: [security/clone-memory-isolation-v1]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -24,4 +30,4 @@ jobs:
           git add cerebro/server.py
           git diff --cached --quiet && exit 0
           git commit -m "security: isolate clone conversation memory [skip ci]"
-          git push
+          git push origin HEAD:${{ github.head_ref }}
