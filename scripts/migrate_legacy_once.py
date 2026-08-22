@@ -31,8 +31,12 @@ def run_once():
         if cursor.fetchone():
             return False
 
-        database.migrar_json_a_sqlite()
+    # migrar_json_a_sqlite() opens its own transaction. Only mark the migration
+    # complete after that transaction succeeds.
+    database.migrar_json_a_sqlite()
 
+    with database.get_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO migration_state (name, applied_at)
