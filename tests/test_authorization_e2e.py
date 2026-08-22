@@ -12,29 +12,19 @@ from cerebro import server
 
 
 class AuthorizationE2ETests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.tmpdir = tempfile.TemporaryDirectory()
-        cls.previous_db_path = database.DB_PATH
-        database.DB_PATH = os.path.join(cls.tmpdir.name, "skilltwin-test.db")
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.previous_db_path = database.DB_PATH
+        database.DB_PATH = os.path.join(self.tmpdir.name, "skilltwin-test.db")
         database.init_database()
+        self.previous_persistent_flag = security.REQUIRE_PERSISTENT_SESSIONS
         security.REQUIRE_PERSISTENT_SESSIONS = True
 
-        cls.httpd = server.ThreadingTCPServer(("127.0.0.1", 0), server.CerebroHandler)
-        cls.port = cls.httpd.server_address[1]
-        cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
-        cls.thread.start()
+        self.httpd = server.ThreadingTCPServer(("127.0.0.1", 0), server.CerebroHandler)
+        self.port = self.httpd.server_address[1]
+        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread.start()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.httpd.shutdown()
-        cls.httpd.server_close()
-        cls.thread.join(timeout=2)
-        database.DB_PATH = cls.previous_db_path
-        security.REQUIRE_PERSISTENT_SESSIONS = False
-        cls.tmpdir.cleanup()
-
-    def setUp(self):
         suffix = re.sub(r"[^a-z0-9]+", "-", self._testMethodName.lower()).strip("-")
         self.email_a = f"cliente-a-{suffix}@example.com"
         self.email_b = f"cliente-b-{suffix}@example.com"
@@ -60,6 +50,14 @@ class AuthorizationE2ETests(unittest.TestCase):
         self.invoice_b, _ = gestor_pagos.crear_factura(
             self.order_b, self.email_b, 200.0, 30.0, 3, 66.67, "Proyecto B"
         )
+
+    def tearDown(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.thread.join(timeout=2)
+        security.REQUIRE_PERSISTENT_SESSIONS = self.previous_persistent_flag
+        database.DB_PATH = self.previous_db_path
+        self.tmpdir.cleanup()
 
     def _request(self, method, path, token=None, body=None, csrf=False):
         headers = {}
@@ -155,7 +153,7 @@ class AuthorizationE2ETests(unittest.TestCase):
     def test_unauthenticated_customer_endpoint_returns_401(self):
         status, data = self._request("GET", "/api/ordenes")
         self.assertEqual(status, 401)
-        self.assertIn("Sesión", data["error"])
+        self.assertEqual(data["error"], "No autorizado.")
 
     def test_customer_cannot_access_admin_dashboard(self):
         status, data = self._request("GET", "/api/admin-dashboard", self.token_a)
