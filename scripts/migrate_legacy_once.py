@@ -5,6 +5,8 @@ The legacy migration contains an UPDATE for financial records, so it must not
 be executed on every boot after the database has become authoritative.
 """
 
+from datetime import datetime
+
 from dep_operaciones import database
 
 MIGRATION_NAME = "legacy_json_to_sqlite_v1"
@@ -40,9 +42,9 @@ def run_once():
         cursor.execute(
             """
             INSERT INTO migration_state (name, applied_at)
-            VALUES (?, datetime('now'))
+            VALUES (?, ?)
             """,
-            (MIGRATION_NAME,),
+            (MIGRATION_NAME, datetime.now().isoformat()),
         )
     return True
 
