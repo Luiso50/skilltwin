@@ -30,6 +30,9 @@ _demo_counters = {}
 # Server-Sent Events (SSE) system for real-time collaboration
 _sse_clients = []  # List of (client_id, queue)
 _sse_lock = threading.Lock()
+_PASSWORD_RESET_ATTEMPTS = {}
+_PASSWORD_RESET_WINDOW_SECONDS = int(os.environ.get("SKILLTWIN_PASSWORD_RESET_WINDOW", "900"))
+_PASSWORD_RESET_MAX_ATTEMPTS = int(os.environ.get("SKILLTWIN_PASSWORD_RESET_MAX_ATTEMPTS", "5"))
 
 
 def broadcast_sse_event(event_type, data):
@@ -101,6 +104,38 @@ def load_dotenv():
 
 def _generate_request_id():
     return uuid.uuid4().hex[:12]
+
+
+def _password_reset_token(email, code):
+    raw = f"{email.strip().lower()}:{code}".encode("utf-8")
+    return "reset_" + hashlib.sha256(raw).hexdigest()
+
+
+def _reset_attempts_prune(email):
+    now = time.time()
+    key = (email or "").strip().lower()
+    attempts = _PASSWORD_RESET_ATTEMPTS.get(key, [])
+    valid = [ts for ts in attempts if now - ts <= _PASSWORD_RESET_WINDOW_SECONDS]
+    if valid:
+        _PASSWORD_RESET_ATTEMPTS[key] = valid
+    else:
+        _PASSWORD_RESET_ATTEMPTS.pop(key, None)
+    return len(valid)
+
+
+def _reset_attempts_blocked(email):
+    return _reset_attempts_prune(email) >= _PASSWORD_RESET_MAX_ATTEMPTS
+
+
+def _reset_attempts_record_failure(email):
+    key = (email or "").strip().lower()
+    _reset_attempts_prune(key)
+    _PASSWORD_RESET_ATTEMPTS.setdefault(key, []).append(time.time())
+
+
+def _reset_attempts_clear(email):
+    key = (email or "").strip().lower()
+    _PASSWORD_RESET_ATTEMPTS.pop(key, None)
 
 
 def _record_response_time(duration):
@@ -454,7 +489,13 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             })
             return
 
-        if self.path == '/api/events':
+        if self.path.startswith('/api/events'):
+            auth_header = self.headers.get('Authorization', '')
+            auth_token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
+            query_token = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get('token', [''])[0]
+            if not security.validate_admin_token(auth_token or query_token):
+                self.send_error_response("No autorizado.", 401)
+                return
             # Server-Sent Events endpoint
             client_id = str(uuid.uuid4())
             client_queue = queue.Queue()
@@ -1229,9 +1270,10 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 reset_code = str(secrets.randbelow(900000) + 100000)
                 expires = datetime.now().timestamp() + 900  # 15 minutos
 
-                # Guardar código en la tabla sessions con prefijo especial
-                reset_token = f"reset_{reset_code}"
+                # Guardar un token derivado de email+código para evitar colisiones entre usuarios.
+                reset_token = _password_reset_token(email, reset_code)
                 database.guardar_session(reset_token, user["id"], email, datetime.fromtimestamp(expires).isoformat())
+                _reset_attempts_clear(email)
 
                 # Enviar email
                 success, error = email_service.send_password_reset_email(
@@ -1262,12 +1304,17 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                     raise ValueError("Formato de email inválido")
                 if len(new_password) < 8:
                     raise ValueError("La contraseña debe tener al menos 8 caracteres")
+                if _reset_attempts_blocked(email):
+                    self.send_error_response("Demasiados intentos de recuperación. Intenta de nuevo más tarde.", 429)
+                    return
 
                 # Validar código
-                reset_token = f"reset_{code}"
+                reset_token = _password_reset_token(email, code)
                 session = database.obtener_session(reset_token)
                 if not session or session["email"] != email:
-                    raise ValueError("Código inválido o expirado")
+                    _reset_attempts_record_failure(email)
+                    self.send_error_response("Código inválido o expirado", 400)
+                    return
 
                 # Actualizar contraseña
                 user = database.obtener_usuario_por_email(email)
@@ -1279,6 +1326,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Eliminar código de reset
                 database.eliminar_session(reset_token)
+                _reset_attempts_clear(email)
 
                 self.send_json_response({
                     "success": True,
@@ -1347,12 +1395,8 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error_response(str(e), 500)
 
         elif self.path == '/api/stripe/confirm-session':
-            auth_header = self.headers.get('Authorization', '')
-            token = auth_header.removeprefix('Bearer ') if auth_header.startswith('Bearer ') else ''
-            is_admin = security.validate_admin_token(token)
-            is_customer = security.validate_session_token(token)
-            if not is_admin and not is_customer:
-                self.send_error_response("Autenticación requerida", 401)
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             try:
                 data = self.read_json_body()
@@ -1374,6 +1418,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
 
                     if not factura_id or not orden_id:
                         raise ValueError("La sesión de Stripe no contiene la factura y orden requeridas")
+                    factura = gestor_pagos.obtener_factura(factura_id)
+                    if not factura:
+                        self.send_error_response("Factura no encontrada", 404)
+                        return
+                    if not self.require_resource_owner(factura.get("cliente_email"), auth_data):
+                        return
                     register_stripe_payment(
                         factura_id,
                         orden_id,

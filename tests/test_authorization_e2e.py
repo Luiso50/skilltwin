@@ -5,6 +5,7 @@ import re
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from dep_operaciones import database, security
 from dep_operaciones import gestor_ordenes, gestor_pagos
@@ -160,6 +161,67 @@ class AuthorizationE2ETests(unittest.TestCase):
         self.assertEqual(status, 401)
         self.assertIn("No autorizado", data["error"])
 
+    def test_unauthenticated_cannot_open_sse_events(self):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("GET", "/api/events")
+        response = conn.getresponse()
+        raw = response.read().decode("utf-8")
+        conn.close()
+
+        self.assertEqual(response.status, 401)
+        self.assertIn("No autorizado", raw)
+
+    def test_admin_can_open_sse_events_with_token(self):
+        admin_token = security.generate_admin_token()
+
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("GET", f"/api/events?token={admin_token}")
+        response = conn.getresponse()
+        conn.close()
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.getheader("Content-Type"), "text/event-stream")
+
+    def test_customer_cannot_confirm_other_customers_checkout_session(self):
+        fake_session = {
+            "id": "cs_test_123",
+            "payment_status": "paid",
+            "amount_total": 20000,
+            "currency": "usd",
+            "metadata": {
+                "factura_id": self.invoice_b,
+                "orden_id": self.order_b,
+            },
+        }
+
+        with patch.object(server.stripe_service, "retrieve_checkout_session", return_value=(fake_session, None)), \
+             patch.object(server, "register_stripe_payment") as mocked_register:
+            status, data = self._request(
+                "POST",
+                "/api/stripe/confirm-session",
+                self.token_a,
+                {"session_id": "cs_test_123"},
+            )
+
+        self.assertEqual(status, 403)
+        self.assertIn("permisos", data["error"])
+        mocked_register.assert_not_called()
+
+    def test_password_reset_blocks_after_multiple_invalid_attempts(self):
+        body = {
+            "email": self.email_a,
+            "code": "000000",
+            "new_password": "nueva-password-123",
+        }
+
+        for _ in range(5):
+            status, data = self._request("POST", "/api/auth/reset-password", body=body)
+            self.assertEqual(status, 400)
+            self.assertIn("Código inválido", data["error"])
+
+        status, data = self._request("POST", "/api/auth/reset-password", body=body)
+        self.assertEqual(status, 429)
+        self.assertIn("Demasiados intentos", data["error"])
 
 if __name__ == "__main__":
     unittest.main()

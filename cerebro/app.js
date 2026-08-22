@@ -81,7 +81,20 @@ function connectSSE() {
     sseConnection.close();
   }
 
-  sseConnection = new EventSource('/api/events');
+  const token = getStoredToken();
+  let isAdmin = false;
+  try {
+    const user = JSON.parse(localStorage.getItem("skilltwin_user") || "null");
+    isAdmin = !!(user && user.role === "admin");
+  } catch (_e) {
+    isAdmin = false;
+  }
+
+  if (!token || !isAdmin) {
+    return;
+  }
+
+  sseConnection = new EventSource(`/api/events?token=${encodeURIComponent(token)}`);
 
   sseConnection.onopen = () => {
     console.log('[SSE] Conexión establecida');
