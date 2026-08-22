@@ -30,6 +30,11 @@ class IntegrationTests(unittest.TestCase):
         os.environ['SKILLTWIN_ADMIN_SECRET'] = 'test-secret-integration-2026'
         os.environ['PORT'] = str(cls.port)
 
+        # Ensure database.py is not using sqlite if we want JSON, or initialize database anyway to avoid errors
+        from dep_operaciones import database
+        database.DB_PATH = os.path.join(cls.tmpdir.name, "skilltwin-test.db")
+        database.init_database()
+
         from dep_desarrollo import motor_clonacion
         from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, gestor_contactos
 
