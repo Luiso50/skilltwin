@@ -1,6 +1,7 @@
 import http.server
 import socketserver
 import json
+import hashlib
 import os
 import platform
 import secrets
@@ -260,6 +261,8 @@ class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 # AUTHORIZATION_HARDENING_V1
 
+# CLONE_MEMORY_ISOLATION_V1
+
 class CerebroHandler(http.server.SimpleHTTPRequestHandler):
     def _get_cors_origin(self):
         origin = self.headers.get('Origin', '')
@@ -363,6 +366,16 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error_response("No tienes permisos para acceder a este recurso.", 403)
             return False
         return True
+
+    def resolve_conversation_session_id(self, auth_data, clone_id, supplied_session_id=None):
+        """Bind customer conversation memory to the authenticated user and clone."""
+        if auth_data.get("role") == "admin":
+            return supplied_session_id or str(uuid.uuid4())
+        user_id = str(auth_data.get("user_id", ""))
+        if not user_id or not clone_id:
+            raise ValueError("Sesión de conversación no válida")
+        raw = f"skilltwin:conversation:v1:{user_id}:{clone_id}".encode("utf-8")
+        return "user_" + hashlib.sha256(raw).hexdigest()[:40]
 
     def do_OPTIONS(self):
         """Manejar preflight requests de CORS."""
@@ -714,18 +727,22 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/search-clones: {e}")
                 self.send_error_response(str(e), 500)
         elif self.path.startswith('/api/clon-historial'):
-            if not self.require_customer_or_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
                 return
             try:
                 query_params = urllib.parse.urlparse(self.path).query
                 params = urllib.parse.parse_qs(query_params)
                 clon_id = params.get('clon_id', [None])[0]
-                session_id = params.get('session_id', [None])[0]
+                supplied_session_id = params.get('session_id', [None])[0]
 
                 if not clon_id:
                     self.send_error_response("ID de clon requerido")
                     return
 
+                session_id = self.resolve_conversation_session_id(
+                    auth_data, clon_id, supplied_session_id
+                )
                 historial = motor_clonacion.obtener_historial_conversacion(clon_id, session_id)
                 self.send_json_response({
                     "historial": historial,
@@ -861,17 +878,24 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 logger.error(f"Error en /api/marcar-leida: {e}")
                 self.send_error_response(str(e), 400)
         elif self.path == '/api/chat-clon':
-            if not self.require_customer_or_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
+                return
+            if not self.require_csrf():
                 return
             try:
                 data = self.read_json_body()
-                id_clon = data.get("id_clon", "").strip()
-                pregunta = data.get("pregunta", "").strip()
-                session_id = data.get("session_id", None)
+                id_clon = security.sanitize_string(data.get("id_clon", ""), 50)
+                pregunta = security.sanitize_string(data.get("pregunta", ""), 500)
+                supplied_session_id = data.get("session_id", None)
 
-                if not session_id:
-                    session_id = str(uuid.uuid4())
+                if not id_clon or not pregunta:
+                    self.send_error_response("id_clon y pregunta son requeridos")
+                    return
 
+                session_id = self.resolve_conversation_session_id(
+                    auth_data, id_clon, supplied_session_id
+                )
                 respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta, session_id)
 
                 self.send_json_response({
@@ -880,24 +904,31 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 })
             except Exception as e:
                 logger.error(f"Error en /api/chat-clon: {e}")
-                self.send_error_response(str(e), 500)
+                self.send_error_response(str(e), 400)
         elif self.path == '/api/clon-limpiar-memoria':
-            if not self.require_customer_or_admin():
+            auth_data = self.require_customer_or_admin()
+            if not auth_data:
+                return
+            if not self.require_csrf():
                 return
             try:
                 data = self.read_json_body()
-                clon_id = data.get("clon_id", "").strip()
-                session_id = data.get("session_id", None)
+                clon_id = security.sanitize_string(data.get("clon_id", ""), 50)
+                supplied_session_id = data.get("session_id", None)
 
                 if not clon_id:
                     self.send_error_response("ID de clon requerido")
                     return
 
+                session_id = self.resolve_conversation_session_id(
+                    auth_data, clon_id, supplied_session_id
+                )
                 motor_clonacion.limpiar_memoria_conversacion(clon_id, session_id)
 
                 self.send_json_response({
                     "success": True,
-                    "mensaje": "Memoria de conversación limpiada"
+                    "mensaje": "Memoria de conversación limpiada",
+                    "session_id": session_id
                 })
             except Exception as e:
                 logger.error(f"Error en /api/clon-limpiar-memoria: {e}")
