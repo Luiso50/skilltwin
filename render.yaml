@@ -23,6 +23,8 @@ services:
         value: "1"
       - key: SKILLTWIN_HSTS
         value: "1"
+      - key: SKILLTWIN_REQUIRE_PERSISTENT_SESSIONS
+        value: "1"
       - key: SKILLTWIN_CORS_ORIGINS
         value: "https://luiso50.github.io"
       - key: SKILLTWIN_PUBLIC_URL
