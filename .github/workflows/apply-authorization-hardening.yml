@@ -3,13 +3,14 @@ name: Apply authorization hardening
 on:
   push:
     branches: [security/authorization-e2e-v1]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: "!contains(github.event.head_commit.message, 'authorization hardening applied')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
