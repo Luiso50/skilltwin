@@ -209,6 +209,13 @@ class SecurityTests(unittest.TestCase):
             else:
                 os.environ["SKILLTWIN_ADMIN_SECRET"] = previous
 
+    def test_runtime_backend_status_reports_memory_fallback(self):
+        state = security.get_runtime_backend_status()
+        self.assertIn("backend", state)
+        self.assertIn("redis_available", state)
+        self.assertIn("session_store", state)
+        self.assertIn("rate_limit_store", state)
+
     def test_generate_csrf_token(self):
         token = security.generate_csrf_token("session123")
         self.assertIsNotNone(token)

@@ -61,6 +61,19 @@ def validate_runtime_config() -> Dict[str, Any]:
     }
 
 
+def get_runtime_backend_status() -> Dict[str, Any]:
+    """Devuelve el estado del backend actual para sesiones y rate limiting."""
+    redis_available = os.environ.get("SKILLTWIN_USE_REDIS", "0") == "1"
+    backend = "redis" if redis_available else "memory"
+    return {
+        "backend": backend,
+        "redis_available": redis_available,
+        "session_store": "redis" if redis_available else "memory",
+        "rate_limit_store": "redis" if redis_available else "memory",
+        "memory_fallback_active": not redis_available,
+    }
+
+
 def generate_admin_token() -> str:
     global _admin_token, _token_created_at
     _admin_token = secrets.token_urlsafe(32)
