@@ -19,15 +19,17 @@ Actúa como un ingeniero senior de Python y arquitecto de software. Revisa el re
 7. **Resuelto:** la migración JSON→SQLite cuenta inserciones reales y ofrece `dry-run` y backup previo desde su script operativo.
 8. **Resuelto:** los errores de entrada en endpoints Stripe, incluido checkout, devuelven HTTP 400 y tienen pruebas de contrato HTTP.
 9. **Resuelto:** la migración registra checksum SHA-256, tamaño y existencia de cada JSON origen.
-10. **Nuevo foco:** elevar gradualmente la cobertura funcional de endpoints y pagos.
+10. **Nuevo foco:** elevar gradualmente la cobertura funcional de endpoints y pagos, y validar el despliegue multi-instancia.
 
 ## Estado verificado
 
-- Suite completa: `219 passed` con `pytest`.
+- Suite completa: `223 passed` con `pytest`.
 - Suite oficial de CI: `python -m unittest discover -s tests -v` ejecutada correctamente.
 - Cobertura actual: `66%`, con umbral CI de `65%`.
 - Los endpoints `/api/clones-list` y `/api/demo-chat` fueron corregidos y tienen cobertura de regresión.
 - Los cambios implementados están publicados en `main` de GitHub.
+- Render responde `200` en `/api/health`; SQLite, Stripe y SMTP están operativos.
+- Render todavía reporta `GEMINI_API_KEY` ausente y usa backend `memory` porque Redis no está habilitado.
 
 ## Objetivo principal
 
@@ -66,7 +68,6 @@ Añade mejoras concretas en estas áreas:
 1. Elevar gradualmente la cobertura funcional de endpoints y pagos.
 2. Verificar Redis y PostgreSQL en un entorno de staging antes de habilitar multi-instancia.
 3. Elevar gradualmente el umbral de coverage cuando se incorporen esas pruebas.
-4. Verificar Redis y PostgreSQL en un entorno de staging antes de habilitar multi-instancia.
 
 ## Criterios de aceptación
 
