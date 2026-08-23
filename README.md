@@ -179,6 +179,8 @@ Antes de iniciar el backend configura al menos `SKILLTWIN_ADMIN_SECRET` con un s
 | `SKILLTWIN_RATE_LIMIT_WINDOW` | Ventana del rate limiter | `60` s |
 | `SKILLTWIN_RATE_LIMIT_MAX` | Máximo de requests por ventana | `30` |
 | `SKILLTWIN_CACHE_TTL` | TTL del cache | `300` s |
+| `SKILLTWIN_USE_REDIS` | Activa Redis para sesiones y rate limiting compartidos | `0` |
+| `REDIS_URL` | URL del backend Redis para producción multi-instancia | `redis://localhost:6379/0` |
 | `GEMINI_API_KEY` | Integración Gemini | Vacío |
 | `SMTP_HOST` | Servidor SMTP | Configurable |
 | `SMTP_PORT` | Puerto SMTP | `587` |
