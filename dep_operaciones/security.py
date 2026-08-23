@@ -3,9 +3,15 @@ import re
 import hashlib
 import secrets
 import time
+import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple, Any
+
+try:
+    import redis
+except ImportError:  # pragma: no cover - optional in lightweight dev envs
+    redis = None
 
 _admin_token: Optional[str] = None
 _token_created_at: Optional[datetime] = None
@@ -61,9 +67,29 @@ def validate_runtime_config() -> Dict[str, Any]:
     }
 
 
+def _get_redis_client():
+    """Obtiene un cliente Redis si está habilitado y disponible."""
+    if os.environ.get("SKILLTWIN_USE_REDIS", "0") != "1":
+        return None
+    if redis is None:
+        return None
+    try:
+        client = redis.Redis.from_url(
+            os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
+        client.ping()
+        return client
+    except Exception:
+        return None
+
+
 def get_runtime_backend_status() -> Dict[str, Any]:
     """Devuelve el estado del backend actual para sesiones y rate limiting."""
-    redis_available = os.environ.get("SKILLTWIN_USE_REDIS", "0") == "1"
+    redis_client = _get_redis_client()
+    redis_available = redis_client is not None
     backend = "redis" if redis_available else "memory"
     return {
         "backend": backend,
@@ -160,20 +186,42 @@ def cleanup_expired_tokens():
 
 
 def create_session_token(user_id=None, email=None):
-    """Crea un token de sesión y lo persiste en la base de datos."""
+    """Crea un token de sesión y lo persiste en la base de datos o Redis compartido."""
     token = secrets.token_urlsafe(32)
     expires = datetime.now() + timedelta(hours=24)
-    _valid_tokens[token] = {
-        'created': datetime.now(),
-        'expires': expires,
+    payload = {
+        'created': datetime.now().isoformat(),
+        'expires': expires.isoformat(),
         'user_id': user_id,
-        'email': email
+        'email': email,
     }
+
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        try:
+            redis_client.setex(
+                f"skilltwin:session:{token}",
+                int((expires - datetime.now()).total_seconds()),
+                json.dumps(payload, ensure_ascii=False),
+            )
+        except Exception:
+            redis_client = None
+
+    if redis_client is None:
+        _valid_tokens[token] = {
+            'created': datetime.now(),
+            'expires': expires,
+            'user_id': user_id,
+            'email': email,
+        }
+
     try:
         from dep_operaciones import database
         database.guardar_session(token, user_id, email, expires.isoformat())
     except Exception as exc:
         if REQUIRE_PERSISTENT_SESSIONS:
+            if redis_client is not None:
+                redis_client.delete(f"skilltwin:session:{token}")
             _valid_tokens.pop(token, None)
             _record_session_event("create_failed", token, user_id, email, str(exc))
             raise RuntimeError("No se pudo persistir la sesión")
@@ -183,9 +231,23 @@ def create_session_token(user_id=None, email=None):
 
 
 def get_session_user(token):
-    """Obtiene los datos del usuario de un token de sesión (memoria o DB)."""
+    """Obtiene los datos del usuario de un token de sesión (Redis, memoria o DB)."""
     if not token:
         return None
+
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        raw = redis_client.get(f"skilltwin:session:{token}")
+        if raw:
+            session = json.loads(raw)
+            expires = datetime.fromisoformat(session['expires'])
+            if datetime.now() > expires:
+                redis_client.delete(f"skilltwin:session:{token}")
+                _record_session_event("expired_memory", token)
+            else:
+                _record_session_event("validated_memory", token, session.get("user_id"), session.get("email"))
+                return {"user_id": session.get("user_id"), "email": session.get("email")}
+
     session = _valid_tokens.get(token)
     if session:
         if datetime.now() > session['expires']:
@@ -289,6 +351,19 @@ def check_rate_limit(ip, endpoint):
     Verifica rate limiting para una IP y endpoint.
     Retorna True si está permitido, False si excedió el límite.
     """
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        now = time.time()
+        key = f"skilltwin:ratelimit:{ip}"
+        window_start = now - RATE_LIMIT_WINDOW
+        redis_client.zremrangebyscore(key, '-inf', window_start)
+        count = redis_client.zcard(key)
+        if count >= RATE_LIMIT_MAX_REQUESTS:
+            return False
+        redis_client.zadd(key, {f"{endpoint}:{time.time_ns()}": now})
+        redis_client.expire(key, RATE_LIMIT_WINDOW)
+        return True
+
     now = time.time()
     window_start = now - RATE_LIMIT_WINDOW
 
@@ -311,6 +386,16 @@ def check_rate_limit(ip, endpoint):
 
 def get_rate_limit_retry_after(ip):
     """Retorna los segundos hasta que el rate limit se reinicie para una IP."""
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        key = f"skilltwin:ratelimit:{ip}"
+        items = redis_client.zrange(key, 0, 0, withscores=True)
+        if not items:
+            return RATE_LIMIT_WINDOW
+        oldest = items[0][1]
+        remaining = RATE_LIMIT_WINDOW - (time.time() - oldest)
+        return max(1, int(remaining) + 1)
+
     if not _rate_limit_store[ip]:
         return RATE_LIMIT_WINDOW
     oldest = min(ts for ts, _ in _rate_limit_store[ip])
@@ -321,6 +406,14 @@ def get_rate_limit_retry_after(ip):
 
 def cleanup_rate_limit_store():
     """Limpia IPs sin requests recientes para evitar memory leak."""
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        for key in redis_client.keys("skilltwin:ratelimit:*"):
+            redis_client.zremrangebyscore(key, '-inf', time.time() - RATE_LIMIT_WINDOW)
+            if redis_client.zcard(key) == 0:
+                redis_client.delete(key)
+        return
+
     now = time.time()
     window_start = now - RATE_LIMIT_WINDOW
     stale_ips = [
