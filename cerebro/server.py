@@ -557,7 +557,8 @@ REGLAS DE COMPORTAMIENTO:
         if cmd_lower.startswith("marketing") or any(w in cmd_lower for w in ("nicho de mercado", "investigar mercado", "estudio de mercado", "correo de ventas")):
             return self._ejecutar_marketing(comando)
 
-        if cmd_lower.startswith("contrato") or ("contrato" in cmd_lower and any(w in cmd_lower for w in ("generar", "crear", "redactar"))):
+        _contrato_triggers = ("generar", "crear", "redactar", "copia", "copiar", "enviar", "mandar", "envíame", "mandame", "quiero un contrato", "necesito un contrato", "haremos un contrato", "contrato de licencia")
+        if cmd_lower.startswith("contrato") or ("contrato" in cmd_lower and any(w in cmd_lower for w in _contrato_triggers)):
             return self._ejecutar_legal(comando)
 
         if cmd_lower.startswith("preguntar") or ("clon" in cmd_lower and any(w in cmd_lower for w in ("preguntar", "consultar", "hablar", "chat"))):
@@ -660,6 +661,10 @@ Responde en español:"""
                 "console_log": "Pregunta sobre identidad, presentación de la plataforma."
             }
 
+        # Detectar pedidos de contratos de forma natural
+        if "contrato" in cmd_lower:
+            return self._ejecutar_legal(comando)
+
         # Respuesta genérica conversacional
         return {
             "tag": "cerebro",
@@ -743,34 +748,59 @@ Responde en español:"""
         }
 
     def _ejecutar_legal(self, comando):
-        """Ejecuta la generación de contrato."""
+        """Ejecuta la generación de contrato o lista contratos existentes."""
+        cmd_lower = comando.lower().strip()
         parts = comando.split()
-        nombre = "Experto Genérico"
-        id_exp = "experto_gen"
-        especialidad = "Consultoría"
-        comision = 15.0
 
-        if len(parts) >= 4:
-            nombre = parts[1]
-            id_exp = parts[2]
-            especialidad = " ".join(parts[3:5])
-            if len(parts) >= 6:
-                try:
-                    comision = float(parts[5])
-                except ValueError:
-                    pass
-        else:
-            return {
-                "tag": "legal",
-                "message": (
-                    "⚖️ **Para generar un contrato necesito algunos datos:**\n\n"
-                    "Usa el formato:\n"
-                    "`contrato [Nombre] [ID] [Especialidad] [Comisión]`\n\n"
-                    "**Ejemplo:** `contrato María García maria_garcia UX_Design 15`\n\n"
-                    "¿Me pasas los datos del experto?"
-                ),
-                "console_log": "Intento de generación de contrato con parámetros insuficientes."
-            }
+        # Detectar si pide un contrato existente (sin parámetros de generación)
+        pedir_copia = any(w in cmd_lower for w in ("copia", "copiar", "enviar", "mandar", "envíame", "mandame", "listar", "lista", "mostrar", "ver"))
+        tiene_params = len(parts) >= 4 and not pedir_copia
+
+        if not tiene_params:
+            # Listar contratos existentes
+            contratos_dir = os.path.join(os.path.dirname(__file__), "..", "dep_legal", "contratos")
+            contratos = []
+            if os.path.isdir(contratos_dir):
+                for f in sorted(os.listdir(contratos_dir)):
+                    if f.endswith((".docx", ".txt", ".pdf")):
+                        contratos.append(f)
+
+            if contratos:
+                lista = "\n".join([f"  📄 `{c}`" for c in contratos])
+                return {
+                    "tag": "legal",
+                    "message": (
+                        f"⚖️ **Contratos existentes en la plataforma:**\n\n{lista}\n\n"
+                        "---\n"
+                        "💡 *Si necesitas generar un nuevo contrato, usa:*\n"
+                        "`contrato [Nombre] [ID] [Especialidad] [Comisión]`\n\n"
+                        "**Ejemplo:** `contrato María García maria_garcia UX_Design 15`"
+                    ),
+                    "console_log": f"Lista de contratos existentes mostrada ({len(contratos)} archivos)."
+                }
+            else:
+                return {
+                    "tag": "legal",
+                    "message": (
+                        "⚖️ **Aún no hay contratos generados.**\n\n"
+                        "Para crear uno, usa el formato:\n"
+                        "`contrato [Nombre] [ID] [Especialidad] [Comisión]`\n\n"
+                        "**Ejemplo:** `contrato María García maria_garcia UX_Design 15`\n\n"
+                        "¿Me pasas los datos del experto?"
+                    ),
+                    "console_log": "No se encontraron contratos existentes."
+                }
+
+        # Generar nuevo contrato
+        nombre = parts[1]
+        id_exp = parts[2]
+        especialidad = " ".join(parts[3:5])
+        comision = 15.0
+        if len(parts) >= 6:
+            try:
+                comision = float(parts[5])
+            except ValueError:
+                pass
 
         ruta = generador_contratos.generar_contrato(id_exp, nombre, especialidad, comision)
         return {
