@@ -8,14 +8,23 @@ Actúa como un ingeniero senior de Python y arquitecto de software. Revisa el re
 - Stack principal: Python, HTTP server modular, SQLite, Stripe, documentación automática, frontend estático y servicios especializados por dominio
 - Objetivo: convertir conocimiento experto en gemelos digitales operables, con IA, finanzas, contratos y gestión operativa.
 
-## Problemas reales detectados a corregir
+## Problemas reales detectados y estado
 
-1. La colección global de tests falla porque `scripts/test_zoho_email.py` importa `dotenv`, pero `python-dotenv` no está declarado en `requirements.txt`.
-2. Ejecutar `pytest -q` desde la raíz recoge también archivos bajo `scripts/` que no forman parte de la suite real de pruebas, provocando errores de importación y ruido en la validación.
-3. La configuración de pruebas y la documentación no están alineadas: `README.md` recomienda `python -m pytest tests/`, pero la CI usa `python -m unittest discover -s tests -v`.
-4. Debe revisarse si el proyecto tiene validación de entorno y fallbacks para variables críticas como `SKILLTWIN_ADMIN_SECRET`, SMTP, Gemini y Stripe.
-5. Debe revisarse la persistencia de sesión y rate limiting para que no dependan solo de memoria local de proceso.
-6. Debe revisarse la gestión de errores y la trazabilidad de eventos para que sea más predecible en producción.
+1. **Resuelto:** se declararon `python-dotenv`, `redis` y `coverage` en `requirements.txt`, y el script SMTP conserva un fallback seguro.
+2. **Resuelto:** `pytest.ini` limita la colección a `tests/` y evita recoger scripts de utilidad.
+3. **Resuelto:** README, CONTRIBUTING y CI usan `python -m unittest discover -s tests -v`.
+4. **Resuelto parcialmente:** `SKILLTWIN_ADMIN_SECRET` bloquea el arranque si falta; Gemini, SMTP y Stripe se reportan como integraciones opcionales en `/api/health`.
+5. **Resuelto parcialmente:** Redis está disponible para sesiones y rate limiting, con fallback explícito a memoria y estado visible en health.
+6. **Resuelto parcialmente:** existen request IDs, métricas, health checks y eventos de sesión; todavía falta ampliar la observabilidad operativa.
+7. **Nuevo foco:** endurecer la migración JSON→SQLite para producción y ampliar la cobertura funcional de endpoints y pagos.
+
+## Estado verificado
+
+- Suite completa: `219 passed` con `pytest`.
+- Suite oficial de CI: `python -m unittest discover -s tests -v` ejecutada correctamente.
+- Cobertura actual: `66%`, con umbral CI de `65%`.
+- Los endpoints `/api/clones-list` y `/api/demo-chat` fueron corregidos y tienen cobertura de regresión.
+- Los cambios implementados están publicados en `main` de GitHub.
 
 ## Objetivo principal
 
@@ -27,7 +36,7 @@ Corrige primero los problemas funcionales y de configuración, manteniendo la co
 
 - Revisa cuidadosamente la estructura del proyecto y detecta errores reales de importación, dependencias, configuración y validación.
 - Corrige los fallos de entorno de ejecución y las dependencias declaradas en `requirements.txt`.
-- Ajusta la configuración de tests para que `pytest` solo ejecute la suite real ubicada en `tests/`.
+- Mantén la suite oficial basada en `unittest`; usa `pytest` solo como runner compatible cuando sea útil.
 - Evita cambios innecesarios o “aparentemente útiles” que no resuelvan la causa raíz.
 - Mantén compatibilidad con el estado actual del proyecto y con la CLI/documentación existente.
 
@@ -49,10 +58,18 @@ Añade mejoras concretas en estas áreas:
 - Operación: health checks más detallados, métricas, trazabilidad por request ID, alertas, despliegue de staging y rollback seguro.
 - Producto: onboarding, dashboard más claro, gestión de clientes, informes financieros, automatizaciones con IA, mejor experiencia de personalización.
 
+### Siguiente fase priorizada
+
+1. Hacer explícita y auditable la migración legacy con backup, checksum y modo dry-run.
+2. Añadir pruebas de contrato para respuestas HTTP, errores y estados de Stripe.
+3. Elevar gradualmente el umbral de coverage cuando se incorporen esas pruebas.
+4. Verificar Redis y PostgreSQL en un entorno de staging antes de habilitar multi-instancia.
+
 ## Criterios de aceptación
 
 - El proyecto debe poder ejecutarse y testearse sin errores de importación por dependencias faltantes.
-- La suite de pruebas debe evitar recoger scripts de utilidad no destinados a pruebas.
+- La suite oficial debe ejecutarse con el comando documentado y evitar scripts de utilidad no destinados a pruebas.
+- CI debe ejecutar coverage y fallar si baja del umbral configurado.
 - Debe existir una base clara para minimizar errores de configuración.
 - El código debe seguir patrones legibles y mantenibles.
 - Debes entregar un resumen corto de los problemas detectados y de las mejoras propuestas.
