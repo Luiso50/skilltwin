@@ -209,6 +209,27 @@ class SecurityTests(unittest.TestCase):
             else:
                 os.environ["SKILLTWIN_ADMIN_SECRET"] = previous
 
+    def test_validate_runtime_config_reports_optional_integrations(self):
+        previous = {
+            key: os.environ.get(key)
+            for key in ("SKILLTWIN_ADMIN_SECRET", "GEMINI_API_KEY", "STRIPE_SECRET_KEY", "SMTP_USER", "SMTP_PASS")
+        }
+        os.environ["SKILLTWIN_ADMIN_SECRET"] = "configured-secret"
+        for key in previous:
+            if key != "SKILLTWIN_ADMIN_SECRET":
+                os.environ.pop(key, None)
+        try:
+            status = security.validate_runtime_config()
+            self.assertTrue(status["ok"])
+            self.assertFalse(status["integrations"]["stripe"]["configured"])
+            self.assertTrue(any("stripe" in warning for warning in status["warnings"]))
+        finally:
+            for key, value in previous.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
     def test_runtime_backend_status_reports_memory_fallback(self):
         state = security.get_runtime_backend_status()
         self.assertIn("backend", state)

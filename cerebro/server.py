@@ -144,9 +144,13 @@ if not runtime_config["ok"]:
 
 from dep_desarrollo import motor_clonacion  # noqa: E402
 from dep_marketing import agente_ventas_mercado  # noqa: E402
-from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, orquestador  # noqa: E402
+from dep_operaciones import database, gestor_financiero, gestor_ordenes, gestor_pagos, orquestador  # noqa: E402
 from dep_operaciones import stripe_service  # noqa: E402, F401  # imported as server.stripe_service for tests
 from dep_legal import generador_contratos  # noqa: E402
+
+# Inicializar el esquema y migrar datos legacy solo en el arranque de la aplicación.
+database.init_database()
+database.migrar_json_a_sqlite_safe()
 
 
 class _Cache:

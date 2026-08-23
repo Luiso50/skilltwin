@@ -56,6 +56,11 @@ def validate_runtime_config() -> Dict[str, Any]:
     ]
     missing = [key for key in required if not os.environ.get(key, "").strip()]
     warnings: List[str] = []
+    integrations = get_runtime_integration_status()
+
+    for integration, status in integrations.items():
+        if not status["configured"]:
+            warnings.append(f"{integration} no configurado: faltan {', '.join(status['missing'])}")
 
     if os.environ.get("SKILLTWIN_TRUST_PROXY", "0") == "1" and not os.environ.get("SKILLTWIN_PUBLIC_URL"):
         warnings.append("SKILLTWIN_PUBLIC_URL recommended when SKILLTWIN_TRUST_PROXY is enabled")
@@ -64,7 +69,25 @@ def validate_runtime_config() -> Dict[str, Any]:
         "ok": not missing,
         "missing": missing,
         "warnings": warnings,
+        "integrations": integrations,
     }
+
+
+def get_runtime_integration_status() -> Dict[str, Dict[str, Any]]:
+    """Devuelve el estado de integraciones opcionales sin exponer secretos."""
+    integration_vars = {
+        "gemini": ("GEMINI_API_KEY",),
+        "stripe": ("STRIPE_SECRET_KEY",),
+        "smtp": ("SMTP_USER", "SMTP_PASS"),
+    }
+    status = {}
+    for integration, variables in integration_vars.items():
+        missing = [key for key in variables if not os.environ.get(key, "").strip()]
+        status[integration] = {
+            "configured": not missing,
+            "missing": missing,
+        }
+    return status
 
 
 def _get_redis_client():

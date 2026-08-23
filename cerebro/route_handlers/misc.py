@@ -66,6 +66,7 @@ def handle_health(handler):
         req_total = state.metrics["requests_total"]
         err_total = state.metrics["errors_total"]
     backend_state = security.get_runtime_backend_status()
+    runtime_config = security.validate_runtime_config()
     handler.send_json_response({
         "status": "ok",
         "service": "skilltwin",
@@ -79,6 +80,9 @@ def handle_health(handler):
         "session_store": backend_state["session_store"],
         "rate_limit_store": backend_state["rate_limit_store"],
         "memory_fallback_active": backend_state["memory_fallback_active"],
+        "configuration_ok": runtime_config["ok"],
+        "configuration_warnings": runtime_config["warnings"],
+        "integrations": runtime_config["integrations"],
     })
 
 

@@ -343,6 +343,10 @@ def cargar_datos():
     """Carga todos los datos de clones."""
     if _use_sqlite():
         clones = db_cargar_clones()
+        if not clones:
+            from dep_operaciones.database import migrar_json_a_sqlite_safe
+            migrar_json_a_sqlite_safe()
+            clones = db_cargar_clones()
         return {"clones": clones}
 
     with db_lock:
