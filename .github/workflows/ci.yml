@@ -31,7 +31,8 @@ jobs:
         SKILLTWIN_USE_SQLITE: '1'
         SKILLTWIN_ADMIN_SECRET: test-secret-ci
       run: |
-        python -m unittest discover -s tests -v
+        python -m coverage run --source=cerebro,dep_desarrollo,dep_marketing,dep_legal,dep_operaciones -m unittest discover -s tests -v
+        python -m coverage report --fail-under=65
 
     - name: Check imports
       run: |
