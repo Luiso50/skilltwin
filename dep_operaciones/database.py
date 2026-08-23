@@ -70,6 +70,10 @@ class _Cursor:
     def lastrowid(self):
         return self._c.lastrowid
 
+    @property
+    def rowcount(self):
+        return self._c.rowcount
+
 
 class _Conn:
     """Conexión unificada para sqlite3 y psycopg2."""
@@ -472,7 +476,7 @@ def migrar_json_a_sqlite_safe():
                     ON CONFLICT (id) DO NOTHING
                 """, (clon_id, clon_data["nombre"], clon_data["especialidad"],
                       clon_data["conocimiento"], clon_data["fecha_creacion"]))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
         # Migrar finanzas
         finanzas_path = os.path.join(os.path.dirname(__file__), "finanzas_db.json")
@@ -487,7 +491,7 @@ def migrar_json_a_sqlite_safe():
                     ON CONFLICT (mes) DO NOTHING
                 """, (mes, valores["ingresos_plan"], valores["ingresos_real"],
                       valores["egresos_plan"], valores["egresos_real"]))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
             for cuenta in data.get("cuentas_cobrar", []):
                 cursor.execute("""
@@ -496,7 +500,7 @@ def migrar_json_a_sqlite_safe():
                     ON CONFLICT (id) DO NOTHING
                 """, (cuenta["id"], cuenta["cliente"], cuenta["monto"],
                       cuenta["vencimiento"], cuenta["estado"]))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
             for cuenta in data.get("cuentas_pagar", []):
                 cursor.execute("""
@@ -505,7 +509,7 @@ def migrar_json_a_sqlite_safe():
                     ON CONFLICT (id) DO NOTHING
                 """, (cuenta["id"], cuenta["proveedor"], cuenta["monto"],
                       cuenta["vencimiento"], cuenta["estado"]))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
         # Migrar órdenes
         ordenes_path = os.path.join(os.path.dirname(__file__), "ordenes_db.json")
@@ -529,7 +533,7 @@ def migrar_json_a_sqlite_safe():
                       json.dumps(orden.get("pago", {})), json.dumps(orden.get("rating", {})),
                       json.dumps(orden.get("contrato", {})),
                       json.dumps(orden.get("archivos_entregables", []))))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
         # Migrar pagos
         pagos_path = os.path.join(os.path.dirname(__file__), "pagos_db.json")
@@ -554,7 +558,7 @@ def migrar_json_a_sqlite_safe():
                       json.dumps(factura.get("detalles", {})), factura.get("notas", ""),
                       factura.get("fecha_creacion", datetime.now().isoformat()),
                       factura.get("fecha_pago")))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
             for trans_id, trans in data.get("transacciones", {}).items():
                 cursor.execute("""
@@ -569,7 +573,7 @@ def migrar_json_a_sqlite_safe():
                       trans.get("numero_referencia", ""), trans.get("codigo_autorizacion", ""),
                       json.dumps(trans.get("detalles_respuesta", {})),
                       trans.get("estado", "completada"), trans.get("fecha")))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
         # Migrar contactos
         contactos_path = os.path.join(os.path.dirname(__file__), "contactos_db.json")
@@ -585,7 +589,7 @@ def migrar_json_a_sqlite_safe():
                 """, (contacto["nombre"], contacto["email"], contacto.get("telefono", ""),
                       contacto.get("empresa", ""), contacto.get("interes", ""),
                       contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
-                rows_migrated += 1
+                rows_migrated += max(cursor.rowcount, 0)
 
         # Registrar que la migración fue completada
         cursor.execute("""
