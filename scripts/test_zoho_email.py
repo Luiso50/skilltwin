@@ -1,11 +1,33 @@
 #!/usr/bin/env python3
 """Test Zoho SMTP email sending."""
 
-import smtplib
 import os
-from email.mime.text import MIMEText
+import smtplib
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
+from email.mime.text import MIMEText
+
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover - fallback for minimal envs
+    def load_dotenv():
+        env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
+        if not os.path.exists(env_path):
+            return False
+        with open(env_path, 'r', encoding='utf-8') as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, _, value = line.partition('=')
+                key = key.strip()
+                value = value.strip()
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1]
+                elif value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
+                if key and key not in os.environ:
+                    os.environ[key] = value
+        return True
 
 load_dotenv()
 
