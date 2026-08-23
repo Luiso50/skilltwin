@@ -109,7 +109,7 @@ La siguiente mejora es endurecer la migración automática JSON→SQLite para pr
 Ejecutar localmente:
 
 ```bash
-python -m pytest tests/
+python -m unittest discover -s tests -v
 ```
 
 La suite incluye:
