@@ -74,6 +74,9 @@ def handle_stripe_create_payment(handler):
                 "success": True,
                 "client_secret": client_secret
             })
+    except ValueError as e:
+        logger.warning(f"Solicitud Stripe inválida en /api/stripe/create-payment: {e}")
+        handler.send_error_response(str(e), 400)
     except Exception as e:
         logger.error(f"Error en /api/stripe/create-payment: {e}")
         handler.send_error_response(str(e), 500)
@@ -105,6 +108,9 @@ def handle_stripe_create_checkout(handler):
                 "success": True,
                 "url": session_url
             })
+    except ValueError as e:
+        logger.warning(f"Solicitud Stripe inválida en /api/stripe/create-checkout: {e}")
+        handler.send_error_response(str(e), 400)
     except Exception as e:
         logger.error(f"Error en /api/stripe/create-checkout: {e}")
         handler.send_error_response(str(e), 500)
@@ -156,6 +162,9 @@ def handle_stripe_confirm_session(handler):
                 "success": True,
                 "paid": False,
             })
+    except ValueError as e:
+        logger.warning(f"Solicitud Stripe inválida en /api/stripe/confirm-session: {e}")
+        handler.send_error_response(str(e), 400)
     except Exception as e:
         logger.error(f"Error en /api/stripe/confirm-session: {e}")
         handler.send_error_response(str(e), 500)

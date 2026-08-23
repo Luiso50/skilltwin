@@ -128,6 +128,22 @@ class EndpointCoverageTests(unittest.TestCase):
         self.assertIn("configured", data)
         self.assertIn("publishable_key", data)
 
+    def test_admin_stripe_create_payment_invalid_invoice_returns_400(self):
+        status, data = self._post(
+            "/api/stripe/create-payment",
+            {"factura_id": "invoice-does-not-exist"},
+            self.admin_token,
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("Factura no encontrada", data["error"])
+
+    def test_confirm_session_missing_id_returns_400(self):
+        status, data = self._post(
+            "/api/stripe/confirm-session", {}, self.customer_token
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("session_id", data["error"])
+
     # === Auth endpoints ===
 
     def test_auth_me_with_valid_token(self):

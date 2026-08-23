@@ -17,7 +17,8 @@ Actúa como un ingeniero senior de Python y arquitecto de software. Revisa el re
 5. **Resuelto parcialmente:** Redis está disponible para sesiones y rate limiting, con fallback explícito a memoria y estado visible en health.
 6. **Resuelto parcialmente:** existen request IDs, métricas, health checks y eventos de sesión; todavía falta ampliar la observabilidad operativa.
 7. **Resuelto:** la migración JSON→SQLite cuenta inserciones reales y ofrece `dry-run` y backup previo desde su script operativo.
-8. **Nuevo foco:** ampliar la cobertura funcional de endpoints y pagos con pruebas de contrato HTTP.
+8. **Resuelto:** los errores de entrada en endpoints Stripe devuelven HTTP 400 y tienen pruebas de contrato HTTP.
+9. **Nuevo foco:** añadir checksum e informe de integridad al origen de la migración legacy.
 
 ## Estado verificado
 
@@ -61,8 +62,8 @@ Añade mejoras concretas en estas áreas:
 
 ### Siguiente fase priorizada
 
-1. Añadir pruebas de contrato para respuestas HTTP, errores y estados de Stripe.
-2. Añadir checksum del origen y reporte de integridad a la migración legacy.
+1. Añadir checksum del origen y reporte de integridad a la migración legacy.
+2. Elevar gradualmente la cobertura funcional de endpoints y pagos.
 3. Elevar gradualmente el umbral de coverage cuando se incorporen esas pruebas.
 4. Verificar Redis y PostgreSQL en un entorno de staging antes de habilitar multi-instancia.
 
