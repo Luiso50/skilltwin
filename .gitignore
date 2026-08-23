@@ -26,6 +26,13 @@ server_settings.json
 # Runtime conversation memory
 dep_desarrollo/memories/
 
+# Runtime data files
+dep_operaciones/contactos_db.json
+
+# Generated contracts
+dep_legal/contratos/*.docx
+dep_legal/contratos/*.pdf
+
 # Run scripts cache and local logs
 *.log
 
