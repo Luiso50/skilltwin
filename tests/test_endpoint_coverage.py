@@ -137,6 +137,15 @@ class EndpointCoverageTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("Factura no encontrada", data["error"])
 
+    def test_admin_stripe_create_checkout_invalid_invoice_returns_400(self):
+        status, data = self._post(
+            "/api/stripe/create-checkout",
+            {"factura_id": "invoice-does-not-exist"},
+            self.admin_token,
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("Factura no encontrada", data["error"])
+
     def test_confirm_session_missing_id_returns_400(self):
         status, data = self._post(
             "/api/stripe/confirm-session", {}, self.customer_token

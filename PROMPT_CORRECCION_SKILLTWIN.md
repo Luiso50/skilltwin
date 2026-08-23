@@ -17,7 +17,7 @@ Actúa como un ingeniero senior de Python y arquitecto de software. Revisa el re
 5. **Resuelto parcialmente:** Redis está disponible para sesiones y rate limiting, con fallback explícito a memoria y estado visible en health.
 6. **Resuelto parcialmente:** existen request IDs, métricas, health checks y eventos de sesión; todavía falta ampliar la observabilidad operativa.
 7. **Resuelto:** la migración JSON→SQLite cuenta inserciones reales y ofrece `dry-run` y backup previo desde su script operativo.
-8. **Resuelto:** los errores de entrada en endpoints Stripe devuelven HTTP 400 y tienen pruebas de contrato HTTP.
+8. **Resuelto:** los errores de entrada en endpoints Stripe, incluido checkout, devuelven HTTP 400 y tienen pruebas de contrato HTTP.
 9. **Resuelto:** la migración registra checksum SHA-256, tamaño y existencia de cada JSON origen.
 10. **Nuevo foco:** elevar gradualmente la cobertura funcional de endpoints y pagos.
 
