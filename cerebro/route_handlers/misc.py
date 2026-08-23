@@ -181,9 +181,9 @@ def handle_contacto(handler):
     try:
         csrf_token = handler.headers.get('X-CSRF-Token', '')
         session_id = handler.headers.get('X-Session-ID', '')
-        if csrf_token and not security.validate_csrf_token(csrf_token, session_id):
-            logger.warning(f"CSRF token inválido desde {security.get_client_ip(handler)}")
-            handler.send_error_response("CSRF token inválido", 403)
+        if not csrf_token or not security.validate_csrf_token(csrf_token, session_id):
+            logger.warning(f"CSRF token faltante o inválido desde {security.get_client_ip(handler)}")
+            handler.send_error_response("CSRF token requerido", 403)
             return
 
         data = handler.read_json_body()

@@ -297,13 +297,13 @@ class EndpointCoverageTests(unittest.TestCase):
             "interes": "Demo",
             "mensaje": "Testing the contact endpoint",
         }
-        status, data = self._post("/api/contacto", body)
+        status, data = self._post("/api/contacto", body, csrf=True)
         self.assertEqual(status, 200)
         self.assertTrue(data["success"])
 
     def test_contacto_missing_required_fields(self):
         body = {"nombre": "Test"}
-        status, data = self._post("/api/contacto", body)
+        status, data = self._post("/api/contacto", body, csrf=True)
         self.assertEqual(status, 400)
 
     # === Demo chat ===

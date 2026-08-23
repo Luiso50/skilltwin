@@ -1,108 +1,156 @@
-import unittest
 import os
 import sys
+import json
 import tempfile
-import shutil
+import unittest
+from unittest.mock import patch, MagicMock
 
-RAIZ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, RAIZ_DIR)
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, ROOT_DIR)
+
+from dep_operaciones import orquestador, gestor_ordenes, gestor_pagos, database  # noqa: E402
 
 
 class OrquestadorTests(unittest.TestCase):
-    def setUp(self):
-        self.test_dir = tempfile.mkdtemp()
-        self.db_path = os.path.join(self.test_dir, "test.db")
-        os.environ["SKILLTWIN_DB_PATH"] = self.db_path
-        os.environ["SKILLTWIN_USE_SQLITE"] = "1"
 
-        import importlib
-        from dep_operaciones import database
-        database.DB_PATH = self.db_path
-        importlib.reload(database)
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.previous_db_path = database.DB_PATH
+        database.DB_PATH = os.path.join(self.tmpdir.name, "test.db")
         database.init_database()
 
-        from dep_operaciones import gestor_ordenes, gestor_pagos
-        importlib.reload(gestor_ordenes)
-        importlib.reload(gestor_pagos)
-
-        self.gestor_ordenes = gestor_ordenes
-        self.gestor_pagos = gestor_pagos
-
-        self.orden_id, self.orden_data = gestor_ordenes.crear_orden(
-            "test@example.com", "rsanchez_cobol", 10, "Test project", True
-        )
-
     def tearDown(self):
-        os.environ.pop("SKILLTWIN_DB_PATH", None)
-        shutil.rmtree(self.test_dir, ignore_errors=True)
+        database.DB_PATH = self.previous_db_path
+        self.tmpdir.cleanup()
 
-    def test_crear_orden_genera_id(self):
-        self.assertTrue(self.orden_id.startswith("ORD-"))
+    def test_orquestador_creation(self):
+        """Test that OrquestadorAutonomo can be created."""
+        orq = orquestador.OrquestadorAutonomo()
+        self.assertTrue(orq.activo)
+        self.assertEqual(orq.intervalo_chequeo, 5)
+        self.assertIsNone(orq.thread)
 
-    def test_orden_estado_inicial(self):
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        self.assertEqual(orden["estado"], "pendiente")
-        self.assertEqual(orden["cliente_email"], "test@example.com")
+    def test_orquestador_start_stop(self):
+        """Test that the orchestrator can be started and stopped."""
+        orq = orquestador.OrquestadorAutonomo()
+        orq.intervalo_chequeo = 0.1  # Fast for testing
+        orq.iniciar()
+        self.assertIsNotNone(orq.thread)
+        self.assertTrue(orq.thread.is_alive())
+        orq.detener()
+        self.assertFalse(orq.activo)
 
-    def test_orden_etapas_iniciales(self):
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        self.assertEqual(orden["etapas"]["legal"]["estado"], "pendiente")
-        self.assertEqual(orden["etapas"]["desarrollo"]["estado"], "pendiente")
+    @patch('dep_operaciones.orquestador._broadcast_event')
+    def test_procesar_orden_not_found(self, mock_broadcast):
+        """Test processing an order that doesn't exist."""
+        orq = orquestador.OrquestadorAutonomo()
+        # Should not raise, just return silently
+        orq._procesar_orden("nonexistent_order")
 
-    def test_actualizar_etapa_orden(self):
-        self.gestor_ordenes.actualizar_etapa_orden(
-            self.orden_id, "legal", "en_proceso", "Procesando..."
-        )
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        self.assertEqual(orden["etapas"]["legal"]["estado"], "en_proceso")
+    @patch('dep_operaciones.orquestador._broadcast_event')
+    @patch('dep_operaciones.orquestador.gestor_ordenes')
+    def test_procesar_etapa_legal_error(self, mock_ordenes, mock_broadcast):
+        """Test that legal stage handles errors gracefully."""
+        orq = orquestador.OrquestadorAutonomo()
+        orden = {
+            "id": "test_order",
+            "clon_id": "test_clon",
+            "cliente_email": "test@example.com",
+            "cantidad_horas": 10,
+            "etapas": {}
+        }
+        mock_ordenes.obtener_orden.return_value = orden
+        mock_ordenes.actualizar_etapa_orden.side_effect = None
 
-    def test_actualizar_etapa_completada(self):
-        self.gestor_ordenes.actualizar_etapa_orden(
-            self.orden_id, "legal", "completada", "Contrato listo"
-        )
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        self.assertEqual(orden["etapas"]["legal"]["estado"], "completada")
+        with patch('dep_operaciones.orquestador.motor_clonacion') as mock_motor:
+            mock_motor.cargar_datos.side_effect = Exception("Test error")
+            orq._procesar_etapa_legal("test_order", orden)
 
-    def test_crear_factura(self):
-        factura_id, factura_data = self.gestor_pagos.crear_factura(
-            self.orden_id, "test@example.com", 600.0, 90.0, 10, 50.0, "Test"
-        )
-        self.assertTrue(factura_id.startswith("FAC-"))
-        self.assertEqual(factura_data["monto_total"], 600.0)
-        self.assertEqual(factura_data["moneda"], "USD")
+        mock_ordenes.actualizar_etapa_orden.assert_called()
+        call_args = mock_ordenes.actualizar_etapa_orden.call_args
+        self.assertEqual(call_args[0][1], "legal")
+        self.assertEqual(call_args[0][2], "error")
 
-    def test_actualizar_pago_orden(self):
-        self.gestor_ordenes.actualizar_pago_orden(
-            self.orden_id, "FAC-TEST", "pendiente"
-        )
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        self.assertEqual(orden["pago"]["factura_id"], "FAC-TEST")
+    @patch('dep_operaciones.orquestador._broadcast_event')
+    @patch('dep_operaciones.orquestador.gestor_ordenes')
+    def test_procesar_etapa_desarrollo_error(self, mock_ordenes, mock_broadcast):
+        """Test that development stage handles errors gracefully."""
+        orq = orquestador.OrquestadorAutonomo()
+        orden = {
+            "id": "test_order",
+            "clon_id": "nonexistent_clon",
+            "cliente_email": "test@example.com",
+            "etapas": {}
+        }
+        mock_ordenes.actualizar_etapa_orden.side_effect = None
 
-    def test_listar_ordenes(self):
-        self.gestor_ordenes.crear_orden("other@test.com", "ana_finanzas", 5, "Other")
-        ordenes = self.gestor_ordenes.listar_ordenes()
-        self.assertGreaterEqual(len(ordenes), 2)
+        with patch('dep_operaciones.orquestador.motor_clonacion') as mock_motor:
+            mock_motor.cargar_datos.return_value = {"clones": {}}
+            orq._procesar_etapa_desarrollo("test_order", orden)
 
-    def test_listar_ordenes_por_email(self):
-        ordenes = self.gestor_ordenes.listar_ordenes("test@example.com")
-        self.assertEqual(len(ordenes), 1)
+        mock_ordenes.actualizar_etapa_orden.assert_called()
+        call_args = mock_ordenes.actualizar_etapa_orden.call_args
+        self.assertEqual(call_args[0][1], "desarrollo")
+        self.assertEqual(call_args[0][2], "error")
 
-    def test_flujo_completo_etapas(self):
-        for etapa in ["legal", "desarrollo", "operaciones", "entrega"]:
-            self.gestor_ordenes.actualizar_etapa_orden(
-                self.orden_id, etapa, "completada", f"{etapa} listo"
-            )
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        for etapa in ["legal", "desarrollo", "operaciones", "entrega"]:
-            self.assertEqual(orden["etapas"][etapa]["estado"], "completada")
+    @patch('dep_operaciones.orquestador._broadcast_event')
+    @patch('dep_operaciones.orquestador.gestor_ordenes')
+    @patch('dep_operaciones.orquestador.gestor_pagos')
+    def test_procesar_etapa_operaciones(self, mock_pagos, mock_ordenes, mock_broadcast):
+        """Test that operations stage calculates pricing correctly."""
+        orq = orquestador.OrquestadorAutonomo()
+        orden = {
+            "id": "test_order",
+            "clon_id": "test_clon",
+            "cliente_email": "test@example.com",
+            "cantidad_horas": 10,
+            "descripcion_proyecto": "Test project",
+            "etapas": {}
+        }
 
-    def test_error_en_etapa(self):
-        self.gestor_ordenes.actualizar_etapa_orden(
-            self.orden_id, "legal", "error", "Error de contrato"
-        )
-        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
-        self.assertEqual(orden["etapas"]["legal"]["estado"], "error")
+        mock_ordenes.cargar_ordenes.return_value = {"ordenes": {"test_order": orden}}
+        mock_ordenes.actualizar_etapa_orden.side_effect = None
+        mock_ordenes.actualizar_pago_orden.side_effect = None
+        mock_pagos.crear_factura.return_value = ("fact_001", {})
+
+        # Mock settings file
+        settings_path = os.path.join(os.path.dirname(__file__), '..', 'cerebro', 'server_settings.json')
+        with patch('os.path.exists', return_value=True):
+            with patch('builtins.open', unittest.mock.mock_open(read_data='{"commission": 15.0, "tariff_per_hour": 50.0}')):
+                orq._procesar_etapa_operaciones("test_order", orden)
+
+        mock_pagos.crear_factura.assert_called_once()
+        call_args = mock_pagos.crear_factura.call_args
+        # monto_total = 10 * 50 * 1.15 = 575.0
+        self.assertAlmostEqual(call_args[0][2], 575.0, places=2)
+
+    @patch('dep_operaciones.orquestador._broadcast_event')
+    @patch('dep_operaciones.orquestador.gestor_ordenes')
+    def test_procesar_etapa_entrega(self, mock_ordenes, mock_broadcast):
+        """Test that delivery stage completes successfully."""
+        orq = orquestador.OrquestadorAutonomo()
+        orden = {
+            "id": "test_order",
+            "clon_id": "test_clon",
+            "cliente_email": "test@example.com",
+            "etapas": {}
+        }
+        mock_ordenes.actualizar_etapa_orden.side_effect = None
+
+        with patch('dep_operaciones.orquestador.time.sleep'):
+            orq._procesar_etapa_entrega("test_order", orden)
+
+        mock_ordenes.actualizar_etapa_orden.assert_called()
+        call_args = mock_ordenes.actualizar_etapa_orden.call_args
+        self.assertEqual(call_args[0][1], "entrega")
+        self.assertEqual(call_args[0][2], "completada")
+
+    def test_broadcast_event_import_error(self):
+        """Test that broadcast_event handles import errors gracefully."""
+        with patch.dict('sys.modules', {'cerebro.server': None}):
+            # Should not raise
+            orquestador._broadcast_event("test", {"data": "test"})
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

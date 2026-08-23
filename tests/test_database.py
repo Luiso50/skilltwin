@@ -203,8 +203,8 @@ class DatabaseTests(unittest.TestCase):
             with open(clones_path, "w", encoding="utf-8") as f:
                 json.dump(clones_data, f, ensure_ascii=False)
 
-            # Run migration
-            database.migrar_json_a_sqlite()
+            # Run safe migration
+            database.migrar_json_a_sqlite_safe()
 
             # Verify
             clones = database.cargar_clones()

@@ -1,11 +1,14 @@
 import os
 import html as html_module
 import smtplib
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime
+
+logger = logging.getLogger('skilltwin.email')
 
 
 def get_smtp_config():
@@ -146,6 +149,8 @@ def send_confirmation_email(nombre, email):
     if not config["user"] or not config["pass"]:
         return False, "SMTP no configurado"
 
+    safe_nombre = html_module.escape(str(nombre))
+
     subject = "SkillTwin - Hemos recibido tu mensaje"
 
     html_body = f"""
@@ -161,7 +166,7 @@ def send_confirmation_email(nombre, email):
             <div style="background: white; padding: 25px; border-radius: 8px;">
                 <h2 style="color: #1a1a2e; margin-top: 0;">¡Gracias por contactarnos!</h2>
 
-                <p>Hola <strong>{nombre}</strong>,</p>
+                <p>Hola <strong>{safe_nombre}</strong>,</p>
 
                 <p>Hemos recibido tu mensaje y nos pondremos en contacto contigo en las próximas 24-48 horas hábiles.</p>
 
@@ -191,7 +196,7 @@ def send_confirmation_email(nombre, email):
         msg["To"] = email
 
         msg.attach(
-            MIMEText(f"Gracias {nombre}, hemos recibido tu mensaje.", "plain", "utf-8")
+            MIMEText(f"Gracias {safe_nombre}, hemos recibido tu mensaje.", "plain", "utf-8")
         )
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
@@ -216,6 +221,8 @@ def send_password_reset_email(nombre, email, reset_code):
     if not config["user"] or not config["pass"]:
         return False, "SMTP no configurado"
 
+    safe_nombre = html_module.escape(str(nombre))
+
     subject = "SkillTwin - Recuperación de Contraseña"
 
     html_body = f"""
@@ -232,7 +239,7 @@ def send_password_reset_email(nombre, email, reset_code):
             <div style="background: white; padding: 25px; border-radius: 8px;">
                 <h2 style="color: #1a1a2e; margin-top: 0;">Tu código de recuperación</h2>
 
-                <p>Hola <strong>{nombre}</strong>,</p>
+                <p>Hola <strong>{safe_nombre}</strong>,</p>
 
                 <p>Recibimos una solicitud para restablecer tu contraseña. Usa el siguiente código:</p>
 
@@ -289,6 +296,7 @@ def send_contract_email(cliente_email, cliente_nombre, ruta_contrato, orden_id=N
         return False, f"Archivo de contrato no encontrado: {ruta_contrato}"
 
     nombre_archivo = os.path.basename(ruta_contrato)
+    safe_cliente_nombre = html_module.escape(str(cliente_nombre))
     asunto = f"SkillTwin - Tu Contrato de Licencia {f'#{orden_id}' if orden_id else ''}"
 
     html_body = f"""
@@ -305,7 +313,7 @@ def send_contract_email(cliente_email, cliente_nombre, ruta_contrato, orden_id=N
             <div style="background: white; padding: 25px; border-radius: 8px;">
                 <h2 style="color: #1a1a2e; margin-top: 0;">¡Contrato Listo!</h2>
 
-                <p>Hola <strong>{cliente_nombre}</strong>,</p>
+                <p>Hola <strong>{safe_cliente_nombre}</strong>,</p>
 
                 <p>Adjunto encontrarás tu contrato de licencia de clon digital.
                    Por favor, revísalo cuidadosamente y conserve una copia para tus registros.</p>
@@ -341,7 +349,7 @@ def send_contract_email(cliente_email, cliente_nombre, ruta_contrato, orden_id=N
 SkillTwin - Tu Contrato de Licencia
 ====================================
 
-Hola {cliente_nombre},
+Hola {safe_cliente_nombre},
 
 Adjunto encontrarás tu contrato de licencia de clon digital.
 Por favor, revísalo cuidadosamente y conserve una copia para tus registros.
@@ -381,7 +389,7 @@ Si tienes alguna pregunta, responde a este email.
             server.login(config["user"], config["pass"])
             server.send_message(msg)
 
-        print(f"[EMAIL] Contrato enviado a {cliente_email}")
+        logger.info(f"Contrato enviado a {cliente_email}")
         return True, None
 
     except smtplib.SMTPAuthenticationError:

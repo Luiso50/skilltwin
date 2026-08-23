@@ -41,7 +41,7 @@ class MigrateLegacyOnceTests(unittest.TestCase):
 
     def test_safe_migration_is_idempotent(self):
         """migrar_json_a_sqlite_safe returns 0 on second call."""
-        database.migrar_json_a_sqlite()
+        database.migrar_json_a_sqlite_safe()
         count = database.migrar_json_a_sqlite_safe()
         # Second call should return 0 (already applied)
         count2 = database.migrar_json_a_sqlite_safe()

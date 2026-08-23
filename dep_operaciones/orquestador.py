@@ -32,7 +32,9 @@ class OrquestadorAutonomo:
 
     def __init__(self):
         self.activo = True
-        self.intervalo_chequeo = 5  # Segundos entre chequeos
+        self.intervalo_chequeo = int(os.environ.get("SKILLTWIN_ORCHESTRATOR_INTERVAL", "5"))
+        self.desarrollo_delay = float(os.environ.get("SKILLTWIN_DESARROLLO_DELAY", "0"))
+        self.entrega_delay = float(os.environ.get("SKILLTWIN_ENTREGA_DELAY", "0"))
         self.thread = None
 
     def iniciar(self):
@@ -185,8 +187,6 @@ class OrquestadorAutonomo:
 
             logger.info(f"[LEGAL] ✅ Contrato generado para {orden_id}")
 
-            time.sleep(1)
-
         except Exception as e:
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "legal", "error",
@@ -232,18 +232,21 @@ class OrquestadorAutonomo:
             # Crear instancia específica para este cliente
             instancia_id = f"{orden['clon_id']}__{orden_id}"
 
-            # Simular preparación
-            tiempo_preparacion = 2
-            for i in range(tiempo_preparacion):
-                time.sleep(1)
-                progreso = int((i + 1) / tiempo_preparacion * 100)
-                # Broadcast progress
-                _broadcast_event("stage_progress", {
-                    "orden_id": orden_id,
-                    "department": "desarrollo",
-                    "progress": progreso
-                })
-                logger.info(f"[DESARROLLO] {progreso}% - Preparando ambiente...")
+            # Configurable delay for development stage (default: 0 for fast processing)
+            if self.desarrollo_delay > 0:
+                tiempo_preparacion = int(self.desarrollo_delay)
+                for i in range(tiempo_preparacion):
+                    time.sleep(1)
+                    progreso = int((i + 1) / tiempo_preparacion * 100)
+                    # Broadcast progress
+                    _broadcast_event("stage_progress", {
+                        "orden_id": orden_id,
+                        "department": "desarrollo",
+                        "progress": progreso
+                    })
+                    logger.info(f"[DESARROLLO] {progreso}% - Preparando ambiente...")
+            else:
+                logger.info("[DESARROLLO] Preparación instantánea (delay=0)")
 
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "desarrollo", "completada",
@@ -330,8 +333,6 @@ class OrquestadorAutonomo:
                 orden_id, factura_id, "pendiente"
             )
 
-            time.sleep(1)
-
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "operaciones", "completada",
                 f"✅ Factura creada: {factura_id}. Total: ${monto_total:.2f} (Comisión: ${comision:.2f}). Pendiente de pago."
@@ -381,8 +382,9 @@ class OrquestadorAutonomo:
         )
 
         try:
-            # Simular envío de credenciales
-            time.sleep(1)
+            # Configurable delay for delivery stage (default: 0 for fast processing)
+            if self.entrega_delay > 0:
+                time.sleep(self.entrega_delay)
 
             gestor_ordenes.actualizar_etapa_orden(
                 orden_id, "entrega", "completada",

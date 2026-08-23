@@ -93,11 +93,20 @@ class IntegrationTests(unittest.TestCase):
         conn.close()
         return resp.status, json.loads(data) if data else {}
 
-    def _post(self, path, body, token=None):
+    def _post(self, path, body, token=None, csrf=False):
         conn = HTTPConnection('localhost', self.port, timeout=5)
         headers = {'Content-Type': 'application/json'}
         if token:
             headers['Authorization'] = f'Bearer {token}'
+        if csrf:
+            # Get CSRF token first
+            csrf_conn = HTTPConnection('localhost', self.port, timeout=5)
+            csrf_conn.request('GET', '/api/csrf-token')
+            csrf_resp = csrf_conn.getresponse()
+            csrf_data = json.loads(csrf_resp.read().decode('utf-8'))
+            csrf_conn.close()
+            headers['X-CSRF-Token'] = csrf_data['token']
+            headers['X-Session-ID'] = csrf_data['session_id']
         conn.request('POST', path, body=json.dumps(body), headers=headers)
         resp = conn.getresponse()
         data = resp.read().decode('utf-8')
@@ -139,7 +148,7 @@ class IntegrationTests(unittest.TestCase):
             'interes': 'Demo',
             'mensaje': 'Integration test message'
         }
-        status, data = self._post('/api/contacto', body)
+        status, data = self._post('/api/contacto', body, csrf=True)
         self.assertEqual(status, 200)
         self.assertTrue(data.get('success'))
 

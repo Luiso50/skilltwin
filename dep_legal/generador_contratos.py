@@ -1,9 +1,12 @@
 import os
+import logging
 from datetime import datetime
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from dep_legal.header_documento import crear_documento_con_encabezado
+
+logger = logging.getLogger('skilltwin.contratos')
 
 CONTRATOS_DIR = os.path.join(os.path.dirname(__file__), "contratos")
 
@@ -170,19 +173,16 @@ def generar_contrato(id_experto, nombre, especialidad, comision=15.0):
         # Guardar documento
         doc.save(ruta_guardado)
 
-        print("\n[CONTRATO] Contrato de licencia generado con éxito (.docx)!")
-        print(f"[ARCHIVO] Guardado en: {ruta_guardado}")
+        logger.info(f"Contrato de licencia generado: {ruta_guardado}")
         return ruta_guardado
 
     except Exception as e:
-        print(f"[ERROR] No se pudo generar el contrato: {e}")
+        logger.error(f"No se pudo generar el contrato: {e}")
         return None
 
 
 def main():
-    print("=" * 50)
-    print("    GENERADOR DE CONTRATOS LEGALES - SKILLTWIN")
-    print("=" * 50)
+    logger.info("GENERADOR DE CONTRATOS LEGALES - SKILLTWIN")
 
     nombre = input("Nombre completo del profesional: ").strip()
     id_experto = input("ID de usuario único (ej. rsanchez): ").strip().lower()
@@ -196,12 +196,12 @@ def main():
         try:
             comision = float(comision_str)
         except ValueError:
-            print("[ALERTA] Entrada inválida, usando 15.0% por defecto.")
+            logger.warning("Entrada inválida, usando 15.0% por defecto")
 
     if nombre and id_experto and especialidad:
         generar_contrato(id_experto, nombre, especialidad, comision)
     else:
-        print("[ALERTA] Todos los campos de texto son obligatorios.")
+        logger.warning("Todos los campos de texto son obligatorios")
 
 
 if __name__ == "__main__":

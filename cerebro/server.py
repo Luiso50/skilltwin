@@ -45,9 +45,13 @@ def broadcast_sse_event(event_type, data):
 
 
 def _periodic_cleanup():
-    """Periodic cleanup of expired tokens and dead SSE clients."""
+    """Periodic cleanup of expired tokens, rate limits, and dead SSE clients."""
     try:
         security.cleanup_expired_tokens()
+    except Exception:
+        pass
+    try:
+        security.cleanup_rate_limit_store()
     except Exception:
         pass
     # Clean dead SSE clients
@@ -134,7 +138,7 @@ load_dotenv()
 from dep_desarrollo import motor_clonacion  # noqa: E402
 from dep_marketing import agente_ventas_mercado  # noqa: E402
 from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, orquestador, security  # noqa: E402
-from dep_operaciones import stripe_service  # noqa: E402  # imported as server.stripe_service for tests
+from dep_operaciones import stripe_service  # noqa: E402, F401  # imported as server.stripe_service for tests
 from dep_legal import generador_contratos  # noqa: E402
 
 
@@ -514,7 +518,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 json_res = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 return json.loads(json_res)
         except Exception as e:
-            print(f"Error en clasificación IA: {e}")
+            logger.error(f"Error en clasificación IA: {e}")
             return None
 
     def generar_respuesta_ia(self, comando):
@@ -563,7 +567,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 res_data = json.loads(response.read().decode("utf-8"))
                 return res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
         except Exception as e:
-            print(f"Error generando respuesta IA: {e}")
+            logger.error(f"Error generando respuesta IA: {e}")
             return None
 
     def procesar_comando(self, comando):
@@ -578,7 +582,7 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             # Si la IA decidió que es un comando ejecutable, usamos la versión normalizada
             if intent != "general":
                 # Loguear que la IA tomó la decisión
-                print(f"[IA ROUTER] Intención: {intent} | Razón: {reasoning} | Comando: {normalized_cmd}")
+                logger.info(f"[IA ROUTER] Intención: {intent} | Razón: {reasoning} | Comando: {normalized_cmd}")
                 # Ejecutamos la lógica usando el comando normalizado por la IA
                 return self.ejecutar_logica_comando(normalized_cmd, ia_tag=intent)
 

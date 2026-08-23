@@ -1,11 +1,14 @@
 import os
 import json
+import logging
 import urllib.request
 import urllib.parse
 from datetime import datetime
 import threading
 import uuid
 from collections import defaultdict
+
+logger = logging.getLogger('skilltwin.motor_clonacion')
 
 # Soporte para JSON (legacy) y SQLite (nuevo)
 def _use_sqlite():
@@ -370,16 +373,16 @@ def crear_clon(id_clon, nombre, especialidad, conocimiento):
     if _use_sqlite():
         existing = db_obtener_clone(id_clon)
         if existing:
-            print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")
+            logger.warning(f"El identificador '{id_clon}' ya existe")
             return False
         db_guardar_clone(id_clon, nombre, especialidad, conocimiento)
-        print(f"\n[OK] Clon digital '{nombre}' ({especialidad}) creado con exito!")
+        logger.info(f"Clon digital '{nombre}' ({especialidad}) creado con exito")
         return True
 
     datos = cargar_datos()
 
     if id_clon in datos["clones"]:
-        print(f"\n[AVISO] El identificador '{id_clon}' ya existe. Intenta con otro.")
+        logger.warning(f"El identificador '{id_clon}' ya existe")
         return False
 
     datos["clones"][id_clon] = {
@@ -391,7 +394,7 @@ def crear_clon(id_clon, nombre, especialidad, conocimiento):
         "ultima_actualizacion": datetime.now().strftime("%Y-%m-%d")
     }
     guardar_datos(datos)
-    print(f"\n✅ ¡Clon digital '{nombre}' ({especialidad}) creado con éxito!")
+    logger.info(f"Clon digital '{nombre}' ({especialidad}) creado con exito")
     return True
 
 
@@ -611,7 +614,7 @@ def consultar_clon(id_clon, pregunta, session_id=None):
     """Orquesta la consulta decidiendo si usa el modo online u offline."""
     datos = cargar_datos()
     if id_clon not in datos["clones"]:
-        print(f"\n[ERROR] El clon '{id_clon}' no existe.")
+        logger.error(f"El clon '{id_clon}' no existe")
         return None
 
     clon = datos["clones"][id_clon]
@@ -657,147 +660,3 @@ def obtener_estadisticas_clon(id_clon):
         stats["ultima_interaccion"] = memoria.historial[-1].get("timestamp")
 
     return stats
-
-
-def menu():
-    inicializar_db()
-    while True:
-        print("\n" + "="*45)
-        print("    SKILLTWIN MOTOR DE CLONACIÓN v2.0")
-        print("="*45)
-        print("1. Ver clones creados")
-        print("2. Registrar / Entrenar nuevo clon")
-        print("3. Consultar a un clon digital")
-        print("4. Ver historial de conversación")
-        print("5. Ver estadísticas de un clon")
-        print("6. Limpiar memoria de conversación")
-        print("7. Salir")
-
-        opcion = input("\nSelecciona una opción (1-7): ").strip()
-
-        if opcion == "1":
-            datos = cargar_datos()
-            print("\n--- CLONES REGISTRADOS EN LA PLATAFORMA ---")
-            for cid, info in datos["clones"].items():
-                print(f"- ID: {cid} | Nombre: {info['nombre']} | Especialidad: {info['especialidad']}")
-
-        elif opcion == "2":
-            print("\n--- REGISTRAR NUEVA HABILIDAD ---")
-            id_clon = input("ID único del clon (ej. juan_seo): ").strip().lower()
-            nombre = input("Nombre completo del profesional: ").strip()
-            especialidad = input("Especialidad del clon: ").strip()
-            print("Escribe o pega la base de conocimiento (máx. 1000 palabras):")
-            conocimiento = input("> ").strip()
-
-            if id_clon and nombre and especialidad and conocimiento:
-                crear_clon(id_clon, nombre, especialidad, conocimiento)
-            else:
-                print("\n[AVISO] Todos los campos son obligatorios.")
-
-        elif opcion == "3":
-            datos = cargar_datos()
-            print("\n--- SELECCIONA UN CLON PARA CONSULTAR ---")
-            clones_disponibles = list(datos["clones"].keys())
-            for idx, cid in enumerate(clones_disponibles, 1):
-                print(f"{idx}. {cid} ({datos['clones'][cid]['especialidad']})")
-
-            sel = input("\nSelecciona el número del clon: ").strip()
-            try:
-                clon_idx = int(sel) - 1
-                if 0 <= clon_idx < len(clones_disponibles):
-                    id_clon = clones_disponibles[clon_idx]
-                    session_id = str(uuid.uuid4())
-                    print(f"\nNueva sesión iniciada: {session_id[:8]}...")
-
-                    while True:
-                        pregunta = input(f"\nPregunta para el clon de {id_clon} (o 'salir' para terminar sesión): ").strip()
-                        if pregunta.lower() in ['salir', 'exit', 'quit']:
-                            break
-                        if pregunta:
-                            print("\n[Pensando...]")
-                            respuesta = consultar_clon(id_clon, pregunta, session_id)
-                            print(f"\nRespuesta:\n{respuesta}")
-                else:
-                    print("\n[AVISO] Seleccion invalida.")
-            except ValueError:
-                print("\n[AVISO] Debe ingresar un numero.")
-
-        elif opcion == "4":
-            datos = cargar_datos()
-            print("\n--- VER HISTORIAL DE CONVERSACIÓN ---")
-            clones_disponibles = list(datos["clones"].keys())
-            for idx, cid in enumerate(clones_disponibles, 1):
-                print(f"{idx}. {cid}")
-
-            sel = input("\nSelecciona el número del clon: ").strip()
-            try:
-                clon_idx = int(sel) - 1
-                if 0 <= clon_idx < len(clones_disponibles):
-                    id_clon = clones_disponibles[clon_idx]
-                    historial = obtener_historial_conversacion(id_clon)
-
-                    if not historial:
-                        print(f"\nNo hay historial de conversación para {id_clon}.")
-                    else:
-                        print(f"\n--- HISTORIAL DE {id_clon} ---")
-                        for i, interaccion in enumerate(historial[-10:], 1):
-                            print(f"\n{i}. [{interaccion['timestamp']}]")
-                            print(f"   P: {interaccion['pregunta']}")
-                            print(f"   R: {interaccion['respuesta'][:100]}...")
-            except ValueError:
-                print("\n[AVISO] Debe ingresar un numero.")
-
-        elif opcion == "5":
-            datos = cargar_datos()
-            print("\n--- VER ESTADÍSTICAS DE UN CLON ---")
-            clones_disponibles = list(datos["clones"].keys())
-            for idx, cid in enumerate(clones_disponibles, 1):
-                print(f"{idx}. {cid}")
-
-            sel = input("\nSelecciona el número del clon: ").strip()
-            try:
-                clon_idx = int(sel) - 1
-                if 0 <= clon_idx < len(clones_disponibles):
-                    id_clon = clones_disponibles[clon_idx]
-                    stats = obtener_estadisticas_clon(id_clon)
-
-                    print(f"\n--- ESTADÍSTICAS DE {id_clon} ---")
-                    print(f"Total de interacciones: {stats['total_interacciones']}")
-                    print(f"Memorias de éxito: {stats['memorias_exito']}")
-
-                    if stats['temas_mas_frecuentes']:
-                        print("\nTemas más frecuentes:")
-                        for tema in stats['temas_mas_frecuentes']:
-                            print(f"  - {tema['tema']}: {tema['frecuencia']} veces")
-
-                    if stats['ultima_interaccion']:
-                        print(f"\nÚltima interacción: {stats['ultima_interaccion']}")
-            except ValueError:
-                print("\n[AVISO] Debe ingresar un numero.")
-
-        elif opcion == "6":
-            datos = cargar_datos()
-            print("\n--- LIMPIAR MEMORIA DE CONVERSACIÓN ---")
-            clones_disponibles = list(datos["clones"].keys())
-            for idx, cid in enumerate(clones_disponibles, 1):
-                print(f"{idx}. {cid}")
-
-            sel = input("\nSelecciona el número del clon: ").strip()
-            try:
-                clon_idx = int(sel) - 1
-                if 0 <= clon_idx < len(clones_disponibles):
-                    id_clon = clones_disponibles[clon_idx]
-                    limpiar_memoria_conversacion(id_clon)
-                    print(f"\n✅ Memoria de conversación limpiada para {id_clon}.")
-            except ValueError:
-                print("\n[AVISO] Debe ingresar un numero.")
-
-        elif opcion == "7":
-            print("\n¡Gracias por usar SkillTwin! Cerrando motor de desarrollo...")
-            break
-        else:
-            print("\n[AVISO] Opcion no valida. Intentalo de nuevo.")
-
-
-if __name__ == "__main__":
-    menu()
