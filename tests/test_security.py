@@ -184,6 +184,31 @@ class SecurityTests(unittest.TestCase):
         secret = security.get_admin_secret()
         self.assertEqual(secret, "")
 
+    def test_validate_runtime_config_reports_missing_required_secret(self):
+        previous = os.environ.get("SKILLTWIN_ADMIN_SECRET")
+        if "SKILLTWIN_ADMIN_SECRET" in os.environ:
+            del os.environ["SKILLTWIN_ADMIN_SECRET"]
+        try:
+            status = security.validate_runtime_config()
+            self.assertFalse(status["ok"])
+            self.assertIn("SKILLTWIN_ADMIN_SECRET", status["missing"])
+        finally:
+            if previous is not None:
+                os.environ["SKILLTWIN_ADMIN_SECRET"] = previous
+
+    def test_validate_runtime_config_accepts_configured_secret(self):
+        previous = os.environ.get("SKILLTWIN_ADMIN_SECRET")
+        os.environ["SKILLTWIN_ADMIN_SECRET"] = "configured-secret"
+        try:
+            status = security.validate_runtime_config()
+            self.assertTrue(status["ok"])
+            self.assertNotIn("SKILLTWIN_ADMIN_SECRET", status["missing"])
+        finally:
+            if previous is None:
+                del os.environ["SKILLTWIN_ADMIN_SECRET"]
+            else:
+                os.environ["SKILLTWIN_ADMIN_SECRET"] = previous
+
     def test_generate_csrf_token(self):
         token = security.generate_csrf_token("session123")
         self.assertIsNotNone(token)

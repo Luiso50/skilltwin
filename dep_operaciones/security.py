@@ -43,6 +43,24 @@ def get_admin_secret() -> str:
     return os.environ.get("SKILLTWIN_ADMIN_SECRET", "")
 
 
+def validate_runtime_config() -> Dict[str, Any]:
+    """Valida que existen las variables mínimas requeridas para arrancar."""
+    required = [
+        "SKILLTWIN_ADMIN_SECRET",
+    ]
+    missing = [key for key in required if not os.environ.get(key, "").strip()]
+    warnings: List[str] = []
+
+    if os.environ.get("SKILLTWIN_TRUST_PROXY", "0") == "1" and not os.environ.get("SKILLTWIN_PUBLIC_URL"):
+        warnings.append("SKILLTWIN_PUBLIC_URL recommended when SKILLTWIN_TRUST_PROXY is enabled")
+
+    return {
+        "ok": not missing,
+        "missing": missing,
+        "warnings": warnings,
+    }
+
+
 def generate_admin_token() -> str:
     global _admin_token, _token_created_at
     _admin_token = secrets.token_urlsafe(32)

@@ -135,6 +135,11 @@ sys.path.append(RAIZ_DIR)
 # Cargar variables de entorno desde .env
 load_dotenv()
 
+runtime_config = security.validate_runtime_config()
+if not runtime_config["ok"]:
+    missing = ", ".join(runtime_config["missing"])
+    raise RuntimeError(f"Faltan variables de entorno requeridas: {missing}")
+
 from dep_desarrollo import motor_clonacion  # noqa: E402
 from dep_marketing import agente_ventas_mercado  # noqa: E402
 from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, orquestador, security  # noqa: E402
