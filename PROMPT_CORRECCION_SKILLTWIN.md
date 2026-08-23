@@ -18,7 +18,8 @@ Actúa como un ingeniero senior de Python y arquitecto de software. Revisa el re
 6. **Resuelto parcialmente:** existen request IDs, métricas, health checks y eventos de sesión; todavía falta ampliar la observabilidad operativa.
 7. **Resuelto:** la migración JSON→SQLite cuenta inserciones reales y ofrece `dry-run` y backup previo desde su script operativo.
 8. **Resuelto:** los errores de entrada en endpoints Stripe devuelven HTTP 400 y tienen pruebas de contrato HTTP.
-9. **Nuevo foco:** añadir checksum e informe de integridad al origen de la migración legacy.
+9. **Resuelto:** la migración registra checksum SHA-256, tamaño y existencia de cada JSON origen.
+10. **Nuevo foco:** elevar gradualmente la cobertura funcional de endpoints y pagos.
 
 ## Estado verificado
 
@@ -62,8 +63,8 @@ Añade mejoras concretas en estas áreas:
 
 ### Siguiente fase priorizada
 
-1. Añadir checksum del origen y reporte de integridad a la migración legacy.
-2. Elevar gradualmente la cobertura funcional de endpoints y pagos.
+1. Elevar gradualmente la cobertura funcional de endpoints y pagos.
+2. Verificar Redis y PostgreSQL en un entorno de staging antes de habilitar multi-instancia.
 3. Elevar gradualmente el umbral de coverage cuando se incorporen esas pruebas.
 4. Verificar Redis y PostgreSQL en un entorno de staging antes de habilitar multi-instancia.
 

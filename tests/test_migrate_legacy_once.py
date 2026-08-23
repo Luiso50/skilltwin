@@ -71,6 +71,8 @@ class MigrateLegacyOnceTests(unittest.TestCase):
         self.assertTrue(status["applied"])
         self.assertEqual(status["version"], database._MIGRATION_VERSION)
         self.assertIsNotNone(status["applied_at"])
+        self.assertTrue(status["manifest"]["clones"]["exists"])
+        self.assertEqual(len(status["manifest"]["clones"]["sha256"]), 64)
 
 
 if __name__ == "__main__":

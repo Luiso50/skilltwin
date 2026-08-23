@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -444,6 +445,30 @@ def migrar_json_a_sqlite():
                       contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
 
 
+def get_legacy_source_manifest():
+    """Devuelve tamaño y SHA-256 de cada archivo JSON usado por la migración."""
+    source_paths = {
+        "clones": os.path.join(os.path.dirname(__file__), "..", "dep_desarrollo", "clones_db.json"),
+        "finanzas": os.path.join(os.path.dirname(__file__), "finanzas_db.json"),
+        "ordenes": os.path.join(os.path.dirname(__file__), "ordenes_db.json"),
+        "pagos": os.path.join(os.path.dirname(__file__), "pagos_db.json"),
+        "contactos": os.path.join(os.path.dirname(__file__), "contactos_db.json"),
+    }
+    manifest = {}
+    for name, path in source_paths.items():
+        if not os.path.exists(path):
+            manifest[name] = {"exists": False, "size": 0, "sha256": None}
+            continue
+        digest = hashlib.sha256()
+        size = 0
+        with open(path, "rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                digest.update(chunk)
+                size += len(chunk)
+        manifest[name] = {"exists": True, "size": size, "sha256": digest.hexdigest()}
+    return manifest
+
+
 def migrar_json_a_sqlite_safe(dry_run=False):
     """Migra datos JSON a SQLite de forma segura, sin sobreescribir datos existentes.
 
@@ -464,6 +489,7 @@ def migrar_json_a_sqlite_safe(dry_run=False):
             return 0
 
         rows_migrated = 0
+        source_manifest = get_legacy_source_manifest()
 
         # Migrar clones
         clones_path = os.path.join(os.path.dirname(__file__), "..", "dep_desarrollo", "clones_db.json")
@@ -601,6 +627,10 @@ def migrar_json_a_sqlite_safe(dry_run=False):
             INSERT INTO migracion_metadata (key, value, applied_at)
             VALUES (?, ?, ?)
         """, ("json_to_sqlite", str(_MIGRATION_VERSION), datetime.now().isoformat()))
+        cursor.execute("""
+            INSERT INTO migracion_metadata (key, value, applied_at)
+            VALUES (?, ?, ?)
+        """, ("json_to_sqlite_manifest", json.dumps(source_manifest, sort_keys=True), datetime.now().isoformat()))
 
         return rows_migrated
 
@@ -616,11 +646,15 @@ def get_migration_status():
         cursor.execute("SELECT value, applied_at FROM migracion_metadata WHERE key = ?", ("json_to_sqlite",))
         row = cursor.fetchone()
         if row is None:
-            return {"applied": False, "version": None, "applied_at": None}
+            return {"applied": False, "version": None, "applied_at": None, "manifest": None}
+        cursor.execute("SELECT value FROM migracion_metadata WHERE key = ?", ("json_to_sqlite_manifest",))
+        manifest_row = cursor.fetchone()
+        manifest = json.loads(manifest_row["value"]) if manifest_row else None
         return {
             "applied": True,
             "version": int(row["value"]),
             "applied_at": row["applied_at"],
+            "manifest": manifest,
         }
 
 
