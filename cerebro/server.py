@@ -135,6 +135,8 @@ sys.path.append(RAIZ_DIR)
 # Cargar variables de entorno desde .env
 load_dotenv()
 
+from dep_operaciones import security  # noqa: E402
+
 runtime_config = security.validate_runtime_config()
 if not runtime_config["ok"]:
     missing = ", ".join(runtime_config["missing"])
@@ -142,7 +144,7 @@ if not runtime_config["ok"]:
 
 from dep_desarrollo import motor_clonacion  # noqa: E402
 from dep_marketing import agente_ventas_mercado  # noqa: E402
-from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, orquestador, security  # noqa: E402
+from dep_operaciones import gestor_financiero, gestor_ordenes, gestor_pagos, orquestador  # noqa: E402
 from dep_operaciones import stripe_service  # noqa: E402, F401  # imported as server.stripe_service for tests
 from dep_legal import generador_contratos  # noqa: E402
 

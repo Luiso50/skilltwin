@@ -65,6 +65,7 @@ def handle_health(handler):
     with state.metrics_lock:
         req_total = state.metrics["requests_total"]
         err_total = state.metrics["errors_total"]
+    backend_state = security.get_runtime_backend_status()
     handler.send_json_response({
         "status": "ok",
         "service": "skilltwin",
@@ -73,7 +74,11 @@ def handle_health(handler):
         "errors_total": err_total,
         "avg_response_ms": _get_avg_response_time(),
         "python_version": platform.python_version(),
-        "database": "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json"
+        "database": "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json",
+        "backend": backend_state["backend"],
+        "session_store": backend_state["session_store"],
+        "rate_limit_store": backend_state["rate_limit_store"],
+        "memory_fallback_active": backend_state["memory_fallback_active"],
     })
 
 

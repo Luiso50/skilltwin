@@ -88,6 +88,8 @@ class EndpointCoverageTests(unittest.TestCase):
         self.assertIn("uptime_seconds", data)
         self.assertIn("python_version", data)
         self.assertIn("database", data)
+        self.assertIn("backend", data)
+        self.assertIn("memory_fallback_active", data)
 
     def test_clones_endpoint(self):
         status, data = self._get("/api/clones")
