@@ -305,21 +305,6 @@ def init_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_fecha ON transacciones(fecha)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_email ON contactos(email)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_contactos_estado ON contactos(estado)")
-        cursor.execute("SELECT COUNT(*) AS total FROM clones")
-        if cursor.fetchone()["total"] == 0:
-            clones_path = os.path.join(os.path.dirname(__file__), "..", "dep_desarrollo", "clones_db.json")
-            if os.path.exists(clones_path):
-                with open(clones_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                for clon_id, clon_data in data.get("clones", {}).items():
-                    cursor.execute("""
-                        INSERT INTO clones (id, nombre, especialidad, conocimiento, fecha_creacion)
-                        VALUES (?, ?, ?, ?, ?)
-                        ON CONFLICT (id) DO UPDATE SET
-                            nombre=EXCLUDED.nombre, especialidad=EXCLUDED.especialidad,
-                            conocimiento=EXCLUDED.conocimiento, fecha_creacion=EXCLUDED.fecha_creacion
-                    """, (clon_id, clon_data["nombre"], clon_data["especialidad"],
-                          clon_data["conocimiento"], clon_data.get("fecha_creacion", datetime.now().strftime("%Y-%m-%d"))))
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_cuentas_cobrar_estado ON cuentas_cobrar(estado)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_cuentas_pagar_estado ON cuentas_pagar(estado)")
 
