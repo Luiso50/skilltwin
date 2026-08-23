@@ -47,6 +47,18 @@ class MigrateLegacyOnceTests(unittest.TestCase):
         count2 = database.migrar_json_a_sqlite_safe()
         self.assertEqual(count2, 0)
 
+    def test_safe_migration_dry_run_does_not_persist(self):
+        before = database.cargar_clones()
+        count = database.migrar_json_a_sqlite_safe(dry_run=True)
+        after = database.cargar_clones()
+        self.assertGreater(count, 0)
+        self.assertEqual(after, before)
+
+    def test_run_once_creates_requested_backup(self):
+        backup_path = os.path.join(self.tmpdir.name, "test.db.bak")
+        self.assertTrue(migrate_legacy_once.run_once(backup_path=backup_path))
+        self.assertTrue(os.path.exists(backup_path))
+
     def test_get_migration_status_before_migration(self):
         status = database.get_migration_status()
         self.assertFalse(status["applied"])

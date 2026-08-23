@@ -444,11 +444,12 @@ def migrar_json_a_sqlite():
                       contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
 
 
-def migrar_json_a_sqlite_safe():
+def migrar_json_a_sqlite_safe(dry_run=False):
     """Migra datos JSON a SQLite de forma segura, sin sobreescribir datos existentes.
 
     Verifica si la migración ya fue aplicada mediante migracion_metadata.
     Todas las inserciones usan ON CONFLICT DO NOTHING para proteger datos actuales.
+    Con dry_run=True ejecuta las inserciones dentro de la transacción y las revierte.
 
     Returns:
         int: Número de registros migrados (0 si ya estaba aplicada o sin datos).
@@ -590,6 +591,10 @@ def migrar_json_a_sqlite_safe():
                       contacto.get("empresa", ""), contacto.get("interes", ""),
                       contacto["mensaje"], contacto["fecha"], contacto.get("estado", "nuevo")))
                 rows_migrated += max(cursor.rowcount, 0)
+
+        if dry_run:
+            conn.rollback()
+            return rows_migrated
 
         # Registrar que la migración fue completada
         cursor.execute("""
