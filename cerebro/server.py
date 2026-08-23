@@ -469,85 +469,14 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_error_response("Endpoint no encontrado", 404)
 
-    def clasificar_intencion_ia(self, comando):
-        """Utiliza Gemini para analizar la intención del usuario y normalizar el comando."""
+    def _llamar_gemini(self, prompt, temperature=0.7, max_tokens=500, json_mode=False):
+        """Llamada unificada a la API de Gemini."""
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             return None
 
         model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-
-        prompt = (
-            "Eres el router inteligente de SkillTwin. Analiza el mensaje del usuario y clasifícalo.\n\n"
-            "CAPACIDADES:\n"
-            "1. operaciones -> Consultas sobre dinero, pagos, facturas, flujo de caja, finanzas\n"
-            "2. marketing -> Investigación de mercado, nichos, ventas, clientes, competencia\n"
-            "3. legal -> Contratos, acuerdos, licencias, términos legales\n"
-            "4. desarrollo -> Preguntas sobre clones digitales, consultas a expertos, conocimiento\n"
-            "5. general -> Saludos, preguntas sobre SkillTwin, ayuda, temas no categorizados\n\n"
-            "REGLAS:\n"
-            "- Si el usuario saluda o pregunta qué puedes hacer -> general\n"
-            "- Si menciona dinero/pagos/facturas -> operaciones\n"
-            "- Si menciona mercado/nicho/ventas/clientes -> marketing\n"
-            "- Si menciona contrato/acuerdo/legal -> legal\n"
-            "- Si quiere preguntar a un experto o clone -> desarrollo\n"
-            "- Para todo lo demás -> general\n\n"
-            f"MENSAJE: \"{comando}\"\n\n"
-            "Responde SOLO con JSON:\n"
-            "{\n"
-            "  \"intent\": \"departamento\",\n"
-            "  \"normalized_command\": \"comando_normalizado\",\n"
-            "  \"reasoning\": \"razon_breve\"\n"
-            "}"
-        )
-
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key
-        }
-        body = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json"}
-        }
-
-        try:
-            req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310
-                res_data = json.loads(response.read().decode("utf-8"))
-                json_res = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                return json.loads(json_res)
-        except Exception as e:
-            logger.error(f"Error en clasificación IA: {e}")
-            return None
-
-    def generar_respuesta_ia(self, comando):
-        """Genera una respuesta inteligente usando Gemini para preguntas generales."""
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return None
-
-        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-
-        prompt = (
-            "Eres el Cerebro Central de SkillTwin, una plataforma que convierte conocimiento experto en gemelos digitales (clones de IA) monetizables.\n\n"
-            "Tus capacidades principales son:\n"
-            "1. **Finanzas**: Consultar flujo de caja, cuentas por cobrar/pagar, alertas financieras\n"
-            "2. **Marketing**: Investigacion de nichos de mercado y generacion de correos de ventas\n"
-            "3. **Legal**: Generar contratos de licencia para expertos\n"
-            "4. **Desarrollo**: Consultar a 12 clones digitales expertos en diferentes industrias\n"
-            "5. **Demo**: Puedes compartir el enlace a la demo interactiva\n\n"
-            "Clones disponibles: COBOL, Finanzas, Ciberseguridad, UX/UI, Data Science, Legal, Ventas, Telemedicina, Cloud/DevOps, Patentes, RRHH, Manufactura\n\n"
-            "INFORMACION IMPORTANTE:\n"
-            "- La Demo Interactiva esta disponible en: /demo.html\n"
-            "- En la demo, los usuarios pueden probar 3 preguntas gratis sin registro\n"
-            "- Si preguntan por un link/demo/prueba, comparte: /demo.html\n\n"
-            "Responde de forma conversacional, util y amigable. Si el usuario pregunta sobre algo que no esta en tu alcance, "
-            "explica que eres un asistente especializado en SkillTwin y sugiere los comandos disponibles.\n\n"
-            f"USUARIO: \"{comando}\"\n\n"
-            "Responde en español de forma concisa y natural."
-        )
 
         headers = {
             "Content-Type": "application/json",
@@ -556,10 +485,12 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
-                "temperature": 0.7,
-                "maxOutputTokens": 500
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens
             }
         }
+        if json_mode:
+            body["generationConfig"]["responseMimeType"] = "application/json"
 
         try:
             req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
@@ -567,202 +498,335 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
                 res_data = json.loads(response.read().decode("utf-8"))
                 return res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
         except Exception as e:
-            logger.error(f"Error generando respuesta IA: {e}")
+            logger.error(f"Error en llamada a Gemini: {e}")
             return None
 
+    def _obtener_contexto_plataforma(self):
+        """Genera el contexto de capacidades de la plataforma para el prompt."""
+        datos_db = motor_clonacion.cargar_datos()
+        clones = datos_db.get("clones", {})
+        clones_info = "\n".join([
+            f"  - {cid}: {c['nombre']} ({c['especialidad']})"
+            for cid, c in list(clones.items())[:12]
+        ])
+
+        return f"""
+ESTA ES LA PLATAFORMA SKILLTWIN - Gemelos Digitales de Expertos:
+
+QUE ES:
+SkillTwin convierte el conocimiento experto de profesionales en gemelos digitales (clones de IA) que pueden atender clientes 24/7. Es una plataforma que conecta expertos con clientes que necesitan su conocimiento.
+
+CAPACIDADES REALES QUE PUEDES EJECUTAR:
+1. FINANZAS - Puedo consultar la base de datos financiera real: flujo de caja, cuentas por cobrar, cuentas por pagar, alertas de pagos vencidos. Di "finanzas" o preguntá sobre dinero.
+2. MARKETING - Puedo investigar nichos de mercado, analizar competencia, y generar correos de ventas profesionales. Di "marketing [nicho]" o preguntá sobre ventas/clientes.
+3. LEGAL - Puedo generar contratos de licencia de clon digital en formato Word (.docx). Di "contrato [nombre] [id] [especialidad] [comisión]".
+4. CLONES DIGITALES - Puedo consultar a expertos de IA especializados. Di "preguntar [id_clon] [pregunta]".
+
+CLONES DISPONIBLES:
+{clones_info}
+
+OTRAS CAPACIDADES:
+- Puedo crear una cuenta nueva para ti o ayudarte a iniciar sesión
+- Puedo generar reportes financieros y exportar datos
+- Tengo una demo interactiva donde puedes probar los clones gratis: /demo.html
+- Puedo gestionar órdenes, facturas y pagos
+- Puedo ayudarte a registrar tu propio clon digital
+
+REGLAS DE COMPORTAMIENTO:
+- Responde como un asistente inteligente, amigable y profesional
+- NUNCA digas "no puedo hacer eso" sin antes ofrecer algo relacionado que SÍ puedas hacer
+- Si el usuario pregunta algo fuera de tu alcance, responde con conocimiento general y SUYEREE naturalmente lo que la plataforma puede hacer por él/ella
+- Si el usuario saluda, preséntate y explica qué puedes hacer de forma natural
+- Si el usuario pregunta sobre un tema específico, intenta relacionarlo con alguna capacidad de la plataforma
+- Usa un tono cercano, como un asistente personal que realmente conoce la plataforma
+- Cuando ejecutes una acción (finanzas, marketing, etc.), añade una sugerencia natural de qué más puedes hacer
+- Si el usuario parece confundido o no sabe qué preguntar, sugiérele opciones concretas de forma amigable
+- Responde en español, de forma concisa pero completa
+"""
+
+
     def procesar_comando(self, comando):
-        # Intentar clasificación inteligente vía IA primero
-        ia_decision = self.clasificar_intencion_ia(comando)
+        """Punto de entrada principal: procesa cualquier mensaje del usuario."""
+        cmd_lower = comando.lower().strip()
 
-        if ia_decision:
-            intent = ia_decision.get("intent")
-            normalized_cmd = ia_decision.get("normalized_command", "")
-            reasoning = ia_decision.get("reasoning", "")
+        # 1. Detectar comandos de departamento por palabras clave (ejecución directa)
+        #    Esto permite que los botones de la UI sigan funcionando
+        if cmd_lower in ("finanzas",) or any(w in cmd_lower for w in ("finanzas", "flujo de caja", "cuentas por cobrar", "cuentas por pagar", "alertas financieras")):
+            return self._ejecutar_finanzas(comando)
 
-            # Si la IA decidió que es un comando ejecutable, usamos la versión normalizada
-            if intent != "general":
-                # Loguear que la IA tomó la decisión
-                logger.info(f"[IA ROUTER] Intención: {intent} | Razón: {reasoning} | Comando: {normalized_cmd}")
-                # Ejecutamos la lógica usando el comando normalizado por la IA
-                return self.ejecutar_logica_comando(normalized_cmd, ia_tag=intent)
+        if cmd_lower.startswith("marketing") or any(w in cmd_lower for w in ("nicho de mercado", "investigar mercado", "estudio de mercado", "correo de ventas")):
+            return self._ejecutar_marketing(comando)
 
-            # Si es intención general, intentar generar respuesta inteligente
-            respuesta_ia = self.generar_respuesta_ia(comando)
-            if respuesta_ia:
-                return {
-                    "tag": "cerebro",
-                    "message": respuesta_ia,
-                    "console_log": "Respuesta generada por IA para consulta general."
-                }
+        if cmd_lower.startswith("contrato") or ("contrato" in cmd_lower and any(w in cmd_lower for w in ("generar", "crear", "redactar"))):
+            return self._ejecutar_legal(comando)
 
-        # Fallback: Ruteo tradicional basado en palabras clave
-        return self.ejecutar_logica_comando(comando)
+        if cmd_lower.startswith("preguntar") or ("clon" in cmd_lower and any(w in cmd_lower for w in ("preguntar", "consultar", "hablar", "chat"))):
+            return self._ejecutar_desarrollo(comando)
 
-    def ejecutar_logica_comando(self, comando, ia_tag=None):
-        cmd_lower = comando.lower()
-
-        # 1. COMANDO DE FINANZAS
-        if "finanzas" in cmd_lower or "flujo" in cmd_lower or "caja" in cmd_lower:
-            datos_fin = gestor_financiero.cargar_finanzas()
-
-            # Formatear flujo de caja en texto
-            flujo_texto = "📊 **Flujo de Caja:**\n"
-            for mes, val in sorted(datos_fin["flujo_caja"].items()):
-                flujo_texto += f"- **{mes}**: Ingresos: ${val['ingresos_real']} (Plan: ${val['ingresos_plan']}) | Egresos: ${val['egresos_real']} (Plan: ${val['egresos_plan']})\n"
-
-            # Generar alertas
-            alertas = []
-            hoy = datetime.now().date()
-
-            for c in datos_fin["cuentas_cobrar"]:
-                if c["estado"] == "Pendiente":
-                    fv = datetime.strptime(c["vencimiento"], "%Y-%m-%d").date()
-                    if (fv - hoy).days < 0:
-                        alertas.append(f"⚠️ **Cobro Vencido**: {c['id']} ({c['cliente']}) - ${c['monto']}")
-
-            for p in datos_fin["cuentas_pagar"]:
-                if p["estado"] == "Pendiente":
-                    fv = datetime.strptime(p["vencimiento"], "%Y-%m-%d").date()
-                    dif = (fv - hoy).days
-                    if dif < 0:
-                        alertas.append(f"🚨 **Pago Vencido**: {p['id']} ({p['proveedor']}) - ${p['monto']}")
-                    elif 0 <= dif <= 3:
-                        alertas.append(f"⏰ **Pago Próximo ({dif} días)**: {p['id']} ({p['proveedor']}) - ${p['monto']}")
-
-            alertas_texto = "🔔 **Alertas Financieras:**\n" + ("\n".join(alertas) if alertas else "Sin alertas pendientes.")
-
+        if any(p in cmd_lower for p in ["demo", "link de prueba", "probar gratis"]):
             return {
-                "tag": ia_tag if ia_tag else "operaciones",
-                "message": f"Accediendo a la base de datos financiera del departamento...\n\n{flujo_texto}\n{alertas_texto}",
-                "console_log": "Consulta de base de datos financiera realizada exitosamente."
-            }
-
-        # 2. COMANDO DE INVESTIGACIÓN DE MERCADO (MARKETING)
-        elif "marketing" in cmd_lower or "buscar" in cmd_lower or "nicho" in cmd_lower:
-            nicho = "programacion COBOL"
-            parts = comando.split(None, 1)
-            if len(parts) > 1:
-                nicho = parts[1]
-
-            reporte = agente_ventas_mercado.ejecutar_inteligencia_ventas(nicho)
-            rep_v = reporte["reporte_ventas"]
-
-            msg = (
-                f"📢 **Informe del Agente de Ventas para '{nicho}':**\n\n"
-                f"🎯 **Análisis:** {rep_v['analisis_oportunidad']}\n\n"
-                f"🏢 **Clientes Objetivo:** {', '.join(rep_v['empresas_objetivo'])}\n\n"
-                f"📧 **Propuesta de Correo Frío:**\n```\n{rep_v['correo_ventas']}\n```"
-            )
-            return {
-                "tag": ia_tag if ia_tag else "marketing",
-                "message": msg,
-                "console_log": f"Reporte de inteligencia generado para '{nicho}'"
-            }
-
-        # 3. COMANDO DE CREAR CONTRATO (LEGAL)
-        elif "contrato" in cmd_lower or "legal" in cmd_lower:
-            parts = comando.split()
-            nombre = "Experto Genérico"
-            id_exp = "experto_gen"
-            especialidad = "Consultoría"
-            comision = 15.0
-
-            if len(parts) >= 4:
-                nombre = parts[1]
-                id_exp = parts[2]
-                especialidad = " ".join(parts[3:5])
-                if len(parts) >= 6:
-                    try:
-                        comision = float(parts[5])
-                    except ValueError:
-                        pass
-            else:
-                return {
-                    "tag": ia_tag if ia_tag else "legal",
-                    "message": "Para redactar un contrato usa el formato:\n`contrato [Nombre] [ID] [Especialidad] [Comision]`\nEjemplo: `contrato Juan jortiz Programacion_SEO 15`",
-                    "console_log": "Intento de generación de contrato con parámetros insuficientes."
-                }
-
-            ruta = generador_contratos.generar_contrato(id_exp, nombre, especialidad, comision)
-            return {
-                "tag": ia_tag if ia_tag else "legal",
-                "message": f"⚖️ **Contrato de Licencia Generado:**\n\n- **Licenciante:** {nombre}\n- **ID de Clon:** {id_exp}\n- **Especialidad:** {especialidad}\n- **Comisión:** {comision}%\n\n📄 Guardado en: `{ruta}`",
-                "console_log": f"Contrato legal generado para {id_exp}."
-            }
-
-        # 4. COMANDO DE CONSULTAR CLON (DESARROLLO)
-        elif "preguntar" in cmd_lower or "clon" in cmd_lower:
-            parts = comando.split(None, 2)
-            if len(parts) >= 3:
-                id_clon = parts[1].strip()
-                pregunta = parts[2].strip()
-
-                respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta)
-                if respuesta_clon:
-                    return {
-                        "tag": ia_tag if ia_tag else "desarrollo",
-                        "message": f"💬 **Respuesta de {id_clon}:**\n\n{respuesta_clon}",
-                        "console_log": f"Consulta al clon '{id_clon}' completada."
-                    }
-                else:
-                    return {
-                        "tag": ia_tag if ia_tag else "desarrollo",
-                        "message": f"❌ El clon '{id_clon}' no está registrado en la base de datos.",
-                        "console_log": f"Fallo al consultar clon: '{id_clon}' no encontrado."
-                    }
-            else:
-                datos_db = motor_clonacion.cargar_datos()
-                clones = list(datos_db["clones"].keys())
-                clones_str = "\n".join([f"- `{c}` ({datos_db['clones'][c]['especialidad']})" for c in clones])
-                return {
-                    "tag": ia_tag if ia_tag else "desarrollo",
-                    "message": f"Para consultar a un clon usa:\n`preguntar [id_clon] [tu pregunta]`\n\n**Clones registrados actualmente:**\n{clones_str}",
-                    "console_log": "Intento de consulta a clon sin parámetros."
-                }
-
-        # 5. MENSAJE POR DEFECTO - Intentar respuesta IA, si no hay API key mostrar ayuda
-        else:
-            # Detectar preguntas sobre demo/link/prueba
-            cmd_lower = comando.lower()
-            if any(p in cmd_lower for p in ["demo", "link", "prueba", "probar", "gratis", "interactuar"]):
-                return {
-                    "tag": "cerebro",
-                    "message": (
-                        "🎯 **Demo Interactiva de SkillTwin**\n\n"
-                        "Puedes probar nuestros expertos de IA gratis aquí:\n"
-                        "**👉 [demo.html](/demo.html)**\n\n"
-                        "En la demo puedes:\n"
-                        "- Hablar con 12 expertos digitales\n"
-                        "- Hacer 3 preguntas gratis sin registro\n"
-                        "- Ver cómo funciona la plataforma\n\n"
-                        "¿Te gustaría ver algo más?"
-                    ),
-                    "console_log": "Enlace de demo compartido."
-                }
-
-            # Intentar generar respuesta inteligente con IA
-            respuesta_ia = self.generar_respuesta_ia(comando)
-            if respuesta_ia:
-                return {
-                    "tag": ia_tag if ia_tag else "cerebro",
-                    "message": respuesta_ia,
-                    "console_log": "Respuesta generada por IA para comando no reconocido."
-                }
-
-            # Fallback: mostrar ayuda estática
-            return {
-                "tag": ia_tag if ia_tag else "cerebro",
+                "tag": "cerebro",
                 "message": (
-                    f"Comando '{comando}' recibido por el Cerebro.\n\n"
-                    f"Puedo ejecutar acciones reales en tus departamentos si escribes:\n"
-                    f"1. 📊 **`finanzas`**: Muestra el flujo de caja y alertas reales del negocio.\n"
-                    f"2. 📢 **`marketing [nicho]`**: Realiza un estudio de mercado web real y redacta un correo persuasivo.\n"
-                    f"3. ⚖️ **`contrato [Nombre] [ID] [Especialidad] [Comisión]`**: Redacta y firma un contrato de licencia.\n"
-                    f"4. 💬 **`preguntar [ID_Clon] [pregunta]`**: Lanza una consulta al motor de clonación de un experto.\n"
-                    f"5. 🔗 **`demo`**: Obtén el enlace a la demo interactiva\n\n"
-                    f"O simplemente **pregúntame lo que quieras** y responderé de forma inteligente."
+                    "🎯 **¡Claro!** Puedes probar nuestra demo interactiva gratis:\n\n"
+                    "**👉 [demo.html](/demo.html)**\n\n"
+                    "Ahí puedes hablar con 12 expertos digitales sin registro. "
+                    "Es la mejor forma de ver cómo funcionan los gemelos de IA antes de contratar uno.\n\n"
+                    "¿Te gustaría que te cuente más sobre lo que hacemos?"
                 ),
-                "console_log": "Comando genérico procesado por el Cerebro Central."
+                "console_log": "Enlace de demo compartido."
+            }
+
+        # 2. Para todo lo demás: usar IA para responder como un cerebro inteligente
+        return self._responder_con_ia(comando)
+
+    def _responder_con_ia(self, comando):
+        """Responde a cualquier pregunta de forma conversacional, sugiriendo capacidades de la plataforma."""
+        contexto = self._obtener_contexto_plataforma()
+
+        prompt = f"""{contexto}
+
+MENSAJE DEL USUARIO: "{comando}"
+
+INSTRUCCIONES:
+1. Responde a la pregunta o comentario del usuario de forma natural, amigable y profesional.
+2. Si el usuario saluda, preséntate brevemente y explica qué puedes hacer.
+3. Si el usuario pregunta algo específico, respóndelo y SUYERE de forma natural qué más puedes hacer por él/ella relacionado con el tema.
+4. Si el usuario pregunta algo fuera de tu alcance, responde con conocimiento general y luego ofrece lo que la plataforma SÍ puede hacer.
+5. NUNCA uses un tono de robot o de chatbot genérico. Habla como un asistente personal que genuinamente conoce la plataforma.
+6. Usa markdown ligero (negritas, listas) para make la respuesta legible.
+7. Sé conciso pero completo. No des respuestas de una sola línea.
+8. Si el usuario parece perdido o no sabe qué preguntar, sugiérele 2-3 cosas concretas que puede hacer ahora mismo.
+
+Responde en español:"""
+
+        respuesta_ia = self._llamar_gemini(prompt, temperature=0.7, max_tokens=600)
+
+        if respuesta_ia:
+            return {
+                "tag": "cerebro",
+                "message": respuesta_ia,
+                "console_log": "Respuesta generada por el Cerebro Central."
+            }
+
+        # Fallback conversacional sin API key
+        return self._fallback_conversacional(comando)
+
+    def _fallback_conversacional(self, comando):
+        """Respuesta conversacional cuando no hay API key de Gemini."""
+        cmd_lower = comando.lower().strip()
+
+        if any(w in cmd_lower for w in ["hola", "buenos", "buenas", "hey", "qué tal", "saludos", "hello", "hi"]):
+            return {
+                "tag": "cerebro",
+                "message": (
+                    "¡Hola! 👋 Soy el **Cerebro Central de SkillTwin**.\n\n"
+                    "Puedo ayudarte con varias cosas:\n\n"
+                    "📊 **Finanzas** — Consultar flujo de caja, alertas de pagos y cuentas del negocio\n"
+                    "📢 **Marketing** — Investigar nichos de mercado y generar correos de ventas\n"
+                    "⚖️ **Legal** — Generar contratos de licencia para expertos\n"
+                    "💬 **Clones** — Hablar con 12 expertos digitales especializados\n\n"
+                    "Solo escríbeme lo que necesites o dime qué te interesa. 😊"
+                ),
+                "console_log": "Saludo detectado, respuesta de bienvenida."
+            }
+
+        if any(w in cmd_lower for w in ["qué puedes", "qué haces", "ayuda", "help", "opciones", "comandos", "qué sabes"]):
+            return {
+                "tag": "cerebro",
+                "message": (
+                    "¡Buena pregunta! Esto es lo que puedo hacer por ti:\n\n"
+                    "📊 **Finanzas** — Escribe `finanzas` para ver el flujo de caja y alertas reales del negocio\n\n"
+                    "📢 **Marketing** — Escribe `marketing [nicho]` para investigar un mercado y generar un correo de ventas. Ejemplo: `marketing programacion COBOL`\n\n"
+                    "⚖️ **Legal** — Escribe `contrato [Nombre] [ID] [Especialidad] [Comisión]` para generar un contrato. Ejemplo: `contrato María García maria_garcia UX_Design 15`\n\n"
+                    "💬 **Consultar un experto** — Escribe `preguntar [id_clon] [tu pregunta]` para hablar con uno de nuestros 12 clones digitales\n\n"
+                    "🔗 **Demo gratis** — Escribe `demo` para probar la plataforma sin registro\n\n"
+                    "O simplemente **pregúntame lo que quieras** — respondo sobre cualquier tema y te sugiero cómo la plataforma puede ayudarte."
+                ),
+                "console_log": "Solicitud de ayuda, menú de capacidades mostrado."
+            }
+
+        if any(w in cmd_lower for w in ["quién eres", "qué eres", "cuéntame de ti", "about"]):
+            return {
+                "tag": "cerebro",
+                "message": (
+                    "Soy el **Cerebro Central de SkillTwin** — una inteligencia artificial que conecta a expertos profesionales con clientes que necesitan su conocimiento.\n\n"
+                    "Funcionamos así:\n"
+                    "1. Los expertos registran su conocimiento y crean un **gemelo digital** (clone de IA)\n"
+                    "2. Sus clientes pueden consultar al clone 24/7 en la web\n"
+                    "3. Los expertos ganan dinero por cada consulta\n\n"
+                    "Yo coordino todo: finanzas, marketing, contratos, y las consultas a los 12 clones expertos que ya tenemos en la plataforma.\n\n"
+                    "¿Te gustaría probar la [demo](/demo.html) o saber cómo empezar?"
+                ),
+                "console_log": "Pregunta sobre identidad, presentación de la plataforma."
+            }
+
+        # Respuesta genérica conversacional
+        return {
+            "tag": "cerebro",
+            "message": (
+                f"Entendido — '{comando}'.\n\n"
+                "Aunque no tengo la conexión a IA activa en este momento, puedo ayudarte directamente con estas acciones:\n\n"
+                "📊 **`finanzas`** — Ver el estado financiero del negocio\n"
+                "📢 **`marketing [nicho]`** — Investigar un mercado y generar un correo de ventas\n"
+                "⚖️ **`contrato [Nombre] [ID] [Esp] [Comisión]`** — Generar un contrato de licencia\n"
+                "💬 **`preguntar [id_clon] [pregunta]`** — Consultar con un experto digital\n"
+                "🔗 **`demo`** — Probar la plataforma gratis\n\n"
+                "¿Cuál de estas te gustaría probar? O escríbeme tu pregunta y haré lo posible por ayudarte."
+            ),
+            "console_log": "Comando procesado sin IA (fallback conversacional)."
+        }
+
+    def _ejecutar_finanzas(self, comando):
+        """Ejecuta la consulta financiera real."""
+        datos_fin = gestor_financiero.cargar_finanzas()
+
+        flujo_texto = "📊 **Flujo de Caja:**\n"
+        for mes, val in sorted(datos_fin["flujo_caja"].items()):
+            flujo_texto += f"- **{mes}**: Ingresos: ${val['ingresos_real']} (Plan: ${val['ingresos_plan']}) | Egresos: ${val['egresos_real']} (Plan: ${val['egresos_plan']})\n"
+
+        alertas = []
+        hoy = datetime.now().date()
+
+        for c in datos_fin["cuentas_cobrar"]:
+            if c["estado"] == "Pendiente":
+                fv = datetime.strptime(c["vencimiento"], "%Y-%m-%d").date()
+                if (fv - hoy).days < 0:
+                    alertas.append(f"⚠️ **Cobro Vencido**: {c['id']} ({c['cliente']}) - ${c['monto']}")
+
+        for p in datos_fin["cuentas_pagar"]:
+            if p["estado"] == "Pendiente":
+                fv = datetime.strptime(p["vencimiento"], "%Y-%m-%d").date()
+                dif = (fv - hoy).days
+                if dif < 0:
+                    alertas.append(f"🚨 **Pago Vencido**: {p['id']} ({p['proveedor']}) - ${p['monto']}")
+                elif 0 <= dif <= 3:
+                    alertas.append(f"⏰ **Pago Próximo ({dif} días)**: {p['id']} ({p['proveedor']}) - ${p['monto']}")
+
+        alertas_texto = "🔔 **Alertas Financieras:**\n" + ("\n".join(alertas) if alertas else "Sin alertas pendientes.")
+
+        # Sugerencia natural al final
+        mensaje = (
+            f"Accedí a la base de datos financiera del departamento:\n\n{flujo_texto}\n{alertas_texto}\n\n"
+            "---\n"
+            "💡 *También puedo ayudarte con marketing, contratos legales o consultas a nuestros expertos digitales.*"
+        )
+
+        return {
+            "tag": "operaciones",
+            "message": mensaje,
+            "console_log": "Consulta de base de datos financiera realizada exitosamente."
+        }
+
+    def _ejecutar_marketing(self, comando):
+        """Ejecuta la investigación de mercado."""
+        nicho = "programacion COBOL"
+        parts = comando.split(None, 1)
+        if len(parts) > 1:
+            nicho = parts[1]
+
+        reporte = agente_ventas_mercado.ejecutar_inteligencia_ventas(nicho)
+        rep_v = reporte["reporte_ventas"]
+
+        msg = (
+            f"📢 **Informe del Agente de Ventas para '{nicho}':**\n\n"
+            f"🎯 **Análisis:** {rep_v['analisis_oportunidad']}\n\n"
+            f"🏢 **Clientes Objetivo:** {', '.join(rep_v['empresas_objetivo'])}\n\n"
+            f"📧 **Propuesta de Correo Frío:**\n```\n{rep_v['correo_ventas']}\n```\n\n"
+            "---\n"
+            "💡 *¿Quieres que genere un contrato de licencia para formalizar la relación con estos clientes? "
+            "O puedo consultar a uno de nuestros expertos digitales para más detalles.*"
+        )
+        return {
+            "tag": "marketing",
+            "message": msg,
+            "console_log": f"Reporte de inteligencia generado para '{nicho}'"
+        }
+
+    def _ejecutar_legal(self, comando):
+        """Ejecuta la generación de contrato."""
+        parts = comando.split()
+        nombre = "Experto Genérico"
+        id_exp = "experto_gen"
+        especialidad = "Consultoría"
+        comision = 15.0
+
+        if len(parts) >= 4:
+            nombre = parts[1]
+            id_exp = parts[2]
+            especialidad = " ".join(parts[3:5])
+            if len(parts) >= 6:
+                try:
+                    comision = float(parts[5])
+                except ValueError:
+                    pass
+        else:
+            return {
+                "tag": "legal",
+                "message": (
+                    "⚖️ **Para generar un contrato necesito algunos datos:**\n\n"
+                    "Usa el formato:\n"
+                    "`contrato [Nombre] [ID] [Especialidad] [Comisión]`\n\n"
+                    "**Ejemplo:** `contrato María García maria_garcia UX_Design 15`\n\n"
+                    "¿Me pasas los datos del experto?"
+                ),
+                "console_log": "Intento de generación de contrato con parámetros insuficientes."
+            }
+
+        ruta = generador_contratos.generar_contrato(id_exp, nombre, especialidad, comision)
+        return {
+            "tag": "legal",
+            "message": (
+                f"⚖️ **Contrato de Licencia Generado:**\n\n"
+                f"- **Licenciante:** {nombre}\n"
+                f"- **ID de Clon:** {id_exp}\n"
+                f"- **Especialidad:** {especialidad}\n"
+                f"- **Comisión:** {comision}%\n\n"
+                f"📄 Guardado en: `{ruta}`\n\n"
+                "---\n"
+                "💡 *El contrato está listo para enviar al cliente. "
+                "¿Necesitas algo más? Puedo investigar un mercado, consultar a un experto o revisar las finanzas.*"
+            ),
+            "console_log": f"Contrato legal generado para {id_exp}."
+        }
+
+    def _ejecutar_desarrollo(self, comando):
+        """Ejecuta la consulta a un clone digital."""
+        parts = comando.split(None, 2)
+        if len(parts) >= 3:
+            id_clon = parts[1].strip()
+            pregunta = parts[2].strip()
+
+            respuesta_clon = motor_clonacion.consultar_clon(id_clon, pregunta)
+            if respuesta_clon:
+                return {
+                    "tag": "desarrollo",
+                    "message": (
+                        f"💬 **Respuesta de {id_clon}:**\n\n{respuesta_clon}\n\n"
+                        "---\n"
+                        "💡 *¿Quieres consultar a otro experto? "
+                        "También puedo generar un contrato, investigar un mercado o revisar las finanzas.*"
+                    ),
+                    "console_log": f"Consulta al clon '{id_clon}' completada."
+                }
+            else:
+                return {
+                    "tag": "desarrollo",
+                    "message": f"❌ El clon '{id_clon}' no está registrado. ¿Quieres ver la lista de clones disponibles?",
+                    "console_log": f"Fallo al consultar clon: '{id_clon}' no encontrado."
+                }
+        else:
+            datos_db = motor_clonacion.cargar_datos()
+            clones = list(datos_db["clones"].keys())
+            clones_str = "\n".join([f"- `{c}` ({datos_db['clones'][c]['especialidad']})" for c in clones])
+            return {
+                "tag": "desarrollo",
+                "message": (
+                    f"💬 **Consultar un experto digital:**\n\n"
+                    f"Usa: `preguntar [id_clon] [tu pregunta]`\n\n"
+                    f"**Clones disponibles:**\n{clones_str}\n\n"
+                    f"¿Cuál te interesa?"
+                ),
+                "console_log": "Intento de consulta a clon sin parámetros."
             }
 
 def run_server():
