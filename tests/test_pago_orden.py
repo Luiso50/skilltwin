@@ -92,6 +92,20 @@ class GestorPagoOrdenTests(unittest.TestCase):
         self.assertEqual(orden['pago']['metodo_pago'], 'stripe')
         self.assertEqual(len(transacciones), 1)
 
+    def test_crear_factura_rechaza_orden_inexistente(self):
+        with self.assertRaisesRegex(ValueError, "Orden no encontrada"):
+            self.gestor_pagos.crear_factura(
+                'ORD-DOES-NOT-EXIST',
+                'cliente@test.com',
+                100.0,
+                10.0,
+                5,
+                18.0,
+                'Invalid order',
+            )
+
+        self.assertEqual(self.gestor_pagos.cargar_pagos()['facturas'], {})
+
     def test_cargar_ordenes_normaliza_ordenes_legacy(self):
         legacy = {
             'ordenes': {

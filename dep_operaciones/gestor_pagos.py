@@ -177,6 +177,11 @@ def guardar_pagos(datos):
 
 
 def crear_factura(orden_id, cliente_email, monto_total, comision, cantidad_horas, tarifa_hora, descripcion_proyecto):
+    from dep_operaciones import gestor_ordenes
+
+    if not gestor_ordenes.obtener_orden(orden_id):
+        raise ValueError("Orden no encontrada")
+
     factura_id = f"FAC-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
     nueva_factura = {
         "id": factura_id, "orden_id": orden_id, "cliente_email": cliente_email,
