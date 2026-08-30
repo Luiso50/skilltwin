@@ -22,9 +22,15 @@ class DatabaseTests(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_get_backend_name_reflects_selected_driver(self):
-        self.assertEqual(database.get_backend_name(), "sqlite")
-        with patch.object(database, "_USE_POSTGRES", True):
+        with patch.dict(os.environ, {"SKILLTWIN_USE_SQLITE": "1"}), \
+                patch.object(database, "_USE_POSTGRES", False):
+            self.assertEqual(database.get_backend_name(), "sqlite")
+        with patch.dict(os.environ, {"SKILLTWIN_USE_SQLITE": "1"}), \
+                patch.object(database, "_USE_POSTGRES", True):
             self.assertEqual(database.get_backend_name(), "postgresql")
+        with patch.dict(os.environ, {"SKILLTWIN_USE_SQLITE": "0"}), \
+                patch.object(database, "_USE_POSTGRES", False):
+            self.assertEqual(database.get_backend_name(), "json")
 
     def test_init_database_creates_file(self):
         self.assertTrue(os.path.exists(self.db_path))

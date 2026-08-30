@@ -26,7 +26,9 @@ _MIGRATION_VERSION = 2
 
 def get_backend_name():
     """Devuelve el motor de persistencia seleccionado al arrancar."""
-    return "postgresql" if _USE_POSTGRES else "sqlite"
+    if _USE_POSTGRES:
+        return "postgresql"
+    return "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json"
 
 
 # ── Adaptadores de cursor y conexión ────────────────────────────────────────
