@@ -182,8 +182,12 @@ def handle_procesar_pago(handler):
             return
 
         data = handler.read_json_body()
-        factura_id = data.get("factura_id", "").strip()
-        metodo_pago = data.get("metodo_pago", "tarjeta_credito").strip()
+        factura_id = data.get("factura_id", "")
+        metodo_pago = data.get("metodo_pago", "tarjeta_credito")
+        if not isinstance(factura_id, str) or not isinstance(metodo_pago, str):
+            raise ValueError("Datos de pago inválidos")
+        factura_id = factura_id.strip()
+        metodo_pago = metodo_pago.strip()
         factura = gestor_pagos.obtener_factura(factura_id)
         if not factura:
             handler.send_error_response("Factura no encontrada", 404)
@@ -207,6 +211,9 @@ def handle_procesar_pago(handler):
             })
         else:
             handler.send_error_response(resultado)
+    except ValueError as e:
+        logger.warning(f"Solicitud inválida en /api/procesar-pago: {e}")
+        handler.send_error_response(str(e), 400)
     except Exception as e:
         logger.error(f"Error en /api/procesar-pago: {e}")
         handler.send_error_response(str(e), 500)

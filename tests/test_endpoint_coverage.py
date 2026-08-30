@@ -4,6 +4,7 @@ import os
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from dep_operaciones import database, security
 from dep_operaciones import gestor_ordenes, gestor_pagos
@@ -160,6 +161,27 @@ class EndpointCoverageTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("Webhook", data["error"])
 
+    def test_stripe_webhook_invalid_amount_returns_400(self):
+        event = {
+            "type": "checkout.session.completed",
+            "data": {"object": {
+                "id": "cs_test_invalid_amount",
+                "amount_total": "17500",
+                "metadata": {
+                    "factura_id": "FAC-INVALID-AMOUNT",
+                    "orden_id": "ORD-INVALID-AMOUNT",
+                },
+            }},
+        }
+        factura = {"id": "FAC-INVALID-AMOUNT", "orden_id": "ORD-INVALID-AMOUNT"}
+        with patch("cerebro.route_handlers.stripe_api.stripe_service.handle_webhook",
+                   return_value=(event, None)), \
+                patch("cerebro.route_handlers.stripe_api.gestor_pagos.obtener_factura",
+                      return_value=factura):
+            status, data = self._post("/api/stripe/webhook", {"event": "test"})
+        self.assertEqual(status, 400)
+        self.assertIn("importe", data["error"])
+
     # === Auth endpoints ===
 
     def test_auth_me_with_valid_token(self):
@@ -299,6 +321,16 @@ class EndpointCoverageTests(unittest.TestCase):
         )
         self.assertEqual(status, 404)
         self.assertIn("Factura no encontrada", data["error"])
+
+    def test_customer_process_payment_rejects_non_string_invoice_id(self):
+        status, data = self._post(
+            "/api/procesar-pago",
+            {"factura_id": None},
+            self.customer_token,
+            csrf=True,
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("Datos de pago inválidos", data["error"])
 
     def test_customer_create_order(self):
         status, data = self._post(

@@ -196,6 +196,9 @@ def handle_stripe_webhook(handler):
             if factura_id and orden_id:
                 register_stripe_payment(factura_id, orden_id, amount, pi["id"])
         handler.send_json_response({"received": True})
+    except ValueError as e:
+        logger.warning(f"Solicitud Stripe inválida en /api/stripe/webhook: {e}")
+        handler.send_error_response(str(e), 400)
     except Exception as e:
         logger.error(f"Error procesando webhook de Stripe: {e}")
         handler.send_error_response("Error procesando webhook", 500)
