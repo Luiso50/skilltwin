@@ -35,6 +35,9 @@ jobs:
         python -m coverage report --fail-under=65
 
     - name: Check imports
+      env:
+        SKILLTWIN_USE_SQLITE: '1'
+        SKILLTWIN_ADMIN_SECRET: test-secret-ci
       run: |
         python -c "from dep_operaciones import database, security, gestor_ordenes, gestor_pagos"
         python -c "from dep_desarrollo import motor_clonacion"
