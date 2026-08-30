@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - skilltwin_redis:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   skilltwin:
     build: .
     ports:
@@ -8,6 +20,8 @@ services:
     environment:
       - SKILLTWIN_ADMIN_SECRET=${SKILLTWIN_ADMIN_SECRET:-dev-secret-change-in-production}
       - SKILLTWIN_USE_SQLITE=${SKILLTWIN_USE_SQLITE:-1}
+      - SKILLTWIN_USE_REDIS=${SKILLTWIN_USE_REDIS:-1}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - SKILLTWIN_CORS_ORIGINS=${SKILLTWIN_CORS_ORIGINS:-*}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
@@ -16,6 +30,9 @@ services:
     volumes:
       - skilltwin_data:/app/dep_operaciones
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
@@ -25,3 +42,4 @@ services:
 
 volumes:
   skilltwin_data:
+  skilltwin_redis:

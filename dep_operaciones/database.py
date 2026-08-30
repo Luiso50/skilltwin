@@ -24,6 +24,11 @@ db_lock = threading.RLock()
 _MIGRATION_VERSION = 2
 
 
+def get_backend_name():
+    """Devuelve el motor de persistencia seleccionado al arrancar."""
+    return "postgresql" if _USE_POSTGRES else "sqlite"
+
+
 # ── Adaptadores de cursor y conexión ────────────────────────────────────────
 class _Cursor:
     """Cursor unificado: traduce ? → %s para PostgreSQL y filas a dict."""

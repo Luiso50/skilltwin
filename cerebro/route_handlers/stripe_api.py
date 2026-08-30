@@ -175,11 +175,10 @@ def handle_stripe_webhook(handler):
         content_length = int(handler.headers.get("Content-Length", 0))
         payload = handler.rfile.read(content_length)
         sig_header = handler.headers.get("Stripe-Signature", "")
-        result = stripe_service.handle_webhook(payload, sig_header)
-        if not result.get("success"):
-            handler.send_error_response(result.get("error", "Webhook inválido"), 400)
+        event, error = stripe_service.handle_webhook(payload, sig_header)
+        if error:
+            handler.send_error_response(error, 400)
             return
-        event = result["event"]
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
             metadata = session.get("metadata", {})

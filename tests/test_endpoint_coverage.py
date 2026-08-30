@@ -153,6 +153,13 @@ class EndpointCoverageTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("session_id", data["error"])
 
+    def test_stripe_webhook_invalid_payload_returns_400(self):
+        status, data = self._post(
+            "/api/stripe/webhook", {"invalid": True}
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("Webhook", data["error"])
+
     # === Auth endpoints ===
 
     def test_auth_me_with_valid_token(self):
@@ -262,6 +269,36 @@ class EndpointCoverageTests(unittest.TestCase):
         status, data = self._get("/api/notificaciones", self.customer_token)
         self.assertEqual(status, 200)
         self.assertIn("notificaciones", data)
+
+    def test_customer_mark_notification_missing_order(self):
+        status, data = self._post(
+            "/api/marcar-leida",
+            {"orden_id": "order-does-not-exist", "indice": 0},
+            self.customer_token,
+            csrf=True,
+        )
+        self.assertEqual(status, 404)
+        self.assertIn("Orden no encontrada", data["error"])
+
+    def test_customer_add_rating_missing_order(self):
+        status, data = self._post(
+            "/api/agregar-rating",
+            {"orden_id": "order-does-not-exist", "puntuacion": 5, "resena": "Test"},
+            self.customer_token,
+            csrf=True,
+        )
+        self.assertEqual(status, 404)
+        self.assertIn("Orden no encontrada", data["error"])
+
+    def test_customer_process_payment_missing_invoice(self):
+        status, data = self._post(
+            "/api/procesar-pago",
+            {"factura_id": "invoice-does-not-exist"},
+            self.customer_token,
+            csrf=True,
+        )
+        self.assertEqual(status, 404)
+        self.assertIn("Factura no encontrada", data["error"])
 
     def test_customer_create_order(self):
         status, data = self._post(

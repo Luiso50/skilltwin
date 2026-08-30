@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 import json
+from unittest.mock import patch
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
@@ -19,6 +20,11 @@ class DatabaseTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmpdir.cleanup()
+
+    def test_get_backend_name_reflects_selected_driver(self):
+        self.assertEqual(database.get_backend_name(), "sqlite")
+        with patch.object(database, "_USE_POSTGRES", True):
+            self.assertEqual(database.get_backend_name(), "postgresql")
 
     def test_init_database_creates_file(self):
         self.assertTrue(os.path.exists(self.db_path))

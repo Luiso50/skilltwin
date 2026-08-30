@@ -9,7 +9,7 @@ import urllib.parse
 import platform
 from datetime import datetime
 
-from dep_operaciones import security, gestor_contactos, email_service
+from dep_operaciones import database, security, gestor_contactos, email_service
 from dep_desarrollo import motor_clonacion
 from cerebro.route_handlers import state
 
@@ -75,7 +75,7 @@ def handle_health(handler):
         "errors_total": err_total,
         "avg_response_ms": _get_avg_response_time(),
         "python_version": platform.python_version(),
-        "database": "sqlite" if os.environ.get("SKILLTWIN_USE_SQLITE", "1") == "1" else "json",
+        "database": database.get_backend_name(),
         "backend": backend_state["backend"],
         "session_store": backend_state["session_store"],
         "rate_limit_store": backend_state["rate_limit_store"],

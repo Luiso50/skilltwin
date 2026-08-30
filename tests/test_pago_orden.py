@@ -58,6 +58,40 @@ class GestorPagoOrdenTests(unittest.TestCase):
         self.assertEqual(orden['pago']['metodo_pago'], 'tarjeta_credito')
         self.assertIsNotNone(orden['pago']['fecha_pago'])
 
+    def test_registro_stripe_paga_factura_actualiza_orden_y_es_idempotente(self):
+        from cerebro.route_handlers import stripe_api
+
+        factura_id, factura = self.gestor_pagos.crear_factura(
+            self.orden_id,
+            'cliente@test.com',
+            175.0,
+            25.0,
+            10,
+            15.0,
+            'QA payment flow',
+        )
+
+        stripe_api.register_stripe_payment(
+            factura_id, self.orden_id, 17500, 'cs_test_123'
+        )
+        stripe_api.register_stripe_payment(
+            factura_id, self.orden_id, 17500, 'cs_test_123'
+        )
+
+        factura_pagada = self.gestor_pagos.obtener_factura(factura_id)
+        orden = self.gestor_ordenes.obtener_orden(self.orden_id)
+        transacciones = self.gestor_pagos.cargar_pagos()['transacciones']
+        transaccion = next(iter(transacciones.values()))
+
+        self.assertEqual(factura_pagada['estado'], 'pagada')
+        self.assertEqual(
+            factura_pagada['referencia_transaccion'], transaccion['id']
+        )
+        self.assertEqual(transaccion['numero_referencia'], 'cs_test_123')
+        self.assertEqual(orden['pago']['estado_pago'], 'pagada')
+        self.assertEqual(orden['pago']['metodo_pago'], 'stripe')
+        self.assertEqual(len(transacciones), 1)
+
     def test_cargar_ordenes_normaliza_ordenes_legacy(self):
         legacy = {
             'ordenes': {
