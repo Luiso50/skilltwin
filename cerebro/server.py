@@ -180,11 +180,6 @@ _cache = _Cache(ttl_seconds=int(os.environ.get("SKILLTWIN_CACHE_TTL", "300")))
 
 PORT = int(os.environ.get("PORT", 8000))
 CEREBRO_DIR = os.path.dirname(os.path.abspath(__file__))
-SETTINGS_FILE = os.path.join(CEREBRO_DIR, "server_settings.json")
-DEFAULT_SETTINGS = {
-    "commission": 15.0,
-    "model": "gemini-2.5-flash"
-}
 MAX_REQUEST_BODY_SIZE = 1_048_576
 
 
@@ -201,25 +196,14 @@ def resolve_static_path(request_path):
     return candidate
 
 
-def cargar_ajustes():
-    if not os.path.exists(SETTINGS_FILE):
-        guardar_ajustes(DEFAULT_SETTINGS)
-        return DEFAULT_SETTINGS.copy()
+# ---------------------------------------------------------------------------
+# Import settings module for shared server_settings.json access
+# ---------------------------------------------------------------------------
 
-    try:
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            datos = json.load(f)
-            configuracion = DEFAULT_SETTINGS.copy()
-            configuracion.update(datos)
-            return configuracion
-    except Exception:
-        guardar_ajustes(DEFAULT_SETTINGS)
-        return DEFAULT_SETTINGS.copy()
+from cerebro.route_handlers import settings as _settings_module  # noqa: E402
 
-
-def guardar_ajustes(ajustes):
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(ajustes, f, indent=4, ensure_ascii=False)
+cargar_ajustes = _settings_module.cargar_ajustes
+guardar_ajustes = _settings_module.guardar_ajustes
 
 
 # Cargar la configuración inicial al arrancar el servidor
@@ -481,36 +465,9 @@ class CerebroHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error_response("Endpoint no encontrado", 404)
 
     def _llamar_gemini(self, prompt, temperature=0.7, max_tokens=500, json_mode=False):
-        """Llamada unificada a la API de Gemini."""
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return None
-
-        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key
-        }
-        body = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens
-            }
-        }
-        if json_mode:
-            body["generationConfig"]["responseMimeType"] = "application/json"
-
-        try:
-            req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
-                res_data = json.loads(response.read().decode("utf-8"))
-                return res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except Exception as e:
-            logger.error(f"Error en llamada a Gemini: {e}")
-            return None
+        """Llamada unificada a la API de Gemini (delega a gemini_client)."""
+        from gemini_client import llamar_gemini
+        return llamar_gemini(prompt, temperature, max_tokens, json_mode)
 
     def _obtener_contexto_plataforma(self):
         """Genera el contexto de capacidades de la plataforma para el prompt."""
@@ -883,6 +840,12 @@ def run_server():
         )
     if not os.environ.get("GEMINI_API_KEY"):
         logger.warning("GEMINI_API_KEY no configurada - modo offline activado")
+    else:
+        gemini_ok, gemini_msg = security.validate_gemini_key()
+        if gemini_ok:
+            logger.info(f"Gemini: {gemini_msg}")
+        else:
+            logger.warning(f"Gemini: {gemini_msg}")
     logger.info("Inicializando bases de datos...")
     motor_clonacion.inicializar_db()
     gestor_financiero.inicializar_finanzas()

@@ -2,6 +2,8 @@ import os
 import json
 import logging
 
+from dep_operaciones import security
+
 logger = logging.getLogger('cerebro')
 
 CEREBRO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,7 +63,15 @@ def handle_settings_update(handler):
         ajustes = cargar_ajustes()
 
         if "gemini_key" in datos and datos["gemini_key"]:
-            os.environ["GEMINI_API_KEY"] = datos["gemini_key"]
+            cleaned_key = security.sanitize_gemini_key(datos["gemini_key"])
+            if not cleaned_key:
+                handler.send_json_response({
+                    "success": False,
+                    "message": "La API key de Gemini no es válida. Debe tener al menos 20 caracteres sin espacios."
+                }, status=400)
+                return
+            os.environ["GEMINI_API_KEY"] = cleaned_key
+            logger.info("GEMINI_API_KEY actualizada desde panel de admin")
 
         if "commission" in datos and datos["commission"] is not None:
             ajustes["commission"] = float(datos["commission"])

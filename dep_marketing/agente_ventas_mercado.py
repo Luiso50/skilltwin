@@ -4,13 +4,16 @@ import urllib.request
 import urllib.parse
 import re
 import html  # Importación corregida para unescape
+import logging
 from datetime import datetime
+
+logger = logging.getLogger('skilltwin.agente_ventas')
 
 REPORT_FILE = os.path.join(os.path.dirname(__file__), "reporte_inteligencia.json")
 
 def buscar_en_internet(query):
     """Busca en DuckDuckGo HTML de forma real y extrae resúmenes sin librerías externas."""
-    print(f"\n[BUSQUEDA] [Agente de Investigacion] Buscando en la web: '{query}'...")
+    logger.info(f"Buscando en la web: '{query}'")
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
@@ -32,7 +35,7 @@ def buscar_en_internet(query):
                 resultados.append(texto_limpio)
             return resultados
     except Exception as e:
-        print(f"[ALERTA] Error al conectar con internet: {e}. Usando base de datos interna de respaldo.")
+        logger.warning(f"Error al conectar con internet: {e}. Usando base de datos interna de respaldo.")
         return [
             "Tendencia: Gran escasez de expertos en mantenimiento de bases de datos COBOL legadas en banca.",
             "Demanda: Crecimiento del 200% en solicitudes de consultoría sobre cumplimiento regulatorio de IA (AI Act).",
@@ -41,7 +44,7 @@ def buscar_en_internet(query):
 
 def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
     """Utiliza Gemini para sintetizar los hallazgos y proponer una estrategia de ventas."""
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    from gemini_client import llamar_gemini
 
     contexto = "\n".join([f"- {d}" for d in datos_busqueda])
     prompt = (
@@ -60,30 +63,17 @@ def analizar_datos_con_gemini(datos_busqueda, nicho, api_key):
         f"}}"
     )
 
-    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
-    body = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }],
-        "generationConfig": {
-            "responseMimeType": "application/json"
-        }
-    }
+    # Usar el cliente compartido de Gemini con modo JSON
+    json_response = llamar_gemini(prompt, temperature=0.7, max_tokens=1000, json_mode=True)
 
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(body).encode("utf-8"),
-            headers=headers,
-            method="POST"
-        )
-        with urllib.request.urlopen(req) as response:  # nosec B310
-            res_data = json.loads(response.read().decode("utf-8"))
-            json_response = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    if json_response:
+        try:
             return json.loads(json_response)
-    except Exception as e:
-        print(f"[ALERTA] Error al procesar con la IA: {e}")
-        return None
+        except json.JSONDecodeError:
+            logger.error(f"Error al parsear respuesta JSON de Gemini: {json_response[:200]}")
+            return None
+
+    return None
 
 def analizar_datos_offline(datos_busqueda, nicho):
     """Fallback offline en caso de que no haya API Key."""
@@ -107,7 +97,7 @@ def analizar_datos_offline(datos_busqueda, nicho):
 
 def ejecutar_inteligencia_ventas(nicho):
     """Orquesta la investigación de mercado, el análisis y la creación de la estrategia de venta."""
-    print(f"\n[VENTAS] [Agente de Ventas] Iniciando ciclo de prospeccion para el nicho: {nicho}...")
+    logger.info(f"Iniciando ciclo de prospeccion para el nicho: {nicho}")
 
     # 1. Buscar información del mercado
     query = f"demand for {nicho} skills shortage 2026"
@@ -133,18 +123,18 @@ def ejecutar_inteligencia_ventas(nicho):
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         json.dump(informe_final, f, indent=4, ensure_ascii=False)
 
-    print(f"\n[ARCHIVO] Reporte corporativo guardado en: {REPORT_FILE}")
+    logger.info(f"Reporte corporativo guardado en: {REPORT_FILE}")
 
-    # Mostrar resultados en pantalla
-    print("\n" + "="*50)
-    print("      INFORME GENERADO POR EL AGENTE DE VENTAS")
-    print("="*50)
-    print(f"OPORTUNIDAD: {reporte['analisis_oportunidad']}")
-    print(f"EMPRESAS OBJETIVO: {', '.join(reporte['empresas_objetivo'])}")
-    print("\nPROPUESTA DE CORREO REDACTADA:")
-    print("-" * 50)
-    print(reporte['correo_ventas'])
-    print("-" * 50)
+    # Logear resultados
+    logger.info("="*50)
+    logger.info("INFORME GENERADO POR EL AGENTE DE VENTAS")
+    logger.info("="*50)
+    logger.info(f"OPORTUNIDAD: {reporte['analisis_oportunidad']}")
+    logger.info(f"EMPRESAS OBJETIVO: {', '.join(reporte['empresas_objetivo'])}")
+    logger.info("PROPUESTA DE CORREO REDACTADA:")
+    logger.info("-" * 50)
+    logger.info(reporte['correo_ventas'])
+    logger.info("-" * 50)
 
     return informe_final
 

@@ -1,8 +1,6 @@
 import os
 import json
 import logging
-import urllib.request
-import urllib.parse
 from datetime import datetime
 import threading
 import uuid
@@ -524,8 +522,7 @@ def consultar_clon_offline(clon, pregunta, session_id=None):
 
 def consultar_clon_online(clon, pregunta, api_key, session_id=None):
     """Consulta al clon con contexto de memoria y conocimiento estructurado."""
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+    from gemini_client import llamar_gemini
 
     nombre = clon["nombre"]
     especialidad = clon["especialidad"]
@@ -583,35 +580,17 @@ def consultar_clon_online(clon, pregunta, api_key, session_id=None):
 
     prompt = "\n".join(prompt_parts)
 
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": api_key
-    }
-    body = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
+    # Usar el cliente compartido de Gemini
+    respuesta = llamar_gemini(prompt, temperature=0.7, max_tokens=500, json_mode=False)
 
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(body).encode("utf-8"),
-            headers=headers,
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=15) as response:  # nosec B310
-            res_data = json.loads(response.read().decode("utf-8"))
-            respuesta = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    if respuesta:
+        memoria.agregar_interaccion(pregunta, respuesta, exitosa=True)
+        return respuesta
 
-            # Guardar interacción exitosa en memoria
-            memoria.agregar_interaccion(pregunta, respuesta, exitosa=True)
-
-            return respuesta
-    except Exception as e:
-        error_msg = f"Error al conectar con la API de Gemini: {e}\nCausa: Asegúrate de que tu GEMINI_API_KEY sea correcta."
-        memoria.agregar_interaccion(pregunta, error_msg, exitosa=False)
-        return error_msg
+    # Si Gemini falló, intentar fallback offline con más detalle
+    logger.warning("Gemini no respondió, usando modo offline")
+    memoria.agregar_interaccion(pregunta, "Gemini no respondió", exitosa=False)
+    return consultar_clon_offline(clon, pregunta, session_id)
 
 
 def consultar_clon(id_clon, pregunta, session_id=None):

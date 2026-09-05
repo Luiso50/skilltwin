@@ -16,34 +16,38 @@ class ServerConfigTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.settings_path = os.path.join(self.tmpdir.name, 'server_settings_test.json')
+        from cerebro.route_handlers import settings
+        self._original_settings_file = settings.SETTINGS_FILE
 
     def tearDown(self):
+        from cerebro.route_handlers import settings
+        settings.SETTINGS_FILE = self._original_settings_file
         self.tmpdir.cleanup()
 
     def test_cargar_ajustes_archivo_no_existe(self):
-        import server
-        server.SETTINGS_FILE = self.settings_path
-        ajustes = server.cargar_ajustes()
+        from cerebro.route_handlers import settings
+        settings.SETTINGS_FILE = self.settings_path
+        ajustes = settings.cargar_ajustes()
         self.assertNotIn('gemini_key', ajustes)
         self.assertIn('commission', ajustes)
         self.assertIn('model', ajustes)
 
     def test_cargar_ajustes_archivo_existe(self):
-        import server
+        from cerebro.route_handlers import settings
         config_test = {'commission': 20.0, 'model': 'gemini-test'}
         with open(self.settings_path, 'w', encoding='utf-8') as f:
             json.dump(config_test, f)
-        server.SETTINGS_FILE = self.settings_path
+        settings.SETTINGS_FILE = self.settings_path
 
-        ajustes = server.cargar_ajustes()
+        ajustes = settings.cargar_ajustes()
         self.assertNotIn('gemini_key', ajustes)
         self.assertEqual(ajustes['commission'], 20.0)
 
     def test_guardar_ajustes(self):
-        import server
-        server.SETTINGS_FILE = self.settings_path
+        from cerebro.route_handlers import settings
+        settings.SETTINGS_FILE = self.settings_path
         nuevos_ajustes = {'commission': 25.0, 'model': 'nuevo_modelo'}
-        server.guardar_ajustes(nuevos_ajustes)
+        settings.guardar_ajustes(nuevos_ajustes)
 
         with open(self.settings_path, 'r', encoding='utf-8') as f:
             guardados = json.load(f)

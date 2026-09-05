@@ -314,7 +314,3257 @@
                 "firma_cliente": false,
                 "fecha_firma": null
             }
+        },
+        "ORD-20260830-63A699": {
+            "id": "ORD-20260830-63A699",
+            "cliente_email": "cliente-a-test-admin-can-open-sse-events-with-token@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:35.586371",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:35.586380",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-3931E2": {
+            "id": "ORD-20260830-3931E2",
+            "cliente_email": "cliente-b-test-admin-can-open-sse-events-with-token@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:35.595407",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:35.595461",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-E936F4": {
+            "id": "ORD-20260830-E936F4",
+            "cliente_email": "cliente-a-test-csrf-token-reuse-is-rejected@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:36.578524",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:36.578529",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": true
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-C95838": {
+            "id": "ORD-20260830-C95838",
+            "cliente_email": "cliente-b-test-csrf-token-reuse-is-rejected@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:36.581059",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:36.581066",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-905523": {
+            "id": "ORD-20260830-905523",
+            "cliente_email": "cliente-a-test-customer-cannot-access-admin-dashboard@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:37.566894",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:37.566898",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-5C970D": {
+            "id": "ORD-20260830-5C970D",
+            "cliente_email": "cliente-b-test-customer-cannot-access-admin-dashboard@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:37.569532",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:37.569542",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-128EC2": {
+            "id": "ORD-20260830-128EC2",
+            "cliente_email": "cliente-a-test-customer-cannot-access-admin-dashboard-stats@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:38.525214",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:38.525219",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-CF3184": {
+            "id": "ORD-20260830-CF3184",
+            "cliente_email": "cliente-b-test-customer-cannot-access-admin-dashboard-stats@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:38.529955",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:38.529966",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-A92CCA": {
+            "id": "ORD-20260830-A92CCA",
+            "cliente_email": "cliente-a-test-customer-cannot-access-finanzas-data@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:39.523526",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:39.523533",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-1DD852": {
+            "id": "ORD-20260830-1DD852",
+            "cliente_email": "cliente-b-test-customer-cannot-access-finanzas-data@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:39.528285",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:39.528297",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-6DDF85": {
+            "id": "ORD-20260830-6DDF85",
+            "cliente_email": "cliente-a-test-customer-cannot-confirm-other-customers-checkout-session@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:40.511187",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:40.511195",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-878E72": {
+            "id": "ORD-20260830-878E72",
+            "cliente_email": "cliente-b-test-customer-cannot-confirm-other-customers-checkout-session@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:40.516299",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:40.516307",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-54B5AD": {
+            "id": "ORD-20260830-54B5AD",
+            "cliente_email": "cliente-a-test-customer-cannot-create-stripe-payment@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:41.500521",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:41.500529",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-6B0A0A": {
+            "id": "ORD-20260830-6B0A0A",
+            "cliente_email": "cliente-b-test-customer-cannot-create-stripe-payment@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:41.505640",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:41.505648",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-CF74CE": {
+            "id": "ORD-20260830-CF74CE",
+            "cliente_email": "cliente-a-test-customer-cannot-export-report@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:42.532317",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:42.532329",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-0BA398": {
+            "id": "ORD-20260830-0BA398",
+            "cliente_email": "cliente-b-test-customer-cannot-export-report@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:42.543850",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:42.543861",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-9815DF": {
+            "id": "ORD-20260830-9815DF",
+            "cliente_email": "cliente-a-test-customer-cannot-mark-other-customers-notification@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:43.515346",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:43.515355",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-5C7279": {
+            "id": "ORD-20260830-5C7279",
+            "cliente_email": "cliente-b-test-customer-cannot-mark-other-customers-notification@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:43.520547",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:43.520559",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-003476": {
+            "id": "ORD-20260830-003476",
+            "cliente_email": "cliente-a-test-customer-cannot-pay-other-customers-invoice@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:44.523409",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:44.523417",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-2AD3D0": {
+            "id": "ORD-20260830-2AD3D0",
+            "cliente_email": "cliente-b-test-customer-cannot-pay-other-customers-invoice@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:44.529262",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:44.529270",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-8DBADE": {
+            "id": "ORD-20260830-8DBADE",
+            "cliente_email": "cliente-a-test-customer-cannot-rate-other-customers-order@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:45.657652",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:45.657662",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-AEE4AE": {
+            "id": "ORD-20260830-AEE4AE",
+            "cliente_email": "cliente-b-test-customer-cannot-rate-other-customers-order@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:45.669226",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:45.669238",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-7C9015": {
+            "id": "ORD-20260830-7C9015",
+            "cliente_email": "cliente-a-test-customer-cannot-update-settings@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:46.904775",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:46.904784",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-02B0D4": {
+            "id": "ORD-20260830-02B0D4",
+            "cliente_email": "cliente-b-test-customer-cannot-update-settings@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:46.922499",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:46.922512",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-5B8882": {
+            "id": "ORD-20260830-5B8882",
+            "cliente_email": "cliente-a-test-customer-only-sees-own-invoices@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:47.954074",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:47.954084",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-983DF4": {
+            "id": "ORD-20260830-983DF4",
+            "cliente_email": "cliente-b-test-customer-only-sees-own-invoices@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:47.961657",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:47.961665",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-FAB185": {
+            "id": "ORD-20260830-FAB185",
+            "cliente_email": "cliente-a-test-customer-only-sees-own-orders@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:48.981754",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:48.981760",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-6150F0": {
+            "id": "ORD-20260830-6150F0",
+            "cliente_email": "cliente-b-test-customer-only-sees-own-orders@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:48.993296",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:48.993309",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-81C7C3": {
+            "id": "ORD-20260830-81C7C3",
+            "cliente_email": "cliente-a-test-customer-order-creation-forces-own-email@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:49.995092",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:49.995100",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-746732": {
+            "id": "ORD-20260830-746732",
+            "cliente_email": "cliente-b-test-customer-order-creation-forces-own-email@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:50.002230",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:50.002238",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-982C9D": {
+            "id": "ORD-20260830-982C9D",
+            "cliente_email": "cliente-a-test-customer-order-creation-forces-own-email@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 1,
+            "descripcion_proyecto": "Should belong to A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:50.024340",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:50.024353",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-DF982B": {
+            "id": "ORD-20260830-DF982B",
+            "cliente_email": "cliente-a-test-empty-bearer-returns-401@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:51.061301",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:51.061306",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-5A0176": {
+            "id": "ORD-20260830-5A0176",
+            "cliente_email": "cliente-b-test-empty-bearer-returns-401@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:51.081086",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:51.081099",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-40F2F7": {
+            "id": "ORD-20260830-40F2F7",
+            "cliente_email": "cliente-a-test-expired-session-token-returns-401@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:52.955748",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:52.955753",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-E03447": {
+            "id": "ORD-20260830-E03447",
+            "cliente_email": "cliente-b-test-expired-session-token-returns-401@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:52.965134",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:52.965147",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-1D0DF6": {
+            "id": "ORD-20260830-1D0DF6",
+            "cliente_email": "cliente-a-test-invalid-csrf-token-returns-403@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:54.809893",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:54.809903",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-29DB3C": {
+            "id": "ORD-20260830-29DB3C",
+            "cliente_email": "cliente-b-test-invalid-csrf-token-returns-403@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:54.820837",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:54.820844",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-5B2D36": {
+            "id": "ORD-20260830-5B2D36",
+            "cliente_email": "cliente-a-test-invalid-token-string-returns-401@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:55.861081",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:55.861087",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-68D124": {
+            "id": "ORD-20260830-68D124",
+            "cliente_email": "cliente-b-test-invalid-token-string-returns-401@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:55.872265",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:55.872273",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-1AE427": {
+            "id": "ORD-20260830-1AE427",
+            "cliente_email": "cliente-a-test-missing-csrf-header-returns-403@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:56.911065",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:56.911073",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-1B91EB": {
+            "id": "ORD-20260830-1B91EB",
+            "cliente_email": "cliente-b-test-missing-csrf-header-returns-403@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:56.921090",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:56.921099",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-C20D73": {
+            "id": "ORD-20260830-C20D73",
+            "cliente_email": "cliente-a-test-no-auth-header-returns-401@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:57.989510",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:57.989519",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-72FE48": {
+            "id": "ORD-20260830-72FE48",
+            "cliente_email": "cliente-b-test-no-auth-header-returns-401@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:58.007965",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:58.007974",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-7A9D16": {
+            "id": "ORD-20260830-7A9D16",
+            "cliente_email": "cliente-a-test-password-reset-blocks-after-multiple-invalid-attempts@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:59.085638",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:59.085645",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-ECEA79": {
+            "id": "ORD-20260830-ECEA79",
+            "cliente_email": "cliente-b-test-password-reset-blocks-after-multiple-invalid-attempts@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:00:59.095436",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:00:59.095447",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-5D2FA7": {
+            "id": "ORD-20260830-5D2FA7",
+            "cliente_email": "cliente-a-test-unauthenticated-cannot-open-sse-events@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:01:00.137014",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:01:00.137023",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-D960DC": {
+            "id": "ORD-20260830-D960DC",
+            "cliente_email": "cliente-b-test-unauthenticated-cannot-open-sse-events@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:01:00.149908",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:01:00.149917",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-FA8E83": {
+            "id": "ORD-20260830-FA8E83",
+            "cliente_email": "cliente-a-test-unauthenticated-customer-endpoint-returns-401@example.com",
+            "clon_id": "clone_a",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Proyecto A",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:01:01.121709",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:01:01.121714",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-0E761E": {
+            "id": "ORD-20260830-0E761E",
+            "cliente_email": "cliente-b-test-unauthenticated-customer-endpoint-returns-401@example.com",
+            "clon_id": "clone_b",
+            "cantidad_horas": 3,
+            "descripcion_proyecto": "Proyecto B",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:01:01.130579",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:01:01.130587",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
+        },
+        "ORD-20260830-ADE4C0": {
+            "id": "ORD-20260830-ADE4C0",
+            "cliente_email": "endpoint-test@example.com",
+            "clon_id": "rsanchez_cobol",
+            "cantidad_horas": 2,
+            "descripcion_proyecto": "Test project",
+            "requiere_contrato": true,
+            "fecha_creacion": "2026-08-30T10:01:09.547885",
+            "estado": "pendiente",
+            "etapas": {
+                "legal": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando validación de contrato y política de privacidad"
+                },
+                "desarrollo": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando preparación del clon para el proyecto"
+                },
+                "operaciones": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando procesamiento financiero y facturación"
+                },
+                "entrega": {
+                    "estado": "pendiente",
+                    "fecha_inicio": null,
+                    "fecha_fin": null,
+                    "detalles": "Esperando envío de acceso al cliente"
+                }
+            },
+            "notificaciones": [
+                {
+                    "timestamp": "2026-08-30T10:01:09.547897",
+                    "tipo": "creacion",
+                    "mensaje": "Orden creada exitosamente. Se procesará automáticamente.",
+                    "leida": false
+                }
+            ],
+            "monto_total": null,
+            "comision": null,
+            "archivos_entregables": [],
+            "pago": {
+                "factura_id": null,
+                "estado_pago": "pendiente",
+                "metodo_pago": null,
+                "fecha_pago": null
+            },
+            "rating": {
+                "puntuacion": null,
+                "resena": "",
+                "fecha_rating": null,
+                "cliente_satisfecho": null
+            },
+            "contrato": {
+                "texto_contrato": null,
+                "generado_por_gemini": false,
+                "firma_cliente": false,
+                "fecha_firma": null
+            }
         }
     },
-    "contador_ordenes": 3
+    "contador_ordenes": 53
 }

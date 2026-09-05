@@ -470,3 +470,30 @@ def verify_password(password, stored_hash):
         return secrets.compare_digest(test_hash.hex(), hashed)
     except Exception:
         return False
+
+
+def validate_gemini_key():
+    """Valida la API key de Gemini en el entorno. Retorna (ok, message)."""
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return False, "GEMINI_API_KEY no configurada. El modo offline estará activo."
+    if len(api_key) < 20:
+        return False, f"GEMINI_API_KEY parece inválida (longitud {len(api_key)}, esperada >= 20)."
+    if " " in api_key or "\n" in api_key or "\t" in api_key:
+        return False, "GEMINI_API_KEY contiene espacios o saltos de línea. Verifica el valor."
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    return True, f"GEMINI_API_KEY configurada (modelo: {model})."
+
+
+def sanitize_gemini_key(value):
+    """Limpia y valida un valor de API key de Gemini. Retorna la key limpia o None si es inválida."""
+    if not value or not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) < 20:
+        return None
+    if " " in cleaned or "\n" in cleaned or "\t" in cleaned:
+        return None
+    return cleaned
